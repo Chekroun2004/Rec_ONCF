@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(cd \"C:\\\\Users\\\\omarc\\\\Desktop\\\\Rec_ONCF\"; $env:PYTHONIOENCODING=\"utf-8\"; .\\\\.venv\\\\Scripts\\\\python.exe scripts\\\\_audit_cleaning.py 2>&1)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/ -v)",
+      "Bash(.venv/Scripts/python.exe scripts/02_build_features.py)",
+      "Bash(.venv/Scripts/python.exe scripts/03_train_ranker.py)",
+      "Bash(.venv\\\\Scripts\\\\python.exe -m pytest tests/ -v)",
+      "PowerShell(nvidia-smi --query-gpu=name,memory.total,memory.free,memory.used --format=csv,noheader)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\omarc\\\\Desktop\\\\Rec_ONCF\\\\models\\\\\" | Select-Object Name, @{N='MB';E={[math]::Round\\($_.Length/1MB,1\\)}}, LastWriteTime)",
+      "Bash(python3)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\omarc\\\\Desktop\\\\Rec_ONCF\" -File | Select-Object Name, @{N='KB';E={[math]::Round\\($_.Length/1KB,1\\)}})",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\omarc\\\\Desktop\\\\Rec_ONCF\" -File -Force | Select-Object Name, @{N='KB';E={[math]::Round\\($_.Length/1KB,1\\)}}, LastWriteTime | Format-Table -AutoSize)",
+      "Bash(.venv/Scripts/python.exe -m pip install httpx)",
+      "Bash(.venv/Scripts/python.exe scripts/04_baselines.py)",
+      "Bash(.venv/Scripts/python.exe -m uvicorn apps.api.main:app --port 8765 --log-level warning)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8765/health)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/)",
+      "Bash(.venv/Scripts/python.exe -c ' *)",
+      "Bash(tee reports/training_log.txt)",
+      "Bash([ -s \"C:\\\\\\\\Users\\\\\\\\omarc\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-omarc-Desktop-Rec-ONCF\\\\\\\\68281f06-aa29-4bb7-a4d8-d29686bc15d6\\\\\\\\tasks\\\\\\\\bxzox3of8.output\" ])",
+      "Bash(cat \"C:\\\\\\\\Users\\\\\\\\omarc\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-omarc-Desktop-Rec-ONCF\\\\\\\\68281f06-aa29-4bb7-a4d8-d29686bc15d6\\\\\\\\tasks\\\\\\\\bxzox3of8.output\")",
+      "Bash([ -s \"C:\\\\\\\\Users\\\\\\\\omarc\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-omarc-Desktop-Rec-ONCF\\\\\\\\68281f06-aa29-4bb7-a4d8-d29686bc15d6\\\\\\\\tasks\\\\\\\\byt1a7721.output\" ])",
+      "Bash(grep -q \"Saved\" \"C:\\\\\\\\Users\\\\\\\\omarc\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-omarc-Desktop-Rec-ONCF\\\\\\\\68281f06-aa29-4bb7-a4d8-d29686bc15d6\\\\\\\\tasks\\\\\\\\byt1a7721.output\")",
+      "Bash(cat \"C:\\\\\\\\Users\\\\\\\\omarc\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-omarc-Desktop-Rec-ONCF\\\\\\\\68281f06-aa29-4bb7-a4d8-d29686bc15d6\\\\\\\\tasks\\\\\\\\byt1a7721.output\")"
+    ]
+  }
+}

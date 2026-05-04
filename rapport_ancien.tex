@@ -1,0 +1,896 @@
+\documentclass[12pt, a4paper, openright]{report}
+
+% ========== ENCODAGE / LANGUE ==========
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+
+% Police scalable (évite les warnings de taille 28)
+\usepackage{lmodern}
+
+% ========== MISE EN PAGE / GRAPHICS ==========
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage{xcolor}
+\usepackage{textcomp}
+\usepackage{lastpage}
+
+% ========== HYPERREF (à charger tard) ==========
+\usepackage{hyperref}
+
+% ========== LISTINGS ==========
+\usepackage{listings}
+
+% ========== CORRECTION UNICODE (pdfLaTeX) ==========
+% Fix de l’erreur: Unicode character ↔ (U+2194) not set up
+\DeclareUnicodeCharacter{2194}{\ensuremath{\leftrightarrow}}
+
+% ========== COULEURS ==========
+\definecolor{darkblue}{RGB}{0, 51, 102}
+\definecolor{lightblue}{RGB}{41, 128, 185}
+\definecolor{accent}{RGB}{231, 76, 60}
+
+% ========== CONFIGURATION ==========
+\setstretch{1.5}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=darkblue,
+  filecolor=darkblue,
+  urlcolor=lightblue
+}
+
+% ========== CONFIGURATION DES LISTINGS ==========
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Définition robuste de JavaScript (évite "language javascript undefined")
+\lstdefinelanguage{JavaScript}{
+  keywords={break, case, catch, class, const, continue, debugger, default, delete,
+    do, else, export, extends, finally, for, function, if, import, in, instanceof,
+    let, new, return, super, switch, this, throw, try, typeof, var, void, while, with, yield,
+    await, async},
+  keywordstyle=\color{blue}\bfseries,
+  ndkeywords={true,false,null,undefined},
+  ndkeywordstyle=\color{codepurple}\bfseries,
+  identifierstyle=\color{black},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{codegreen},
+  stringstyle=\color{codepurple},
+  morestring=[b]',
+  morestring=[b]"
+}
+
+\lstdefinestyle{mystyle}{
+  backgroundcolor=\color{backcolour},
+  commentstyle=\color{codegreen},
+  keywordstyle=\color{blue},
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{codepurple},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  captionpos=b,
+  keepspaces=true,
+  numbers=left,
+  numbersep=5pt,
+  showstringspaces=false,
+  tabsize=2,
+  frame=single,
+  rulecolor=\color{black},
+  % gestion accents dans listings (utile si tu as des caractères non-ASCII)
+  literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+           {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+           {à}{{\`a}}1 {è}{{\`e}}1 {ì}{{\`i}}1 {ò}{{\`o}}1 {ù}{{\`u}}1
+           {À}{{\`A}}1 {È}{{\`E}}1 {Ì}{{\`I}}1 {Ò}{{\`O}}1 {Ù}{{\`U}}1
+           {ä}{{\"a}}1 {ë}{{\"e}}1 {ï}{{\"i}}1 {ö}{{\"o}}1 {ü}{{\"u}}1
+           {Ä}{{\"A}}1 {Ë}{{\"E}}1 {Ï}{{\"I}}1 {Ö}{{\"O}}1 {Ü}{{\"U}}1
+           {â}{{\^a}}1 {ê}{{\^e}}1 {î}{{\^i}}1 {ô}{{\^o}}1 {û}{{\^u}}1
+           {Â}{{\^A}}1 {Ê}{{\^E}}1 {Î}{{\^I}}1 {Ô}{{\^O}}1 {Û}{{\^U}}1
+           {ã}{{\~a}}1 {õ}{{\~o}}1 {ñ}{{\~n}}1
+           {Ã}{{\~A}}1 {Õ}{{\~O}}1 {Ñ}{{\~N}}1
+           {ç}{{\c{c}}}1 {Ç}{{\c{C}}}1
+           {œ}{{\oe}}1 {Œ}{{\OE}}1 {æ}{{\ae}}1 {Æ}{{\AE}}1
+}
+\lstset{style=mystyle}
+
+% ========== FANCYHDR ==========
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Rapport de Projet - Master IGOV}
+\fancyhead[R]{\small Page \thepage/\pageref{LastPage}}
+\fancyfoot[C]{\small Université Mohammed V - Faculté des Sciences de Rabat}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Fix warning headheight too small
+\setlength{\headheight}{14pt}
+
+% ========== COMMANDES PERSONNALISÉES ==========
+\newcommand{\sectiontitle}[1]{\section*{\textcolor{darkblue}{#1}}\addcontentsline{toc}{section}{#1}}
+\newcommand{\subsectiontitle}[1]{\subsection*{\textcolor{darkblue}{#1}}\addcontentsline{toc}{subsection}{#1}}
+
+% ========== DÉBUT DU DOCUMENT ==========
+\begin{document}
+
+% ------------------------------------------------
+% NUMÉROTATION PROPRE + ÉVITER DUPLICATE page.1
+% ------------------------------------------------
+\pagenumbering{gobble} % pas de numéros sur la page de garde
+
+% Désactiver les ancres hyperref sur la page de titre (évite duplicate name{page.1})
+\hypersetup{pageanchor=false}
+
+% ========== PAGE DE TITRE ==========
+\thispagestyle{empty}
+\begin{titlepage}
+\begin{center}
+    \includegraphics[width=0.7\textwidth]{LogoFsr.png} \\[0.4cm]
+    \large\textbf{Département d'Informatique} \\[0.2cm]
+    \large\textbf{Master IGOV} \\[0.2cm]
+    \textbf{Informatique, Gouvernance et Transformation Digitale} \\[0.6cm]
+
+    \textbf{Présenté par :} \\[0.2cm]
+    \normalsize \textsc{Omar CHEKROUN}
+    \vspace{0.8cm}
+
+    \rule{\textwidth}{2pt}
+    \vspace{0.5cm}
+
+    {\LARGE \textbf{\textcolor{darkblue}{RAPPORT DE PROJET}}} \\
+    \vspace{0.3cm}
+
+    {\Large \textbf{Software Engineering}} \\
+    \vspace{0.3cm}
+
+    {\large \textbf{\textcolor{lightblue}{Conception et Développement d'une Application Web}}} \\
+    \vspace{0.2cm}
+    {\large \textbf{\textcolor{lightblue}{de Gestion des Absences et des Lettres de Recommandation}}} \\
+
+    \vspace{2cm}
+
+    {\fontsize{28}{36}\selectfont \textbf{\textcolor{darkblue}{Absence Manager}}} \\
+    \vspace{0.1cm}
+
+    \rule{\textwidth}{2pt}
+    \vspace{0.2cm}
+
+    \textbf{Année académique : 2025-2026} \\
+    \vspace{0.2cm}
+\end{center}
+\end{titlepage}
+
+% Réactiver ancres hyperref
+\hypersetup{pageanchor=true}
+
+% Page blanche après titre (si tu veux absolument)
+\cleardoublepage
+\thispagestyle{empty}
+\mbox{}
+
+% Préliminaires en romain
+\cleardoublepage
+\pagenumbering{roman}
+\setcounter{page}{1}
+\thispagestyle{fancy}
+
+% ========== REMERCIEMENTS ==========
+\chapter*{Remerciements}
+\addcontentsline{toc}{chapter}{Remerciements}
+\thispagestyle{fancy}
+
+Je tiens à exprimer ma sincère gratitude à toutes les personnes qui ont contribué à la réalisation de ce projet.
+
+Je remercie tout d'abord mon encadrant pédagogique pour ses conseils précieux, son suivi régulier et ses orientations qui m'ont guidé tout au long de ce travail.
+
+Mes remerciements s'adressent également à l'ensemble du corps enseignant du département d'informatique et du programme Master IGOV pour la qualité de la formation dispensée et pour avoir su me transmettre les compétences nécessaires à la réalisation de ce type de projet.
+
+Enfin, je remercie ma famille et mes proches pour leur soutien moral et leurs encouragements constants durant toute la période de réalisation de ce projet.
+
+% ========== RÉSUMÉ ==========
+\cleardoublepage
+\chapter*{Résumé et Abstract}
+\addcontentsline{toc}{chapter}{Résumé et Abstract}
+\thispagestyle{fancy}
+
+\section*{Résumé}
+Dans le cadre de la formation universitaire en master, le suivi des absences des étudiants et la gestion des demandes de lettres de recommandation constituent des tâches administratives essentielles mais souvent réalisées de manière manuelle, ce qui entraîne des erreurs, des pertes de données et une charge de travail importante pour le personnel académique.
+
+Ce projet consiste à concevoir et développer une application web dédiée à la gestion automatisée des présences et des absences des étudiants, ainsi qu'à la centralisation des demandes de lettres de recommandation. L'application offre des interfaces adaptées à trois types d'utilisateurs : administrateur, professeur et étudiant, chacun disposant de fonctionnalités spécifiques en fonction de son rôle.
+
+L'application a été développée en utilisant des technologies web modernes, notamment \textbf{Laravel 12} pour le backend, \textbf{React.js 18} avec \textbf{Inertia.js} pour le frontend et \textbf{MySQL} pour la gestion de la base de données. Le système intègre l'authentification sécurisée, la génération automatique de codes de présence, le suivi en temps réel des absences, la justification d'absences avec pièces jointes, ainsi que la génération automatisée de lettres de recommandation au format PDF.
+
+\vspace{1.5cm}
+\textbf{Mots-clés :} gestion des absences, application web, lettres de recommandation, automatisation, système académique, Laravel, React.js, Inertia.js, transformation digitale.
+
+\vspace{2cm}
+\section*{Abstract}
+Within the context of university master's programs, monitoring student attendance and managing recommendation letter requests are essential academic tasks that are often performed manually, leading to errors, data loss, and heavy workload for academic staff.
+
+This project focuses on the design and development of a web-based application aimed at automating attendance and absence management while centralizing recommendation letter requests. The application provides role-specific interfaces for three user types: administrator, professor, and student.
+
+The application was implemented using modern web technologies, including \textbf{Laravel 12} for the backend, \textbf{React.js 18} with \textbf{Inertia.js} for the frontend, and \textbf{MySQL} for database management. It integrates secure authentication, automatic attendance code generation, real-time absence tracking, absence justification with document uploads, and automated PDF recommendation letter generation.
+
+\vspace{1.5cm}
+\textbf{Keywords:} attendance management, web application, recommendation letters, automation, academic system, Laravel, React.js, Inertia.js, digital transformation.
+
+% ========== TABLE DES MATIÈRES / FIGURES ==========
+\cleardoublepage
+\tableofcontents
+
+\cleardoublepage
+\listoffigures
+
+% ------------------------------------------------
+% Début du corps (numérotation arabe)
+% ------------------------------------------------
+\cleardoublepage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% ========== INTRODUCTION GÉNÉRALE ==========
+\chapter*{Introduction générale}
+\thispagestyle{fancy}
+\addcontentsline{toc}{chapter}{Introduction générale}
+
+La gestion pédagogique au sein des établissements universitaires repose sur plusieurs processus essentiels, parmi lesquels le suivi des présences des étudiants et la gestion des lettres de recommandation. Ces activités, bien qu'indispensables, sont souvent gérées de manière manuelle ou semi-numérique, ce qui entraîne un manque de traçabilité, des erreurs fréquentes et une charge administrative significative.
+
+Le suivi traditionnel des absences présente plusieurs limites, notamment l'absence de traçabilité fiable, la difficulté de centralisation des données et le risque de fraude lié aux méthodes manuelles. De manière similaire, le processus de demande de lettres de recommandation manque souvent de formalisation et de suivi, ce qui peut entraîner des retards et des pertes de demandes.
+
+Face à ces constats, la transformation numérique apparaît comme une solution pertinente pour améliorer la gestion académique et optimiser les processus administratifs. L'utilisation des technologies web modernes permet de développer des solutions centralisées, sécurisées et accessibles à l'ensemble des acteurs concernés.
+
+C'est dans ce contexte que s'inscrit ce projet, dont l'objectif principal est de concevoir et de développer une application web dédiée à la gestion automatisée des absences et des lettres de recommandation, en s'appuyant sur une architecture moderne combinant \textbf{Laravel 12} pour le backend et \textbf{React.js 18} avec \textbf{Inertia.js} pour le frontend.
+
+Le présent rapport décrit les différentes étapes de réalisation de ce projet, depuis l'analyse des besoins et la spécification fonctionnelle jusqu'à l'implémentation et les tests. Il est structuré en six chapitres : présentation générale du projet, étude de l'existant et analyse des besoins, modélisation UML, réalisation et implémentation, tests et validation, et enfin organisation du travail en équipe.
+
+
+% ========== CHAPITRE 1 ==========
+\cleardoublepage
+\chapter{Présentation générale du projet}
+\thispagestyle{fancy}
+
+\section{Introduction}
+
+Ce chapitre a pour objectif de situer le projet dans son contexte académique et organisationnel. Il présente les motivations ayant conduit à la réalisation de cette application, définit la problématique traitée, énonce les objectifs visés et délimite le périmètre fonctionnel du système.
+
+\section{Contexte académique}
+
+Dans le cadre des formations universitaires de niveau master, le suivi pédagogique constitue un élément fondamental de l'organisation académique. Parmi les aspects clés de ce suivi figure la gestion des présences et des absences des étudiants, qui permet d'évaluer leur engagement et leur assiduité dans les différents modules d'enseignement.
+
+Cependant, dans de nombreux établissements, la gestion des présences repose encore sur des méthodes traditionnelles telles que les feuilles d'émargement papier ou les fichiers Excel partagés. Ces approches, bien qu'largement utilisées, présentent des lacunes importantes en termes de fiabilité, de traçabilité et d'efficacité.
+
+Par ailleurs, la demande de lettres de recommandation constitue une étape importante dans le parcours académique des étudiants, en particulier pour la poursuite d'études ou l'insertion professionnelle. Cette procédure, généralement informelle, nécessite une structuration et une automatisation afin de réduire les délais et d'assurer un traitement équitable des demandes.
+
+\section{Problématique et justification du projet}
+
+Les limites observées dans la gestion manuelle ou semi-numérisée des absences et des lettres de recommandation soulèvent plusieurs problématiques. D'une part, l'absence de traçabilité fiable rend difficile le suivi précis des présences. D'autre part, le risque de fraude lié aux méthodes manuelles compromet l'intégrité des données de présence.
+
+Dans ce contexte, la mise en place d'une solution informatique centralisée apparaît comme une réponse adaptée aux besoins actuels des établissements universitaires. Une telle solution permettrait de :
+
+\begin{itemize}
+    \item Réduire les erreurs humaines liées à la saisie manuelle des présences
+    \item Centraliser les données de présence dans un système unique et fiable
+    \item Automatiser la génération des lettres de recommandation
+    \item Offrir une visibilité en temps réel sur les absences des étudiants
+    \item Sécuriser le processus de validation de présence
+\end{itemize}
+
+\section{Objectifs du projet}
+
+L'objectif principal de ce projet est de concevoir et de développer une application web permettant d'automatiser le suivi des absences des étudiants et de centraliser la gestion des lettres de recommandation. Plus spécifiquement, le projet vise à :
+
+\begin{itemize}
+    \item Mettre en place un système sécurisé d'authentification et de gestion des accès selon les rôles (administrateur, professeur, étudiant).
+    \item Permettre aux professeurs de lancer des séances de cours avec génération automatique d'un code de présence temporaire que les étudiants utilisent pour valider leur présence.
+    \item Assurer un suivi automatique du nombre d'absences et permettre aux étudiants de justifier leurs absences avec pièces jointes.
+    \item Faciliter le traitement des demandes de lettres de recommandation à travers un processus structuré, avec génération automatique de lettres en PDF.
+    \item Réduire la charge administrative des enseignants grâce à l'automatisation des tâches répétitives.
+\end{itemize}
+
+\section{Périmètre du projet}
+
+\subsection{Inclus dans le périmètre}
+
+Le périmètre fonctionnel de l'application couvre exclusivement les aspects liés à :
+
+\begin{itemize}
+    \item La gestion automatisée des présences et absences des étudiants
+    \item La justification des absences avec upload de documents
+    \item La gestion centralisée des demandes de lettres de recommandation
+    \item La gestion des utilisateurs et des accès par rôle
+    \item La gestion des modules, classes et séances de cours
+\end{itemize}
+
+\subsection{Exclus du périmètre}
+
+Certains éléments ne font pas partie du périmètre du projet :
+
+\begin{itemize}
+    \item La gestion complète des notes et examens
+    \item L'intégration avec des systèmes d'information externes
+    \item La gestion des emplois du temps
+    \item Les applications mobiles natives
+    \item La gestion des frais de scolarité
+\end{itemize}
+
+\section{Conclusion}
+
+À travers ce chapitre, le cadre général du projet a été établi en mettant en évidence les problématiques rencontrées dans la gestion traditionnelle des présences et des lettres de recommandation. Les objectifs et le périmètre du projet ont été clairement définis, posant ainsi les bases pour les étapes suivantes de la conception et du développement.
+
+% ========== CHAPITRE 2 ==========
+\cleardoublepage
+\chapter{Étude de l'existant et analyse des besoins}
+\thispagestyle{fancy}
+
+\section{Introduction}
+
+Ce chapitre est consacré à l'étude de l'existant et à l'analyse des besoins du système à développer. Il vise à identifier les limites des méthodes actuellement utilisées pour la gestion des présences et des lettres de recommandation, puis à définir les exigences fonctionnelles et non fonctionnelles auxquelles l'application devra répondre.
+
+\section{Étude de l'existant}
+
+\subsection{Méthodes actuelles de gestion des présences}
+
+Dans de nombreux établissements universitaires, le suivi des présences des étudiants est encore réalisé à l'aide de méthodes traditionnelles. Ces méthodes comprennent :
+
+\begin{itemize}
+    \item Les feuilles d'émargement papier signées en début de séance
+    \item Les appels nominatifs oraux
+    \item L'utilisation de fichiers Excel non centralisés et non partagés
+    \item Les registres papier tenus à jour manuellement
+\end{itemize}
+
+L'utilisation de supports papier rend la conservation et la consultation des historiques de présence difficiles, notamment lorsque le volume de données augmente. La perte de feuilles, l'illisibilité des écritures et l'impossibilité de croiser les données entre modules constituent des problèmes récurrents.
+
+\subsection{Gestion des lettres de recommandation}
+
+Concernant les lettres de recommandation, la situation est similaire. Les demandes sont généralement formulées de manière informelle, par échanges directs entre étudiants et professeurs, sans traçabilité ni suivi systématique. Cette absence de structuration peut entraîner des retards et des oublis dans le traitement des demandes.
+
+\section{Identification des acteurs du système}
+
+L'application proposée s'adresse à plusieurs catégories d'utilisateurs, chacune disposant de rôles et de responsabilités spécifiques. L'identification précise de ces acteurs est indispensable pour la définition des cas d'utilisation et la conception des interfaces adaptées.
+
+\subsection{Administrateur}
+
+L'administrateur est responsable de la gestion globale de la plateforme. Il assure la création et la gestion des comptes utilisateurs, la configuration de la structure académique (classes, modules), l'approbation des inscriptions en attente et la supervision des données de présence. Il dispose également d'un tableau de bord synthétique affichant les statistiques clés du système, incluant le nombre total d'utilisateurs, de modules, et les étudiants ayant dépassé le seuil d'absences autorisé.
+
+\subsection{Professeur}
+
+Le professeur utilise la plateforme principalement pour le suivi pédagogique. Il peut lancer des séances de cours avec génération automatique d'un code de présence temporaire (code PIN à 6 caractères, valide 20 secondes), suivre les présences en temps réel, consulter l'historique des séances, gérer les justifications d'absences (approbation ou rejet), traiter les demandes de lettres de recommandation, et attribuer des mentions académiques aux étudiants.
+
+\subsection{Étudiant}
+
+L'étudiant est un acteur actif du système. Il s'authentifie de manière sécurisée afin de confirmer sa présence lors des séances de cours en saisissant le code PIN généré par le professeur. Il peut consulter l'historique de ses présences et absences, soumettre des justifications d'absence avec pièces jointes, demander des lettres de recommandation et télécharger les lettres générées au format PDF.
+
+\section{Analyse des besoins fonctionnels}
+
+L'analyse des besoins fonctionnels permet de définir précisément les services que l'application doit offrir afin de répondre aux attentes des différents acteurs. Les principaux besoins identifiés sont les suivants :
+
+Le système doit intégrer un mécanisme d'authentification sécurisé avec gestion des rôles (RBAC), garantissant un accès contrôlé selon le rôle de chaque utilisateur. L'inscription nécessite une approbation préalable par l'administrateur avant l'accès à la plateforme.
+
+En ce qui concerne la gestion des présences, l'application doit permettre au professeur de lancer une séance avec génération automatique d'un code PIN temporaire. Les étudiants saisissent ce code pour valider leur présence. Le système vérifie la validité du code et son expiration avant d'enregistrer la présence.
+
+La gestion des absences constitue un autre besoin essentiel. L'application doit calculer automatiquement le nombre d'absences par étudiant et par module, permettre la justification des absences avec envoi de documents, et signaler les étudiants ayant dépassé le seuil de 3 absences.
+
+Enfin, le module de lettres de recommandation doit permettre la soumission, le traitement et la génération automatique des lettres à partir de modèles prédéfinis adaptés à la mention académique de l'étudiant (Très Bien, Bien, Assez Bien, Passable). Les lettres sont générées automatiquement au format PDF via le service RecommendationLetterService.
+
+\section{Analyse des besoins non fonctionnels}
+
+Outre les fonctionnalités offertes, l'application doit répondre à un ensemble d'exigences non fonctionnelles visant à garantir sa qualité et sa fiabilité :
+
+\begin{itemize}
+    \item \textbf{Sécurité :} hashage des mots de passe (bcrypt), protection CSRF, contrôle d'accès par middleware (CheckRole, CheckUserApproved), limitation des tentatives de connexion (rate limiting).
+    \item \textbf{Performance :} temps de réponse inférieur à 2 secondes, pagination des listes, chargement paresseux des relations Eloquent.
+    \item \textbf{Ergonomie :} interface intuitive et responsive basée sur Tailwind CSS, navigation fluide grâce à Inertia.js (SPA sans rechargement de page).
+    \item \textbf{Fiabilité :} intégrité des données assurée par les contraintes de clés étrangères, transactions et validations côté serveur.
+    \item \textbf{Maintenabilité :} architecture MVC claire, séparation des responsabilités (Controllers, Models, Services), code versionné avec Git.
+\end{itemize}
+
+\section{Conclusion}
+
+L'étude de l'existant et l'analyse des besoins ont permis de mettre en évidence la nécessité d'un système centralisé et automatisé pour la gestion des absences et des lettres de recommandation. Les besoins fonctionnels et non fonctionnels identifiés serviront de base pour la conception et la phase de modélisation décrite dans le chapitre suivant.
+
+% ========== CHAPITRE 3 ==========
+\cleardoublepage
+\chapter{Modélisation UML du système}
+\thispagestyle{fancy}
+
+\section{Introduction}
+
+La modélisation UML constitue une étape essentielle dans la conception du système, car elle permet de représenter de manière formelle les interactions entre les acteurs et le système, les flux de données et la structure de la base de données.
+
+Dans ce chapitre, nous présentons les principaux diagrammes UML réalisés pour le système de gestion des absences et des lettres de recommandation. Ces diagrammes incluent le diagramme de cas d'utilisation, les diagrammes de séquence et le diagramme de classes.
+
+\section{Diagramme de cas d'utilisation}
+
+\subsection{Acteurs du système}
+
+Le système comporte trois acteurs principaux :
+
+L'étudiant, qui interagit avec la plateforme pour valider sa présence via un code PIN, consulter ses absences, soumettre des justifications d'absence avec documents et demander des lettres de recommandation.
+
+Le professeur, responsable de la gestion des séances de cours (lancement, génération du code PIN, clôture), du suivi des présences en temps réel, du traitement des justifications d'absences et des demandes de lettres de recommandation, ainsi que de l'attribution des mentions académiques.
+
+L'administrateur, chargé de la gestion globale du système, incluant la gestion des utilisateurs, des classes, des modules, l'approbation des inscriptions et la supervision des statistiques d'absences.
+
+\subsection{Description des cas d'utilisation}
+
+Du côté de l'étudiant, le diagramme met en évidence des fonctionnalités telles que l'authentification sécurisée, la validation de présence par code PIN, la consultation de l'historique des présences et absences, la soumission de justifications (avec upload de documents), et la demande de lettres de recommandation avec téléchargement du PDF généré.
+
+Pour le professeur, les principaux cas d'utilisation concernent le lancement de séances avec génération automatique d'un code PIN à 6 caractères (durée de validité : 20 secondes), la régénération du code, le suivi en temps réel des présences, la clôture de la séance (avec marquage automatique des absents), le traitement des justifications et l'acceptation/rejet des demandes de recommandation.
+
+L'administrateur dispose de cas d'utilisation orientés vers la gestion globale : gestion des utilisateurs (CRUD), gestion des classes et modules, approbation/rejet des inscriptions, consultation des étudiants en dépassement d'absences, et supervision des notes/mentions par module.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{uml/uml1.png}
+    \caption{Diagramme de cas d'utilisation global}
+    \label{fig:usecase}
+\end{figure}
+
+\section{Diagramme de séquence - Gestion des séances et des présences}
+
+Le diagramme de séquence de gestion des séances décrit le déroulement complet du processus de validation de présence, depuis le lancement d'une séance par le professeur jusqu'à sa clôture.
+
+\subsection{Démarrage de la séance}
+
+Le processus débute lorsque le professeur lance une séance via l'application web en sélectionnant un module depuis sa liste de modules assignés. Le système crée alors un enregistrement ClassSession associé au module et au professeur, avec un statut initial « active ».
+
+\subsection{Génération du code de présence}
+
+Une fois la séance démarrée, le système génère automatiquement un code de présence unique à 6 caractères alphanumériques, associé à une durée de validité de 20 secondes. Ce code est affiché au professeur sur l'écran de la séance active et communiqué verbalement aux étudiants.
+
+\subsection{Validation de la présence des étudiants}
+
+Pendant la durée de validité du code, les étudiants peuvent saisir le code via l'interface de l'application. Le système vérifie alors la validité du code et son expiration. Si le code est valide et non expiré, la présence de l'étudiant est enregistrée dans la table Attendance avec le statut « present ». Si le code est expiré ou invalide, la tentative est rejetée.
+
+\subsection{Régénération et expiration du code}
+
+Le professeur peut régénérer un nouveau code à tout moment via la fonction « Relancer la séance », notamment en cas de retard des étudiants ou si le code initial a expiré. Le système détecte également les séances oubliées (plus de 20 minutes sans activité) et affiche un indicateur visuel au professeur.
+
+\subsection{Clôture de la séance}
+
+À la fin de la séance, le professeur clôture la session. Le système marque alors automatiquement tous les étudiants n'ayant pas validé leur présence comme absents dans la table Attendance, met à jour le statut de la séance à « closed » et enregistre la date de fin.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{uml/uml2.png}
+    \caption{Diagramme de séquence - Gestion des séances et présences}
+    \label{fig:sequence_session}
+\end{figure}
+
+\section{Diagramme de séquence - Gestion des lettres de recommandation}
+
+Ce diagramme de séquence illustre le processus de demande et de traitement des lettres de recommandation entre l'étudiant et le professeur.
+
+\subsection{Soumission de la demande}
+
+Le processus commence lorsque l'étudiant soumet une demande de lettre de recommandation via l'application, en sélectionnant le module concerné. La demande est enregistrée dans la table RecommendationRequest avec le statut « pending » et inclut automatiquement la mention académique de l'étudiant pour ce module.
+
+\subsection{Traitement de la demande par le professeur}
+
+Le professeur consulte les demandes en attente et peut décider d'accepter ou de rejeter une demande. En cas d'acceptation, le système utilise le service RecommendationLetterService pour générer automatiquement une lettre personnalisée au format PDF via mPDF, adaptée à la mention de l'étudiant (Très Bien, Bien, Assez Bien, Passable). En cas de rejet, le professeur indique la raison du refus.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{uml/uml3.png}
+    \caption{Diagramme de séquence - Gestion des lettres de recommandation}
+    \label{fig:sequence_letter}
+\end{figure}
+
+\section{Diagramme de classes}
+
+\subsection{Gestion des utilisateurs et authentification}
+
+Ce diagramme représente la structure de base du système de gestion des utilisateurs. La table users est la table centrale, contenant les champs id, name, email, password, role (enum: admin/professor/student) et is\_approved (boolean). Deux tables héritent de users : students (avec apogee\_code et academic\_mention) et professors (avec title). La relation est 1:1 entre User et Student/Professor.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{uml/uml4.png}
+    \caption{Diagramme de classes - Gestion des utilisateurs et authentification}
+    \label{fig:class_user}
+\end{figure}
+
+\subsection{Gestion des classes, modules et notes}
+
+Ce diagramme couvre toute l'infrastructure pédagogique du système. La table school\_classes représente les classes (ex: Master 1 - Data Science 2024-2025). La table modules contient les matières enseignées, associées à un professeur et une classe via clés étrangères. La table class\_sessions stocke les séances de cours avec code d'accès, horaires et statut. Les tables relationnelles student\_school\_class et module\_student gèrent les inscriptions. La table module\_student\_grades stocke les mentions de chaque étudiant par module.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{uml/uml5.png}
+    \caption{Diagramme de classes - Gestion des classes, modules et notes}
+    \label{fig:class_module}
+\end{figure}
+
+\subsection{Gestion des présences, absences et recommandations}
+
+Ce diagramme gère le suivi et les opérations post-académiques. La table attendances enregistre la présence/absence de chaque étudiant par module et par séance (statut: present/absent/late). La table absence\_justifications permet aux étudiants de justifier leurs absences avec document. La table recommendation\_requests stocke les demandes de lettres, et recommendation\_letters contient les lettres générées avec le chemin du fichier PDF et la mention utilisée.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{uml/uml6.png}
+    \caption{Diagramme de classes - Gestion des présences, absences et recommandations}
+    \label{fig:class_attendance}
+\end{figure}
+
+\section{Conclusion}
+
+Ce chapitre a présenté les principaux diagrammes UML réalisés pour le système. Les diagrammes de cas d'utilisation, de séquence et de classes fournissent une vision complète de l'architecture fonctionnelle et structurelle de l'application, servant de base pour la phase d'implémentation.
+
+% ========== CHAPITRE 4 ==========
+\cleardoublepage
+\chapter{Réalisation et implémentation}
+\thispagestyle{fancy}
+
+\section{Introduction}
+
+Ce chapitre décrit la mise en œuvre technique de l'application. Il présente l'environnement de développement, le stack technologique adopté et les patterns de conception appliqués pour implémenter les fonctionnalités principales.
+
+\section{Environnement et outils de développement}
+
+Le développement a été réalisé dans un environnement collaboratif utilisant les outils suivants :
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Composant} & \textbf{Outil/Technologie} \\
+    \hline
+    IDE & Visual Studio Code \\
+    Serveur local & Laragon (Apache, MySQL, PHP 8.2+) \\
+    Gestion versions & Git et GitHub \\
+    Build frontend & Node.js 18+ + Vite \\
+    Base de données & MySQL 5.7+ \\
+    \hline
+    \end{tabular}
+    \caption{Environnement de développement}
+    \label{table:devenv}
+\end{table}
+
+\section{Stack technologique}
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabular}{|l|c|p{5cm}|}
+    \hline
+    \textbf{Technologie} & \textbf{Version} & \textbf{Utilisation} \\
+    \hline
+    Laravel & 12.x & Framework backend MVC + ORM Eloquent \\
+    React.js & 18.x & Interface utilisateur réactive \\
+    Inertia.js & 2.0 & Bridge SPA (pas d'API REST séparée) \\
+    Tailwind CSS & 3.x & Styling responsive + Accessible \\
+    MySQL & 5.7+ & Base de données relationnelle \\
+    mPDF & 8.2 & Génération PDF des lettres \\
+    Vite & 7.x & Bundler et dev server \\
+    Laravel Breeze & 2.3 & Scaffolding authentification \\
+    Laravel Sanctum & 4.0 & Protection sessions SPA \\
+    \hline
+    \end{tabular}
+    \caption{Stack technologique complet}
+    \label{table:tech}
+\end{table}
+
+\textbf{Justification des choix :}
+\begin{itemize}
+    \item \textbf{Laravel} : Architecture MVC claire, sécurité native, ORM puissant
+    \item \textbf{React + Inertia} : Interface fluide sans rechargement, productivité accrue
+    \item \textbf{Tailwind} : Responsive d'office, accessible, développement rapide
+    \item \textbf{mPDF} : Génération PDF fiable et performante
+\end{itemize}
+
+\section{Architecture générale}
+
+L'application suit une architecture **MVC classique** enrichie de **services métier** :
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{architecture.png}
+    \caption{Architecture en couches de l'application}
+    \label{fig:architecture}
+\end{figure}
+
+\section{Implémentation des fonctionnalités clés}
+
+\subsection{Authentification et contrôle d'accès (RBAC)}
+
+\textbf{Approche :} Deux middlewares sécurisent l'accès :
+
+\begin{enumerate}
+    \item \textbf{CheckRole} : Vérifie que l'utilisateur possède le rôle requis (admin/professor/student)
+    \item \textbf{CheckUserApproved} : Bloque les utilisateurs non approuvés par l'admin
+\end{enumerate}
+
+Les rôles sont gérés via une colonne \texttt{role} dans la table \texttt{users} et validés sur chaque requête protégée.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{cap/code1.png}
+    \caption{Middleware RBAC minimal}
+    \label{fig:justification}
+\end{figure}
+
+\subsection{Gestion des séances et présences}
+
+\textbf{Workflow :}
+
+\begin{enumerate}
+    \item Professeur lance séance → Création \texttt{ClassSession}
+    \item Système génère code PIN (6 caractères aléatoires, valide 20 sec)
+    \item Étudiant saisit code → Vérification validité + expiration
+    \item Enregistrement automatique de la présence (table \texttt{Attendance})
+    \item Clôture séance → Absents marqués automatiquement
+\end{enumerate}
+
+\textbf{Code clé :}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{cap/code2.png}
+    \caption{Génération code PIN temporaire}
+    \label{fig:justification}
+\end{figure}
+
+\textbf{Validation de présence :}
+\begin{itemize}
+    \item Vérification code == \texttt{\$session->access\_code}
+    \item Vérification expiration : \texttt{code\_expires\_at > now()}
+    \item Enregistrement atomique (updateOrCreate) → pas de doublon
+\end{itemize}
+
+\subsection{Gestion des absences et justifications}
+
+\textbf{Processus :}
+
+\begin{enumerate}
+    \item Étudiant soumet justification (raison + document optionnel)
+    \item Enregistrement table \texttt{AbsenceJustification} avec statut \textit{pending}
+    \item Professeur approuve/rejette avec commentaire
+    \item Si approuvée → absence ne compte pas dans le total
+\end{enumerate}
+
+\textbf{Validations appliquées :}
+\begin{itemize}
+    \item Raison : 10-500 caractères
+    \item Document : PDF/JPG/PNG, max 5 Mo
+    \item Stockage sécurisé en storage privé
+\end{itemize}
+
+\subsection{Génération automatique de lettres PDF}
+
+\textbf{Service \texttt{RecommendationLetterService} :}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{cap/code3.png}
+    \caption{ Génération lettre PDF}
+    \label{fig:justification}
+\end{figure}
+
+\textbf{Contenu adapté à la mention :}
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Mention} & \textbf{Contenu clé} \\
+    \hline
+    Très Bien & Excellence académique et leadership \\
+    \hline
+    Bien & Solide performance et implication \\
+    \hline
+    Assez Bien & Compétences requises démontrées \\
+    \hline
+    Passable & Connaissances de base acquises \\
+    \hline
+    \end{tabular}
+    \caption{Templates de lettres par mention}
+    \label{table:letters}
+\end{table}
+
+\subsection{Modèles Eloquent et relations}
+
+L'ORM Eloquent gère les relations entre entités :
+
+\begin{itemize}
+    \item \textbf{Student} : hasMany(Attendance, Justification, RecommendationRequest)
+    \item \textbf{ClassSession} : hasMany(Attendance) + belongsTo(Module, Professor)
+    \item \textbf{Attendance} : belongsTo(Student, ClassSession) + hasMany(AbsenceJustification)
+\end{itemize}
+
+Scopes définis pour requêtes fluides :
+\begin{itemize}
+    \item \texttt{Attendance::present()} / \texttt{::absent()}
+    \item \texttt{Student::highRisk()} (3+ absences)
+\end{itemize}
+
+\section{Sécurité de l'application}
+
+\begin{table}[H]
+    \centering
+    \small
+    \begin{tabular}{|l|p{7cm}|}
+    \hline
+    \textbf{Mesure} & \textbf{Implémentation} \\
+    \hline
+    Authentification & Laravel Breeze + Sanctum (SPA-aware) \\
+    \hline
+    Hashage mots de passe & bcrypt avec salt automatique \\
+    \hline
+    Protection CSRF & Token injecté dans tous les formulaires \\
+    \hline
+    Contrôle d'accès & Middlewares RBAC + Gate/Policy Laravel \\
+    \hline
+    Rate limiting & 5 tentatives max par 15 minutes (connexion) \\
+    \hline
+    Validation côté serveur & Request classes + rules \\
+    \hline
+    \end{tabular}
+    \caption{Mesures de sécurité implémentées}
+    \label{table:security}
+\end{table}
+
+\section{Patterns et bonnes pratiques}
+
+\begin{itemize}
+    \item \textbf{Service Layer} : Logique métier isolée dans Services
+    \item \textbf{MVC} : Responsabilités claires (Controller → Service → Model)
+    \item \textbf{DRY} : Code réutilisable, migrations versionées
+    \item \textbf{Git} : Branches feature, commits atomiques
+    \item \textbf{Pagination} : Listes paginées pour performance
+    \item \textbf{Lazy Loading} : Relations Eloquent chargées à la demande
+\end{itemize}
+
+\section{Conclusion}
+
+Ce chapitre a présenté l'architecture technique et les choix d'implémentation. La séparation des responsabilités (MVC + Services), la sécurité robuste et l'utilisation de frameworks modernes garantissent une application performante et maintenable. Le chapitre suivant valide le bon fonctionnement de l'ensemble.
+
+% ========== CHAPITRE 5 ==========
+\cleardoublepage
+\chapter{Tests et validation}
+\thispagestyle{fancy}
+
+\section{Introduction}
+
+La phase de test constitue une étape essentielle dans le cycle de développement de l'application. Elle vise à vérifier que les fonctionnalités implémentées répondent aux exigences définies et que le système se comporte de manière fiable dans différents scénarios d'utilisation.
+
+\section{Stratégie de test adoptée}
+
+La stratégie de test mise en place repose sur plusieurs niveaux de validation :
+
+\begin{itemize}
+    \item Des tests fonctionnels, visant à vérifier que chaque fonctionnalité se comporte conformément aux exigences définies.
+    \item Des tests de validation des données, afin de s'assurer de la coherence et de l'integrite des informations enregistrees.
+    \item Des tests de securite, permettant de verifier le controle des acces et la protection des donnees sensibles.
+    \item Des tests d'interface, assurant l'ergonomie et la reactivite de l'application sur differents appareils.
+\end{itemize}
+
+\section{Tests fonctionnels par acteur}
+
+\subsection{Tests lies a l etudiant}
+
+Plusieurs scenarios ont été testés du point de vue de l'étudiant. L'authentification à la plateforme a été vérifiée afin de s'assurer que seuls les utilisateurs approuvés peuvent accéder aux fonctionnalités. La validation de présence par code PIN a été testée avec des codes valides, expirés et invalides. La soumission de justifications avec et sans document a été validée, ainsi que la demande et le téléchargement de lettres de recommandation.
+
+\subsection{Tests lies au professeur}
+
+Les tests réalisés pour le rôle du professeur ont porté sur le lancement et la clôture des séances, la génération et la régénération du code PIN, le suivi en temps réel des présences, le traitement des justifications (approbation et rejet avec raison), et l'acceptation/rejet des demandes de recommandation avec génération automatique du PDF.
+
+\subsection{Tests lies a l administrateur}
+
+Du point de vue de l'administrateur, les tests ont concerné la gestion complète des comptes utilisateurs (création, modification, suppression), l'approbation et le rejet des inscriptions en attente, la gestion des modules et classes, la consultation des étudiants en dépassement d'absences et la gestion des mentions par module.
+
+\section{Validation des exigences non fonctionnelles}
+
+En complément des tests fonctionnels, une attention particulière a été portée aux exigences non fonctionnelles. La réactivité de l'application a été évaluée en mesurant les temps de réponse, qui restent inférieurs à 2 secondes grâce à l'architecture SPA d'Inertia.js. La sécurité a été vérifiée en testant les accès non autorisés et les tentatives de contournement des middleware.
+
+L'ergonomie de l'interface a été examinée à travers des tests d'utilisation, confirmant que la navigation est intuitive et accessible pour les différents profils d'utilisateurs. Le design responsive basé sur Tailwind CSS a été validé sur différentes résolutions d'écran.
+
+\section{Resultats de tests et validation finale}
+
+Les résultats obtenus à l'issue des différents tests montrent que l'application répond globalement aux exigences fonctionnelles et non fonctionnelles définies lors de la phase d'analyse. Les principales fonctionnalités (authentification, présences, justifications, recommandations) fonctionnent conformément aux spécifications.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|c|l|}
+    \hline
+    \textbf{Fonctionnalite} & \textbf{Resultat} & \textbf{Commentaire} \\
+    \hline
+    Inscription et connexion & Valide & Avec controle d approbation \\
+    Lancement de seance & Valide & Code PIN genere correctement \\
+    Validation de presence & Valide & Verification code et expiration \\
+    Cloture de seance & Valide & Absents marques automatiquement \\
+    Justification d absence & Valide & Upload documents fonctionnel \\
+    Lettres de recommandation & Valide & Generation PDF avec mention \\
+    Gestion utilisateurs (Admin) & Valide & CRUD complet operationnel \\
+    Gestion modules/classes & Valide & Association etudiants fonctionnelle \\
+    Securite RBAC & Valide & Middleware fonctionnels \\
+    Responsive Design & Valide & Test multi-ecrans \\
+    \hline
+    \end{tabular}
+    \caption{Resultats des tests de validation}
+    \label{table:tests}
+\end{table}
+
+\section{Conclusion}
+
+Ce chapitre a permis de présenter la démarche de test et de validation adoptée pour évaluer la qualité de l'application. Les résultats obtenus confirment que le système est opérationnel et prêt à être utilisé dans un contexte académique réel.
+
+% ========== CHAPITRE 6 ==========
+\cleardoublepage
+\chapter{Organisation du travail en équipe}
+\thispagestyle{fancy}
+
+\section{Introduction}
+
+La réalisation de ce projet s'est inscrite dans un cadre de travail collaboratif impliquant plusieurs membres, chacun contribuant au développement de l'application selon ses compétences techniques et ses responsabilités assignées.
+
+\section{Repartition des taches}
+
+La répartition des tâches a été effectuée dès le début du projet afin de clarifier les responsabilités de chaque membre. Les activités ont été organisées en plusieurs volets :
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|l|}
+    \hline
+    \textbf{Volet} & \textbf{Description} & \textbf{Activites} \\
+    \hline
+    Backend & Developpement cote serveur & Controllers, Models, Services, Migrations, API \\
+    Frontend & Interfaces utilisateur & Pages React, Composants, Layouts, Formulaires \\
+    Base de donnees & Modelisation et gestion & Schema, Migrations, Seeders, Relations \\
+    Tests & Validation & Tests fonctionnels, Tests d interface, Debogage \\
+    Documentation & Redaction & Rapport, Diagrammes, Commentaires de code \\
+    \hline
+    \end{tabular}
+    \caption{Repartition des taches}
+    \label{table:tasks}
+\end{table}
+
+\section{Methodologie de travail adoptee}
+
+Une méthodologie de travail progressive a été adoptée afin de structurer le déroulement du projet. Le travail a été organisé en plusieurs phases successives : analyse et spécification, conception et modélisation, développement incrémental, tests et intégration, et enfin documentation et présentation.
+
+Des réunions régulières ont été organisées afin de suivre l'avancement du projet, d'identifier les difficultés rencontrées et de proposer des solutions adaptées. Cette approche a permis de maintenir une cohérence globale dans le développement.
+
+\section{Utilisation des outils collaboratifs}
+
+Afin de faciliter le travail en équipe, des outils collaboratifs ont été utilisés tout au long du projet. Git et GitHub ont permis la gestion de versions, le suivi des modifications et la résolution des conflits de code. La gestion de la base de données a été assurée à travers le système de migrations Laravel, garantissant la cohérence des structures de données entre les environnements de développement des différents membres.
+
+\section{Difficultes rencontrees et solutions apportees}
+
+Comme tout projet collaboratif, certaines difficultés ont été rencontrées, notamment en matière de coordination et d'intégration des différentes parties du système. L'intégration entre le backend Laravel et le frontend React via Inertia.js a nécessité une phase d'apprentissage. La gestion du code PIN temporaire avec expiration de 20 secondes a également posé des défis techniques, résolus par la mise en place d'un système de polling côté frontend et de vérifications côté backend.
+
+Ces difficultés ont été surmontées grâce à une communication régulière entre les membres de l'équipe, à une répartition claire des responsabilités et à l'utilisation de la documentation officielle des frameworks employés.
+
+\section{Conclusion}
+
+Ce chapitre a présenté l'organisation du travail en équipe ainsi que les méthodes adoptées pour assurer le bon déroulement du projet. La collaboration efficace et les outils utilisés ont permis de mener à bien le développement de l'application dans les délais impartis.
+
+% ========== CONCLUSION GÉNÉRALE ==========
+\cleardoublepage
+\chapter*{Conclusion générale}
+\thispagestyle{fancy}
+\addcontentsline{toc}{chapter}{Conclusion générale}
+
+Ce projet avait pour objectif principal de concevoir et de développer une application web destinée à améliorer la gestion des absences des étudiants et à automatiser le traitement des lettres de recommandation dans un contexte universitaire.
+
+Tout au long de ce travail, une démarche méthodique a été adoptée, en commençant par l'analyse de l'existant et l'identification des besoins fonctionnels et non fonctionnels. La modélisation UML a permis de formaliser les interactions entre les acteurs et le système, ainsi que la structure de la base de données.
+
+La phase de réalisation a permis de traduire les spécifications définies en une application opérationn elle, reposant sur des technologies web modernes (Laravel 12, React.js 18, Inertia.js, MySQL) et intégrant des fonctionnalités avancées : génération automatique de codes de présence temporaires, suivi en temps réel, justification d'absences avec pièces jointes, et génération de lettres de recommandation personnalisées en PDF.
+
+Au-delà de l'aspect technique, ce projet a également constitué une expérience enrichissante sur le plan organisationnel et collaboratif. Le travail en équipe a permis de développer des compétences en gestion de projet, en communication et en résolution de problèmes techniques.
+
+En conclusion, l'application développée représente une solution efficace pour la gestion automatisée des absences et des lettres de recommandation. Elle offre un cadre sécurisé, performant et ergonomique, adapté aux besoins des établissements universitaires. Des améliorations futures pourraient inclure l'intégration de notifications en temps réel, une application mobile native, et l'utilisation d'analytics prédictives pour identifier les étudiants à risque.
+% ========== ANNEXES ==========
+%\include{Annexe}
+
+\end{document}

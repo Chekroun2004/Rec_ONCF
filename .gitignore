@@ -1,0 +1,57 @@
+# Virtual environments
+data/
+.venv/
+venv/
+env/
+ENV/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# Type checking / linting cache
+.mypy_cache/
+.pytype/
+.ruff_cache/
+.pytest_cache/
+.tox/
+.nox/
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Project artefacts (regeneratable from raw + scripts)
+data/processed/
+models/
+reports/
+
+# Secrets
+.env
+*.key
+*.pem
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
+
+# Local
+*.log
+*.tmp

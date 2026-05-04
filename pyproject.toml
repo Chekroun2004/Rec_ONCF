@@ -1,0 +1,12 @@
+[project]
+name = "rec_oncf"
+version = "0.1.0"
+description = "ONCF proactive recommender (Zero-Click Search)"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+addopts = "-q"
+pythonpath = ["src"]
