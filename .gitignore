@@ -55,3 +55,6 @@ coverage.xml
 # Local
 *.log
 *.tmp
+
+# Claude Code local session config (personal, not shared)
+.claude/settings.local.json
