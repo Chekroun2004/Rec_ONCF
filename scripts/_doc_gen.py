@@ -1,6 +1,7 @@
 """Génère les stats exactes pour le fichier de documentation ML."""
 from __future__ import annotations
-import sys, json
+import json
+import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -9,7 +10,6 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 import pandas as pd
-import numpy as np
 
 clean   = pd.read_parquet(PROJECT_ROOT / "data/processed/oncf_clean.parquet")
 feats   = pd.read_parquet(PROJECT_ROOT / "data/processed/features.parquet")
