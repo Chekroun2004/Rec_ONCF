@@ -57,6 +57,7 @@ Rec_ONCF/
 │   ├── 04_baselines.py     # baselines → reports/baseline_metrics.json  ✅ done
 │   ├── 05_build_cold_start.py # oncf_clean → models/cold_start.joblib  ✅ done
 │   ├── 06_export_onnx.py   # xgb_ranker.json → models/xgb_ranker.onnx + benchmark  ✅ done
+│   ├── 07_retrain.py       # full retrain + KPI guardrail → promote models/  ✅ done
 │   └── _doc_gen.py         # utility — prints dataset stats to stdout (not part of pipeline)
 │
 ├── tests/
@@ -289,7 +290,7 @@ recommender.recommend(code_client, k=1)  # returns dict
 | Feature engineering (script 02) | ✅ Done | `features.parquet` — 491,680 × 26 cols |
 | Model training (script 03) | ✅ Done | Models saved, metrics exceed all thresholds |
 | Baselines (script 04) | ✅ Done | `reports/baseline_metrics.json` |
-| Test suite (56 tests) | ✅ All passing | Last run: 56/56 green |
+| Test suite (71 tests) | ✅ All passing | Last run: 71/71 green |
 | FastAPI app (`apps/api/main.py`) | ✅ Ready | Model exists, lifespan loads at startup |
 | API endpoint test (live) | ✅ Done | `/health` + `/recommend` × 5 cases tested |
 | Two-stage filter in `recommender` | ✅ Fixed | Top-k now restricted to candidates |
@@ -299,6 +300,7 @@ recommender.recommend(code_client, k=1)  # returns dict
 | Cold-start CF (`cold_start.py`) | ✅ Done | Co-occurrence lookup for users with 1-2 trips; `models/cold_start.joblib` |
 | ONNX Runtime inference | ✅ Done | `models/xgb_ranker.onnx` (148 MB); predict p50 ~24.5ms (was ~104ms, 4.2x speedup) |
 | API latency p50 (ONNX) | ✅ ~25 ms | XGBoost step reduced from ~104ms to ~24.5ms via ONNX Runtime |
+| Retraining pipeline (script 07) | ✅ Done | `scripts/07_retrain.py --dry-run`; guardrail blocks if HR@1 drops >5pp |
 
 ---
 
@@ -394,9 +396,13 @@ Deleted the following files that were no longer needed:
 # 6. Export ONNX model + benchmark (~2 min — loads 281MB model)
 .venv\Scripts\python.exe scripts/06_export_onnx.py
 
-# 7. Run tests (~7 s, 56 tests)
+# 7. Run tests (~7 s, 71 tests)
 .venv\Scripts\python.exe -m pytest tests/ -v
 
-# 8. Start API
+# 8. Retrain with guardrail (optional — ~43 min on CPU)
+.venv\Scripts\python.exe scripts/07_retrain.py --dry-run   # evaluate only
+.venv\Scripts\python.exe scripts/07_retrain.py              # evaluate + promote
+
+# 9. Start API
 .venv\Scripts\python.exe -m uvicorn apps.api.main:app --reload
 ```
