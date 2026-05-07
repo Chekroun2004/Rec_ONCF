@@ -60,6 +60,11 @@ def main() -> None:
     args = parser.parse_args()
 
     paths = default_paths()
+    if not paths.features_parquet.exists():
+        raise FileNotFoundError(
+            f"Missing features: {paths.features_parquet}. Run scripts/02_build_features.py first."
+        )
+    print(f"{'[DRY RUN] ' if args.dry_run else ''}Starting retrain pipeline (this will take ~43 min on CPU)...")
     report = retrain_pipeline(paths, dry_run=args.dry_run)
     _print_report(report)
     sys.exit(0 if report["guardrail_passes"] else 1)
