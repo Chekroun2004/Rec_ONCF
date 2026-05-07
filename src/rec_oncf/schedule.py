@@ -53,7 +53,10 @@ def build_liaison_station_map(clean_df: pd.DataFrame) -> dict[str, tuple[str, st
         .first()
     )
     return {
-        str(lid): (row["DesignationFrGareDepart"], row["DesignationFrGareArrive"])
+        str(lid): (
+            normalize_station_name(row["DesignationFrGareDepart"]),
+            normalize_station_name(row["DesignationFrGareArrive"]),
+        )
         for lid, row in first.iterrows()
     }
 
