@@ -22,7 +22,20 @@
       "Bash(cat \"C:\\\\\\\\Users\\\\\\\\omarc\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-omarc-Desktop-Rec-ONCF\\\\\\\\68281f06-aa29-4bb7-a4d8-d29686bc15d6\\\\\\\\tasks\\\\\\\\bxzox3of8.output\")",
       "Bash([ -s \"C:\\\\\\\\Users\\\\\\\\omarc\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-omarc-Desktop-Rec-ONCF\\\\\\\\68281f06-aa29-4bb7-a4d8-d29686bc15d6\\\\\\\\tasks\\\\\\\\byt1a7721.output\" ])",
       "Bash(grep -q \"Saved\" \"C:\\\\\\\\Users\\\\\\\\omarc\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-omarc-Desktop-Rec-ONCF\\\\\\\\68281f06-aa29-4bb7-a4d8-d29686bc15d6\\\\\\\\tasks\\\\\\\\byt1a7721.output\")",
-      "Bash(cat \"C:\\\\\\\\Users\\\\\\\\omarc\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-omarc-Desktop-Rec-ONCF\\\\\\\\68281f06-aa29-4bb7-a4d8-d29686bc15d6\\\\\\\\tasks\\\\\\\\byt1a7721.output\")"
+      "Bash(cat \"C:\\\\\\\\Users\\\\\\\\omarc\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-omarc-Desktop-Rec-ONCF\\\\\\\\68281f06-aa29-4bb7-a4d8-d29686bc15d6\\\\\\\\tasks\\\\\\\\byt1a7721.output\")",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\omarc\\\\Desktop\" | Where-Object { $_.Name -match \"\\\\.\\(txt|pdf|csv|json|py|ipynb\\)$\" } | Select-Object Name, Length)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\omarc\\\\Desktop\" -File | Where-Object { $_.Name -match \"\\\\.\\(txt|pdf|csv|json|py|ipynb\\)$\" } | Select-Object Name, Length)",
+      "PowerShell(gh issue *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" issue list)",
+      "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" issue list --state all --json number,title,state,body)",
+      "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" repo view --json name,owner,url)",
+      "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" run view 25331117831 --log-failed 2>&1 | Select-Object -First 100)",
+      "PowerShell(& \"C:\\\\Program Files\\\\GitHub CLI\\\\gh.exe\" run view 25331117831 --log-failed 2>&1 | Select-Object -Last 80)",
+      "PowerShell(.venv\\\\Scripts\\\\pip.exe install ruff -q; .venv\\\\Scripts\\\\ruff.exe check src/ apps/ scripts/ tests/ 2>&1)",
+      "PowerShell(.venv\\\\Scripts\\\\python.exe -m ruff check src/ apps/ scripts/ tests/ --output-format=concise)"
     ]
   }
 }
