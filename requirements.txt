@@ -10,3 +10,4 @@ redis>=5.0
 joblib>=1.4
 python-dotenv>=1.0
 loguru>=0.7
+onnxruntime>=1.18
