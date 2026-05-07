@@ -302,6 +302,7 @@ recommender.recommend(code_client, k=1)  # returns dict
 | ONNX Runtime inference | ✅ Done | `models/xgb_ranker.onnx` (148 MB); predict p50 ~24.5ms (was ~104ms, 4.2x speedup) |
 | API latency p50 (ONNX) | ✅ ~25 ms | XGBoost step reduced from ~104ms to ~24.5ms via ONNX Runtime |
 | Retraining pipeline (script 07) | ✅ Done | `scripts/07_retrain.py --dry-run`; guardrail blocks if HR@1 drops >5pp |
+| Structured logging (`apps/api/main.py`) | ✅ Done | JSON logs → `logs/api.log`; per-request `mode`, `latency_ms`, `k`, `n_recommendations`; `code_client` never logged |
 
 ---
 
@@ -363,9 +364,7 @@ Deleted the following files that were no longer needed:
 3. **A/B testing framework** — `/recommend?variant=A|B` to compare
    two models in production and measure CTR uplift.
 
-4. **Structured logging** in the API — `loguru` or `structlog` with
-   per-request latency, mode, cold_start_rate; never log
-   `code_client` in plaintext.
+4. **Structured logging** ✅ done — JSON logs in `logs/api.log`; per-request `mode`, `latency_ms`, `k`, `n_recommendations`; `code_client` never logged.
 
 5. **ONCF schedule API integration** — enrich recommendations with
    real-time train availability.
