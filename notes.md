@@ -70,6 +70,7 @@ Rec_ONCF/
 │   ├── test_api.py         # 5 tests   ✅ passing  (FastAPI TestClient — /health, /recommend, validation)
 │   ├── test_cold_start.py  # 9 tests   ✅ passing  (co-occurrence, recommend, save/load)
 │   ├── test_onnx.py        # 3 tests   ✅ passing  (export, proba parity, output shape)
+│   ├── test_retrain.py     # 15 tests  ✅ passing  (load_metrics, guardrail, evaluate, promote, pipeline)
 │   └── __init__.py
 │
 ├── data/processed/
@@ -357,8 +358,7 @@ Deleted the following files that were no longer needed:
    `liaison_global_freq` that don't fit a multiclass setup. Several
    days of work.
 
-2. **Production-grade retraining pipeline** — weekly cron + KPI
-   guardrail (refuse to promote if HR@1 drops > 5pp).
+2. **Production-grade retraining pipeline** — weekly cron scheduling (KPI guardrail ✅ done in `scripts/07_retrain.py`; only cron scheduling via Windows Task Scheduler remains TODO).
 
 3. **A/B testing framework** — `/recommend?variant=A|B` to compare
    two models in production and measure CTR uplift.
