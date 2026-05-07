@@ -111,3 +111,28 @@ def test_k3_returns_up_to_3(recommender):
 def test_k_clamped_to_3(recommender):
     result = recommender.recommend("1001", k=10)
     assert len(result["recommendations"]) <= 3
+
+
+def test_cold_start_few_trips_returns_cf_mode():
+    """A user with 1-2 trips should get cold_start_cf, not an empty cold_start."""
+    arts = _make_artifacts()
+    dates = pd.date_range("2020-01-01", periods=2, freq="30D")
+    clean = _make_clean_df()
+    extra = pd.DataFrame({
+        "CodeClient": [2001, 2001],
+        "AchteurId":  [2001, 2001],
+        "LiaisonId":  ["A", "B"],
+        "DateHeureDepartVoyageSegment": list(dates),
+    })
+    for col in ["TypeParcoursId", "ClassificationId", "ClassePhysiqueId",
+                "NiveauPrixId", "TrainAutocarId", "CarteClientId"]:
+        extra[col] = 1
+    extra["PrixParLiaison"] = 100.0
+    extra["NbrVoySegment"] = 1.0
+    extra["DelaiAnticipation"] = 5.0
+    full_clean = pd.concat([clean, extra], ignore_index=True)
+
+    rec = Recommender.from_data(arts, full_clean)
+    result = rec.recommend("2001", k=1)
+    assert result["mode"] == "cold_start_cf"
+    assert len(result["recommendations"]) >= 1

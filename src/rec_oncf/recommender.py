@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from rec_oncf.candidates import generate_candidates
+from rec_oncf.cold_start import ColdStartRecommender, build_cold_start_recommender, load_cold_start
 from rec_oncf.config import Paths
 from rec_oncf.features import compute_inference_row
 from rec_oncf.io import read_parquet
@@ -19,12 +20,13 @@ _COLD_START = {"mode": "cold_start", "recommendations": []}
 class Recommender:
     """Two-stage recommender (Candidate Generation + Ranking).
 
-    Features for the next-trip prediction are computed ON THE FLY from the
-    user's live history, so they always reflect the most recent bookings ---
-    no stale snapshots from training time.
+    For users with 1-2 trips, falls back to co-occurrence collaborative
+    filtering instead of returning an empty cold_start response.
+    Features for warm users are computed ON THE FLY from live history.
     """
     artifacts: TrainArtifacts
     history_lookup: dict[str, pd.DataFrame]
+    cold_start_rec: ColdStartRecommender
 
     @classmethod
     def from_paths(cls, paths: Paths) -> Recommender:
@@ -33,7 +35,8 @@ class Recommender:
             label_encoder_path=paths.label_encoder_path,
         )
         clean = read_parquet(paths.processed_dataset_parquet)
-        return cls.from_data(artifacts, clean)
+        cold_start_rec = load_cold_start(paths.cold_start_path)
+        return cls._build(artifacts, clean, cold_start_rec)
 
     @classmethod
     def from_data(
@@ -42,11 +45,25 @@ class Recommender:
         clean_df: pd.DataFrame,
         features_df: pd.DataFrame | None = None,  # kept for backward compat, unused
     ) -> Recommender:
+        cold_start_rec = build_cold_start_recommender(clean_df)
+        return cls._build(artifacts, clean_df, cold_start_rec)
+
+    @classmethod
+    def _build(
+        cls,
+        artifacts: TrainArtifacts,
+        clean_df: pd.DataFrame,
+        cold_start_rec: ColdStartRecommender,
+    ) -> Recommender:
         history_lookup = {
             str(cid): grp.sort_values("DateHeureDepartVoyageSegment")
             for cid, grp in clean_df.groupby("CodeClient")
         }
-        return cls(artifacts=artifacts, history_lookup=history_lookup)
+        return cls(
+            artifacts=artifacts,
+            history_lookup=history_lookup,
+            cold_start_rec=cold_start_rec,
+        )
 
     def recommend(
         self,
@@ -59,7 +76,14 @@ class Recommender:
         k = min(max(k, 1), 3)
 
         history = self.history_lookup.get(code_client)
-        if history is None or len(history) < 3:
+
+        if history is None:
+            return _COLD_START
+
+        if len(history) < 3:
+            recs = self.cold_start_rec.recommend(history, k)
+            if recs:
+                return {"mode": "cold_start_cf", "recommendations": recs}
             return _COLD_START
 
         candidates = generate_candidates(
@@ -68,18 +92,13 @@ class Recommender:
         if not candidates:
             return _COLD_START
 
-        # Compute features on the fly from live history (no stale snapshot).
         feat_row = compute_inference_row(history, asof=asof)
 
-        # Two-stage ranking: score the model, then KEEP ONLY the candidates
-        # produced by generate_candidates() and rank them by probability.
         le = self.artifacts.label_encoder
         known = set(le.classes_)
         valid_candidates = [c for c in candidates if c in known]
 
         if not valid_candidates:
-            # No candidate is known to the model -> fall back on the raw
-            # heuristic order produced by generate_candidates.
             return {"mode": "model", "recommendations": candidates[:k]}
 
         proba = predict_proba(self.artifacts, feat_row, label_col="LiaisonId")[0]
