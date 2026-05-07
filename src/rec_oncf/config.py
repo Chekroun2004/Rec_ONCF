@@ -19,6 +19,7 @@ class Paths:
     models_dir: Path
     xgb_model_path: Path
     label_encoder_path: Path
+    cold_start_path: Path
 
 
 def default_paths() -> Paths:
@@ -36,6 +37,7 @@ def default_paths() -> Paths:
     models_dir = project_root / "models"
     xgb_model_path = models_dir / "xgb_ranker.json"
     label_encoder_path = models_dir / "label_encoder.joblib"
+    cold_start_path = models_dir / "cold_start.joblib"
 
     return Paths(
         project_root=project_root,
@@ -49,4 +51,5 @@ def default_paths() -> Paths:
         models_dir=models_dir,
         xgb_model_path=xgb_model_path,
         label_encoder_path=label_encoder_path,
+        cold_start_path=cold_start_path,
     )
