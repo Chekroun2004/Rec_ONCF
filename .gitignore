@@ -55,3 +55,6 @@ coverage.xml
 # Local
 *.log
 *.tmp
+
+# Documentation source (not published to repo)
+rapport_pfa.tex
