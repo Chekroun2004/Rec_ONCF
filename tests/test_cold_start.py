@@ -3,7 +3,6 @@ from __future__ import annotations
 import pandas as pd
 
 from rec_oncf.cold_start import (
-    ColdStartRecommender,
     build_cold_start_recommender,
     load_cold_start,
     save_cold_start,
