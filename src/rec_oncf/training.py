@@ -6,6 +6,7 @@ import platform
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 
 import joblib
 import numpy as np
@@ -172,3 +173,43 @@ def top_k_labels(proba: np.ndarray, label_encoder: LabelEncoder, *, k: int) -> l
     topk = np.argsort(-proba, axis=1)[:, :k]
     labels = label_encoder.inverse_transform(topk.reshape(-1))
     return labels.reshape(topk.shape).tolist()
+
+
+def export_onnx(pipeline: Pipeline, path: Path) -> None:
+    """Export the XGBoost step of the pipeline to ONNX format.
+
+    Only the XGBClassifier is exported — the sklearn preprocessor runs as
+    usual at inference and is not the bottleneck.
+    Requires onnxmltools and skl2onnx packages.
+    """
+    from onnxmltools import convert_xgboost
+    from onnxmltools.convert.common.data_types import FloatTensorType
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    clf = pipeline.named_steps["clf"]
+    n_features = clf.n_features_in_
+    initial_types = [("input", FloatTensorType([None, n_features]))]
+    onnx_model = convert_xgboost(clf, initial_types=initial_types)
+    with open(path, "wb") as f:
+        f.write(onnx_model.SerializeToString())
+
+
+def predict_proba_onnx(
+    session,  # onnxruntime.InferenceSession
+    preprocessor: ColumnTransformer,
+    df: pd.DataFrame,
+    *,
+    label_col: str,
+) -> np.ndarray:
+    """Run inference via ONNX Runtime — same contract as predict_proba().
+
+    Drops label_col, CodeClient, and datetime columns, runs the sklearn
+    preprocessor, then passes the result to the ONNX session.
+    Returns array of shape (1, n_classes).
+    """
+    drop = [c for c in [label_col, "CodeClient"] if c in df.columns]
+    drop += [c for c in df.columns if df[c].dtype.kind == "M"]
+    X = df.drop(columns=drop)
+    X_pre = preprocessor.transform(X).astype(np.float32)
+    return session.run(["probabilities"], {"input": X_pre})[0]

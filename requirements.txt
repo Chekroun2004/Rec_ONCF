@@ -10,4 +10,7 @@ redis>=5.0
 joblib>=1.4
 python-dotenv>=1.0
 loguru>=0.7
+onnx>=1.16
 onnxruntime>=1.18
+onnxmltools>=1.16
+skl2onnx>=1.16
