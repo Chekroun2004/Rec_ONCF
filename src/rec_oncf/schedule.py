@@ -62,7 +62,28 @@ def build_liaison_station_map(clean_df: pd.DataFrame) -> dict[str, tuple[str, st
 
 
 def _parse_schedule_html(html: str) -> list[dict[str, str]]:
-    raise NotImplementedError
+    """Parse ONCF schedule HTML. Returns [{depart, arrive, train}, ...] or []."""
+    soup = BeautifulSoup(html, "html.parser")
+    container = soup.find("div", class_="container")
+    if not container:
+        return []
+    table = container.find("table")
+    if not table:
+        return []
+    tbody = table.find("tbody")
+    if not tbody:
+        return []
+    results = []
+    for row in tbody.find_all("tr"):
+        cells = row.find_all("td")
+        if len(cells) < 3:
+            continue
+        results.append({
+            "depart": cells[0].get_text(strip=True),
+            "arrive": cells[1].get_text(strip=True),
+            "train":  cells[2].get_text(strip=True),
+        })
+    return results
 
 
 def fetch_departures(
