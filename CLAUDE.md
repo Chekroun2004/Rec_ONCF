@@ -18,7 +18,7 @@ The system predicts the most likely **O/D pair (LiaisonId)** a user will book ne
 - **OS:** Windows 11 Pro (PowerShell is the default shell — use PowerShell syntax everywhere)
 - **Python:** 3.12.10, venv at `.venv\`
 - **GPU:** NVIDIA RTX 3050 (4 GB VRAM) — CUDA available but **not used for training** (see Model Architecture)
-- **Key deps:** pandas 3.x, xgboost 3.2.0, scikit-learn, fastapi 0.115, pydantic v2, uvicorn, joblib
+- **Key deps:** pandas 3.x, xgboost 3.2.0, scikit-learn, fastapi 0.115, pydantic v2, uvicorn, joblib, requests, beautifulsoup4, redis
 
 **Run Python:** `.venv\Scripts\python.exe`
 **Run tests:** `.venv\Scripts\python.exe -m pytest tests/ -v`
@@ -42,6 +42,8 @@ Rec_ONCF/
 │   │                       #   save_artifacts, load_artifacts, top_k_labels
 │   ├── candidates.py       # generate_candidates() — user history → candidate LiaisonIds
 │   ├── recommender.py      # Recommender dataclass — from_paths / from_data / recommend()
+│   ├── schedule.py         # ONCF live schedule scraping — STATION_CODES, build_liaison_station_map,
+│   │                       #   fetch_departures, get_schedule (Redis/memory cache, HTML parsing)
 │   └── __init__.py
 │
 ├── apps/
@@ -67,7 +69,8 @@ Rec_ONCF/
 │   ├── test_recommender.py # 5 tests   ✅ passing
 │   ├── test_training.py    # 2 tests   ✅ passing
 │   ├── test_cleaning.py    # 5 tests   ✅ passing  (cancellation propagation, cold start, join, etc.)
-│   ├── test_api.py         # 5 tests   ✅ passing  (FastAPI TestClient — /health, /recommend, validation)
+│   ├── test_api.py         # 9 tests   ✅ passing  (FastAPI TestClient — /health, /recommend, validation, schedule enrichment)
+│   ├── test_schedule.py    # 14 tests  ✅ passing  (station codes, HTML parser, HTTP mock, caching)
 │   ├── test_cold_start.py  # 9 tests   ✅ passing  (co-occurrence, recommend, save/load)
 │   ├── test_onnx.py        # 3 tests   ✅ passing  (export, proba parity, output shape)
 │   ├── test_retrain.py     # 15 tests  ✅ passing  (load_metrics, guardrail, evaluate, promote, pipeline)
@@ -243,9 +246,10 @@ FastAPI app — **written, model available, ready to start.**
 
 **Request body:**
 ```json
-{"code_client": "12345", "k": 3}
+{"code_client": "12345", "k": 3, "include_schedule": false}
 ```
 `k` is clamped to [1, 3] by Pydantic validation.
+`include_schedule` (bool, default false): when true, each recommended LiaisonId is enriched with next departures scraped from oncf.ma (cached 1hr per (origin, dest, date)). Stations without a known ONCF code return `[]` silently. Adds a `schedules` dict to the response.
 
 **Startup:** Uses FastAPI lifespan — calls `Recommender.from_paths(paths)` once at startup.
 
@@ -291,7 +295,7 @@ recommender.recommend(code_client, k=1)  # returns dict
 | Feature engineering (script 02) | ✅ Done | `features.parquet` — 491,680 × 26 cols |
 | Model training (script 03) | ✅ Done | Models saved, metrics exceed all thresholds |
 | Baselines (script 04) | ✅ Done | `reports/baseline_metrics.json` |
-| Test suite (71 tests) | ✅ All passing | Last run: 71/71 green |
+| Test suite (89 tests) | ✅ All passing | Last run: 89/89 green |
 | FastAPI app (`apps/api/main.py`) | ✅ Ready | Model exists, lifespan loads at startup |
 | API endpoint test (live) | ✅ Done | `/health` + `/recommend` × 5 cases tested |
 | Two-stage filter in `recommender` | ✅ Fixed | Top-k now restricted to candidates |
@@ -303,6 +307,7 @@ recommender.recommend(code_client, k=1)  # returns dict
 | API latency p50 (ONNX) | ✅ ~25 ms | XGBoost step reduced from ~104ms to ~24.5ms via ONNX Runtime |
 | Retraining pipeline (script 07) | ✅ Done | `scripts/07_retrain.py --dry-run`; guardrail blocks if HR@1 drops >5pp |
 | Structured logging (`apps/api/main.py`) | ✅ Done | JSON logs → `logs/api.log`; per-request `mode`, `latency_ms`, `k`, `n_recommendations`; `code_client` never logged |
+| ONCF schedule scraping (`schedule.py`) | ✅ Done | 24 stations, Redis+memory cache, `include_schedule` flag in API |
 
 ---
 
@@ -366,10 +371,7 @@ Deleted the following files that were no longer needed:
 
 4. **Structured logging** ✅ done — JSON logs in `logs/api.log`; per-request `mode`, `latency_ms`, `k`, `n_recommendations`; `code_client` never logged.
 
-5. **ONCF schedule API integration** — enrich recommendations with
-   real-time train availability.
-
-6. **Embeddings of liaisons** (long term) — Word2Vec on trip sequences
+5. **Embeddings of liaisons** (long term) — Word2Vec on trip sequences
    to capture semantic similarity between routes.
 
 ---
@@ -395,7 +397,7 @@ Deleted the following files that were no longer needed:
 # 6. Export ONNX model + benchmark (~2 min — loads 281MB model)
 .venv\Scripts\python.exe scripts/06_export_onnx.py
 
-# 7. Run tests (~7 s, 71 tests)
+# 7. Run tests (~10 s, 89 tests)
 .venv\Scripts\python.exe -m pytest tests/ -v
 
 # 8. Retrain with guardrail (optional — ~43 min on CPU)
