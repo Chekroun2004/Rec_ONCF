@@ -14,3 +14,5 @@ onnx>=1.16
 onnxruntime>=1.18
 onnxmltools>=1.16
 skl2onnx>=1.16
+requests>=2.32
+beautifulsoup4>=4.12
