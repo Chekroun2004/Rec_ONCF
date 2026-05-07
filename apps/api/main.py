@@ -4,6 +4,7 @@ import sys
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -46,6 +47,9 @@ async def lifespan(app: FastAPI):
         r.ping()
         app.state.redis = r
         logger.info("Redis schedule cache connected")
+    except ImportError:
+        app.state.redis = None
+        logger.warning("Redis package not installed — schedule cache disabled")
     except Exception:
         app.state.redis = None
         logger.warning("Redis unavailable — using in-memory schedule cache")
@@ -78,7 +82,7 @@ def recommend(req: RecommendRequest):
     result: dict = dict(app.state.recommender.recommend(req.code_client, req.k))
 
     if req.include_schedule and result["recommendations"]:
-        now = datetime.now()
+        now = datetime.now(tz=ZoneInfo("Africa/Casablanca"))
         result["schedules"] = {
             lid: get_schedule(lid, app.state.liaison_map, now, redis_client=app.state.redis)
             for lid in result["recommendations"]
