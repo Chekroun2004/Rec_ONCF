@@ -55,16 +55,20 @@ Rec_ONCF/
 │   ├── 02_build_features.py# oncf_clean → data/processed/features.parquet  ✅ done
 │   ├── 03_train_ranker.py  # features → models/ + reports/offline_metrics.json  ✅ done
 │   ├── 04_baselines.py     # baselines → reports/baseline_metrics.json  ✅ done
+│   ├── 05_build_cold_start.py # oncf_clean → models/cold_start.joblib  ✅ done
+│   ├── 06_export_onnx.py   # xgb_ranker.json → models/xgb_ranker.onnx + benchmark  ✅ done
 │   └── _doc_gen.py         # utility — prints dataset stats to stdout (not part of pipeline)
 │
 ├── tests/
 │   ├── test_candidates.py  # 11 tests  ✅ passing
-│   ├── test_features.py    # 5 tests   ✅ passing
+│   ├── test_features.py    # 12 tests  ✅ passing
 │   ├── test_metrics.py     # 4 tests   ✅ passing
-│   ├── test_recommender.py # 4 tests   ✅ passing
+│   ├── test_recommender.py # 5 tests   ✅ passing
 │   ├── test_training.py    # 2 tests   ✅ passing
 │   ├── test_cleaning.py    # 5 tests   ✅ passing  (cancellation propagation, cold start, join, etc.)
 │   ├── test_api.py         # 5 tests   ✅ passing  (FastAPI TestClient — /health, /recommend, validation)
+│   ├── test_cold_start.py  # 9 tests   ✅ passing  (co-occurrence, recommend, save/load)
+│   ├── test_onnx.py        # 3 tests   ✅ passing  (export, proba parity, output shape)
 │   └── __init__.py
 │
 ├── data/processed/
@@ -73,7 +77,9 @@ Rec_ONCF/
 │
 ├── models/                 # ✅ populated — training completed 2026-05-03
 │   ├── xgb_ranker.json     # 281 MB — saved with joblib despite .json ext (do NOT change)
-│   └── label_encoder.joblib# 8.5 KB
+│   ├── label_encoder.joblib# 8.5 KB
+│   ├── cold_start.joblib   # 31 KB — co-occurrence lookup (produced by script 05)
+│   └── xgb_ranker.onnx     # 148 MB — ONNX export (produced by script 06)
 │
 ├── reports/
 │   ├── cleaning_report.json
@@ -215,6 +221,8 @@ XGBoost is **2.77× better** than the best baseline (`most_frequent`) on HR@1.
 models_dir             = <project_root>/models/
 xgb_model_path         = models_dir / "xgb_ranker.json"     # saved with joblib
 label_encoder_path     = models_dir / "label_encoder.joblib"
+cold_start_path        = models_dir / "cold_start.joblib"
+onnx_model_path        = models_dir / "xgb_ranker.onnx"     # 148 MB, produced by script 06
 features_parquet       = data/processed/features.parquet
 processed_dataset_parquet = data/processed/oncf_clean.parquet
 ```
@@ -258,17 +266,18 @@ recommender.recommend(code_client, k=1)  # returns dict
 
 **`recommend()` logic (TWO-STAGE Candidate Generation + Ranking):**
 1. Look up `code_client` in `history_lookup` (built from `oncf_clean.parquet`)
-2. If history is `None` or `< 3` rows → return `_COLD_START`
-3. `generate_candidates()` from history → if empty → `_COLD_START`
-4. Get latest feature row from `feature_lookup` (built from `features.parquet`)
-5. `predict_proba()` over all 1,011 classes
-6. **Filter scores to candidates**: `le.transform(candidates)` → keep only those indices
-7. Sort filtered scores descending, take top-`k` → return `{"mode": "model", "recommendations": [...]}`
-8. Edge case: if no candidate is known to the encoder, fall back to raw `candidates[:k]` order
+2. If history is `None` → return `_COLD_START`
+3. If `len(history) < 3` → `cold_start_rec.recommend()` → return `{"mode": "cold_start_cf", ...}` or `_COLD_START`
+4. `generate_candidates()` from history → if empty → `_COLD_START`
+5. `compute_inference_row(history)` — features built ON THE FLY from live history
+6. **ONNX fast path**: `predict_proba_onnx(onnx_session, preprocessor, feat_row)` → probabilities over 1,011 classes in ~24ms
+7. **Filter scores to candidates**: `le.transform(valid_candidates)` → keep only candidate indices
+8. Sort filtered scores descending, take top-`k` → return `{"mode": "model", "recommendations": [...]}`
+9. Edge case: if no candidate is known to encoder, fall back to raw `candidates[:k]` order
 
 **In-memory lookups (built at startup):**
 - `history_lookup: dict[str, DataFrame]` — keyed by `CodeClient`, sorted by date
-- `feature_lookup: dict[str, DataFrame]` — keyed by `CodeClient`, last 1 row per user
+- `onnx_session: InferenceSession | None` — loaded from `xgb_ranker.onnx`; `None` in tests (sklearn fallback)
 
 ---
 
@@ -280,14 +289,16 @@ recommender.recommend(code_client, k=1)  # returns dict
 | Feature engineering (script 02) | ✅ Done | `features.parquet` — 491,680 × 26 cols |
 | Model training (script 03) | ✅ Done | Models saved, metrics exceed all thresholds |
 | Baselines (script 04) | ✅ Done | `reports/baseline_metrics.json` |
-| Test suite (36 tests) | ✅ All passing | Last run: 36/36 green |
+| Test suite (56 tests) | ✅ All passing | Last run: 56/56 green |
 | FastAPI app (`apps/api/main.py`) | ✅ Ready | Model exists, lifespan loads at startup |
 | API endpoint test (live) | ✅ Done | `/health` + `/recommend` × 5 cases tested |
 | Two-stage filter in `recommender` | ✅ Fixed | Top-k now restricted to candidates |
 | On-the-fly feature recomputation | ✅ Done | `compute_inference_row` replaces stale `feature_lookup` |
 | Model metadata sidecar | ✅ Done | `models/xgb_ranker.meta.json` |
 | .gitignore + README + CI | ✅ Done | Project polish + GH Actions |
-| API latency p50 | ⚠️ 852 ms | Above SNF-02 (<100ms) — phase 3: pairwise ranker |
+| Cold-start CF (`cold_start.py`) | ✅ Done | Co-occurrence lookup for users with 1-2 trips; `models/cold_start.joblib` |
+| ONNX Runtime inference | ✅ Done | `models/xgb_ranker.onnx` (148 MB); predict p50 ~24.5ms (was ~104ms, 4.2x speedup) |
+| API latency p50 (ONNX) | ✅ ~25 ms | XGBoost step reduced from ~104ms to ~24.5ms via ONNX Runtime |
 
 ---
 
@@ -377,9 +388,15 @@ Deleted the following files that were no longer needed:
 # 4. Compute baselines (~10 s)
 .venv\Scripts\python.exe scripts/04_baselines.py
 
-# 5. Run tests (~7 s, 36 tests)
+# 5. Build cold-start CF lookup (~30 s)
+.venv\Scripts\python.exe scripts/05_build_cold_start.py
+
+# 6. Export ONNX model + benchmark (~2 min — loads 281MB model)
+.venv\Scripts\python.exe scripts/06_export_onnx.py
+
+# 7. Run tests (~7 s, 56 tests)
 .venv\Scripts\python.exe -m pytest tests/ -v
 
-# 6. Start API
+# 8. Start API
 .venv\Scripts\python.exe -m uvicorn apps.api.main:app --reload
 ```
