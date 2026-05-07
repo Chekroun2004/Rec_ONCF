@@ -104,17 +104,31 @@ def retrain_pipeline(
     if clean_df is None:
         clean_df = read_parquet(paths.processed_dataset_parquet)
 
-    current_metrics = load_current_metrics(paths.models_dir / "xgb_ranker.meta.json")
+    current_metrics = load_current_metrics(paths.xgb_model_path.with_suffix(".meta.json"))
 
     df_train, _ = temporal_split(features_df, time_col="DateHeureDepartVoyageSegment")
-
-    staging_dir = paths.models_dir / "staging"
-    staging_dir.mkdir(parents=True, exist_ok=True)
 
     new_arts = train_xgb_multiclass(
         df_train, label_col="LiaisonId", time_col="DateHeureDepartVoyageSegment"
     )
     new_metrics = evaluate_model(new_arts, features_df)
+
+    passes, reason = check_guardrail(current_metrics, new_metrics)
+
+    report = {
+        "current_metrics": current_metrics,
+        "new_metrics": new_metrics,
+        "guardrail_passes": passes,
+        "guardrail_reason": reason,
+        "promoted": False,
+        "dry_run": dry_run,
+    }
+
+    if not passes:
+        return report
+
+    staging_dir = paths.models_dir / "staging"
+    staging_dir.mkdir(parents=True, exist_ok=True)
 
     metadata = build_metadata(
         new_arts,
@@ -135,18 +149,7 @@ def retrain_pipeline(
 
     export_onnx(new_arts.pipeline, staging_dir / paths.onnx_model_path.name)
 
-    passes, reason = check_guardrail(current_metrics, new_metrics)
-
-    report = {
-        "current_metrics": current_metrics,
-        "new_metrics": new_metrics,
-        "guardrail_passes": passes,
-        "guardrail_reason": reason,
-        "promoted": False,
-        "dry_run": dry_run,
-    }
-
-    if passes and not dry_run:
+    if not dry_run:
         promote_artifacts(staging_dir, paths.models_dir)
         report["promoted"] = True
 
