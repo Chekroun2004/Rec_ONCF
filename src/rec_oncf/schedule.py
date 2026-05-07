@@ -39,6 +39,7 @@ STATION_CODES: dict[str, tuple[str, str, str]] = {
 }
 
 _CACHE_TTL = 3600  # seconds
+_MAX_MEM_CACHE = 2048
 _mem_cache: dict[str, tuple[float, list[dict[str, str]]]] = {}
 
 
@@ -111,7 +112,6 @@ def fetch_departures(
             verify=False,  # oncf.ma has SSL cert verification issues
             headers={"User-Agent": "Mozilla/5.0"},
         )
-        resp.raise_for_status()
         return _parse_schedule_html(resp.text)
     except Exception:
         return []
@@ -129,6 +129,9 @@ def _mem_cache_get(key: str) -> list[dict[str, str]] | None:
 
 
 def _mem_cache_set(key: str, data: list[dict[str, str]]) -> None:
+    if len(_mem_cache) >= _MAX_MEM_CACHE:
+        oldest = min(_mem_cache, key=lambda k: _mem_cache[k][0])
+        del _mem_cache[oldest]
     _mem_cache[key] = (time.time(), data)
 
 
