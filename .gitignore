@@ -58,3 +58,6 @@ coverage.xml
 
 # Documentation source (not published to repo)
 rapport_pfa.tex
+
+# Runtime logs
+logs/
