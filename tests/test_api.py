@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import xgboost as xgb
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -100,6 +101,8 @@ def client():
     arts = _build_artifacts()
     clean = _build_clean_df()
     app.state.recommender = Recommender.from_data(arts, clean)
+    app.state.liaison_map = {}   # empty — schedule calls return [] in unit tests
+    app.state.redis = None
     return TestClient(app)
 
 
@@ -138,3 +141,37 @@ def test_recommend_validates_k_lower_bound(client):
     payload = {"code_client": "1001", "k": 0}
     response = client.post("/recommend", json=payload)
     assert response.status_code == 422
+
+
+def test_recommend_no_schedules_field_by_default(client):
+    resp = client.post("/recommend", json={"code_client": "1001", "k": 1})
+    assert resp.status_code == 200
+    assert "schedules" not in resp.json()
+
+
+def test_recommend_include_schedule_adds_schedules_field(client):
+    mock_sched = [{"depart": "07:00", "arrive": "09:30", "train": "1234"}]
+    with patch("apps.api.main.get_schedule", return_value=mock_sched):
+        resp = client.post(
+            "/recommend",
+            json={"code_client": "1001", "k": 1, "include_schedule": True},
+        )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "schedules" in body
+    assert isinstance(body["schedules"], dict)
+    for lid, deps in body["schedules"].items():
+        assert isinstance(lid, str)
+        assert isinstance(deps, list)
+
+
+def test_recommend_include_schedule_unknown_user_no_schedules(client):
+    resp = client.post(
+        "/recommend",
+        json={"code_client": "unknown_xyz", "k": 1, "include_schedule": True},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    # Unknown user -> cold_start -> empty recommendations -> schedules key absent
+    assert body["recommendations"] == []
+    assert "schedules" not in body
