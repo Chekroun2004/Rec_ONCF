@@ -1,10 +1,12 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import sys
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from loguru import logger
 from pydantic import BaseModel, Field
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -23,6 +25,15 @@ async def lifespan(app: FastAPI):
         raise RuntimeError(
             f"Model not found: {paths.xgb_model_path}. Run scripts/03_train_ranker.py first."
         )
+    logs_dir = PROJECT_ROOT / "logs"
+    logs_dir.mkdir(exist_ok=True)
+    logger.add(
+        logs_dir / "api.log",
+        serialize=True,
+        rotation="10 MB",
+        retention="7 days",
+        level="INFO",
+    )
     app.state.recommender = Recommender.from_paths(paths)
     yield
 
@@ -47,4 +58,13 @@ def health():
 
 @app.post("/recommend", response_model=RecommendResponse)
 def recommend(req: RecommendRequest):
-    return app.state.recommender.recommend(req.code_client, req.k)
+    t0 = time.perf_counter()
+    result = app.state.recommender.recommend(req.code_client, req.k)
+    latency_ms = round((time.perf_counter() - t0) * 1000, 1)
+    logger.bind(
+        mode=result["mode"],
+        k=req.k,
+        latency_ms=latency_ms,
+        n_recommendations=len(result["recommendations"]),
+    ).info("recommend")
+    return result
