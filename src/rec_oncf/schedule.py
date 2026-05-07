@@ -95,7 +95,41 @@ def fetch_departures(
     dest_code_r: str,
     date: datetime,
 ) -> list[dict[str, str]]:
-    raise NotImplementedError
+    """Scrape oncf.ma schedule page. Returns [] on any network or parse error."""
+    date_str = date.strftime("%d/%m/%Y %H:%M")
+    url = (
+        "https://www.oncf.ma/fr/Horaires"
+        f"?from[{origin_code_g}][{origin_code_r}]={quote(origin_name)}"
+        f"&to[{dest_code_g}][{dest_code_r}]={quote(dest_name)}"
+        f"&datedep={quote(date_str)}"
+        f"&dateret=&is-ar=0"
+    )
+    try:
+        resp = requests.get(
+            url,
+            timeout=10,
+            verify=False,  # oncf.ma has SSL cert verification issues
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        resp.raise_for_status()
+        return _parse_schedule_html(resp.text)
+    except Exception:
+        return []
+
+
+def _mem_cache_get(key: str) -> list[dict[str, str]] | None:
+    entry = _mem_cache.get(key)
+    if entry is None:
+        return None
+    ts, data = entry
+    if time.time() - ts >= _CACHE_TTL:
+        del _mem_cache[key]
+        return None
+    return data
+
+
+def _mem_cache_set(key: str, data: list[dict[str, str]]) -> None:
+    _mem_cache[key] = (time.time(), data)
 
 
 def get_schedule(
@@ -105,4 +139,45 @@ def get_schedule(
     *,
     redis_client=None,
 ) -> list[dict[str, str]]:
-    raise NotImplementedError
+    """Return departures for a liaison. Cascade: Redis -> in-memory -> scrape. Returns [] if unknown."""
+    stations = liaison_map.get(str(liaison_id))
+    if not stations:
+        return []
+
+    origin_name, dest_name = stations
+    origin_codes = STATION_CODES.get(normalize_station_name(origin_name))
+    dest_codes = STATION_CODES.get(normalize_station_name(dest_name))
+    if not origin_codes or not dest_codes:
+        return []
+
+    origin_code_g, origin_code_r, origin_oncf_name = origin_codes
+    dest_code_g, dest_code_r, dest_oncf_name = dest_codes
+
+    cache_key = f"oncf_sched:{origin_code_g}:{dest_code_g}:{date.strftime('%Y-%m-%d')}"
+
+    if redis_client is not None:
+        try:
+            cached = redis_client.get(cache_key)
+            if cached:
+                return json.loads(cached)
+        except Exception:
+            pass
+
+    cached = _mem_cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    result = fetch_departures(
+        origin_oncf_name, origin_code_g, origin_code_r,
+        dest_oncf_name, dest_code_g, dest_code_r,
+        date,
+    )
+
+    _mem_cache_set(cache_key, result)
+    if redis_client is not None:
+        try:
+            redis_client.setex(cache_key, _CACHE_TTL, json.dumps(result))
+        except Exception:
+            pass
+
+    return result
