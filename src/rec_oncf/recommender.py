@@ -11,7 +11,7 @@ from rec_oncf.cold_start import ColdStartRecommender, build_cold_start_recommend
 from rec_oncf.config import Paths
 from rec_oncf.features import compute_inference_row
 from rec_oncf.io import read_parquet
-from rec_oncf.training import TrainArtifacts, load_artifacts, predict_proba
+from rec_oncf.training import TrainArtifacts, load_artifacts, predict_proba, predict_proba_onnx
 
 _COLD_START = {"mode": "cold_start", "recommendations": []}
 
@@ -21,22 +21,30 @@ class Recommender:
     """Two-stage recommender (Candidate Generation + Ranking).
 
     For users with 1-2 trips, falls back to co-occurrence collaborative
-    filtering instead of returning an empty cold_start response.
-    Features for warm users are computed ON THE FLY from live history.
+    filtering. For warm users, features are computed ON THE FLY from live
+    history and scored via ONNX Runtime (fast path) or sklearn (fallback).
     """
     artifacts: TrainArtifacts
     history_lookup: dict[str, pd.DataFrame]
     cold_start_rec: ColdStartRecommender
+    onnx_session: object | None = None  # onnxruntime.InferenceSession
 
     @classmethod
     def from_paths(cls, paths: Paths) -> Recommender:
+        from onnxruntime import InferenceSession
         artifacts = load_artifacts(
             model_path=paths.xgb_model_path,
             label_encoder_path=paths.label_encoder_path,
         )
         clean = read_parquet(paths.processed_dataset_parquet)
         cold_start_rec = load_cold_start(paths.cold_start_path)
-        return cls._build(artifacts, clean, cold_start_rec)
+        if not paths.onnx_model_path.exists():
+            raise RuntimeError(
+                f"ONNX model not found: {paths.onnx_model_path}. "
+                "Run scripts/06_export_onnx.py first."
+            )
+        onnx_session = InferenceSession(str(paths.onnx_model_path))
+        return cls._build(artifacts, clean, cold_start_rec, onnx_session)
 
     @classmethod
     def from_data(
@@ -54,6 +62,7 @@ class Recommender:
         artifacts: TrainArtifacts,
         clean_df: pd.DataFrame,
         cold_start_rec: ColdStartRecommender,
+        onnx_session: object | None = None,
     ) -> Recommender:
         history_lookup = {
             str(cid): grp.sort_values("DateHeureDepartVoyageSegment")
@@ -63,6 +72,7 @@ class Recommender:
             artifacts=artifacts,
             history_lookup=history_lookup,
             cold_start_rec=cold_start_rec,
+            onnx_session=onnx_session,
         )
 
     def recommend(
@@ -101,7 +111,16 @@ class Recommender:
         if not valid_candidates:
             return {"mode": "model", "recommendations": candidates[:k]}
 
-        proba = predict_proba(self.artifacts, feat_row, label_col="LiaisonId")[0]
+        if self.onnx_session is not None:
+            proba = predict_proba_onnx(
+                self.onnx_session,
+                self.artifacts.pipeline["pre"],
+                feat_row,
+                label_col="LiaisonId",
+            )[0]
+        else:
+            proba = predict_proba(self.artifacts, feat_row, label_col="LiaisonId")[0]
+
         cand_idx = le.transform(np.asarray(valid_candidates))
         cand_scores = proba[cand_idx]
 
