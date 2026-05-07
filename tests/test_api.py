@@ -175,3 +175,17 @@ def test_recommend_include_schedule_unknown_user_no_schedules(client):
     # Unknown user -> cold_start -> empty recommendations -> schedules key absent
     assert body["recommendations"] == []
     assert "schedules" not in body
+
+
+def test_recommend_include_schedule_returns_empty_lists_for_unmapped_stations(client):
+    # liaison_map is {} in fixture, so get_schedule returns [] for every liaison
+    # schedules dict is still present but all values are empty lists
+    resp = client.post(
+        "/recommend",
+        json={"code_client": "1001", "k": 1, "include_schedule": True},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "schedules" in body
+    for deps in body["schedules"].values():
+        assert deps == []
