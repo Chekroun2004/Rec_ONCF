@@ -7,7 +7,10 @@ from urllib.parse import quote
 
 import pandas as pd
 import requests
+import urllib3
 from bs4 import BeautifulSoup
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # (code_g, code_r, oncf_canonical_name) — oncf_canonical_name is passed in the URL
 # Codes sourced from: github.com/azihassan/oncf_schedule/blob/master/codes.php
@@ -113,7 +116,7 @@ def fetch_departures(
             headers={"User-Agent": "Mozilla/5.0"},
         )
         return _parse_schedule_html(resp.text)
-    except Exception:
+    except requests.RequestException:
         return []
 
 
@@ -176,11 +179,12 @@ def get_schedule(
         date,
     )
 
-    _mem_cache_set(cache_key, result)
-    if redis_client is not None:
-        try:
-            redis_client.setex(cache_key, _CACHE_TTL, json.dumps(result))
-        except Exception:
-            pass
+    if result:  # don't cache empty results — upstream outage would poison cache for 1hr
+        _mem_cache_set(cache_key, result)
+        if redis_client is not None:
+            try:
+                redis_client.setex(cache_key, _CACHE_TTL, json.dumps(result))
+            except Exception:
+                pass
 
     return result

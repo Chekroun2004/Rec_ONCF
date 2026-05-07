@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+import requests
 
 from rec_oncf.schedule import (
     STATION_CODES,
@@ -56,8 +57,15 @@ def _mini_clean() -> pd.DataFrame:
 def _mock_response(html: str) -> MagicMock:
     mock = MagicMock()
     mock.text = html
-    mock.raise_for_status.return_value = None
     return mock
+
+
+@pytest.fixture(autouse=True)
+def clear_mem_cache():
+    import rec_oncf.schedule as _sched
+    _sched._mem_cache.clear()
+    yield
+    _sched._mem_cache.clear()
 
 
 # ---------------------------------------------------------------------------
@@ -136,7 +144,7 @@ def test_fetch_departures_builds_oncf_url_with_codes():
 
 
 def test_fetch_departures_returns_empty_on_network_error():
-    with patch("rec_oncf.schedule.requests.get", side_effect=Exception("timeout")):
+    with patch("rec_oncf.schedule.requests.get", side_effect=requests.RequestException("timeout")):
         result = fetch_departures(
             "CASA VOYAGEURS", "00200", "0093",
             "MARRAKECH", "00110", "0093",
