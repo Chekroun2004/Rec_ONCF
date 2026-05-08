@@ -100,8 +100,10 @@ def _build_clean_df() -> pd.DataFrame:
 def client():
     arts = _build_artifacts()
     clean = _build_clean_df()
-    app.state.recommender = Recommender.from_data(arts, clean)
-    app.state.liaison_map = {}   # empty — schedule calls return [] in unit tests
+    rec = Recommender.from_data(arts, clean)
+    app.state.recommender_a = rec
+    app.state.recommender_b = rec   # same rec — no challenger in tests
+    app.state.liaison_map = {}
     app.state.redis = None
     return TestClient(app)
 
