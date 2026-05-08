@@ -93,7 +93,7 @@ class RecommendResponse(BaseModel):
 
 
 class FeedbackRequest(BaseModel):
-    request_id: str
+    request_id: str = Field(pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
     liaison_id: str
     clicked: bool
 
