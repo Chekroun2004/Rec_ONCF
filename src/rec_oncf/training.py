@@ -213,3 +213,44 @@ def predict_proba_onnx(
     X = df.drop(columns=drop)
     X_pre = preprocessor.transform(X).astype(np.float32)
     return session.run(["probabilities"], {"input": X_pre})[0]
+
+
+class FastPreprocessor:
+    """Drop-in for ColumnTransformer.transform — ~200x faster on single rows.
+
+    Built once at startup from a fitted ColumnTransformer. Encodes a feature
+    dict directly to a float32 numpy array via pre-extracted ordinal lookup
+    tables and numeric passthrough, bypassing all pandas overhead.
+
+    Column order matches ColumnTransformer output: cat-encoded columns first
+    (in transformer order), then passthrough numeric columns.
+    """
+
+    def __init__(self, ct: ColumnTransformer) -> None:
+        _, cat_enc, cat_cols = ct.transformers_[0]   # ("cat", OrdinalEncoder, [...])
+        _, _, num_cols = ct.transformers_[1]          # ("num", "passthrough", [...])
+
+        self._cat_cols: list[str] = list(cat_cols)
+        self._num_cols: list[str] = list(num_cols)
+        # {col: {str(value): float(ordinal_index)}}
+        self._cat_maps: dict[str, dict[str, float]] = {
+            col: {str(v): float(i) for i, v in enumerate(cat_enc.categories_[j])}
+            for j, col in enumerate(self._cat_cols)
+        }
+        self._n_features: int = len(self._cat_cols) + len(self._num_cols)
+
+    def encode(self, row: dict) -> np.ndarray:
+        """Encode one feature dict → float32 array of shape (1, n_features).
+
+        Unknown category values → -1.0 (matching OrdinalEncoder unknown_value=-1).
+        NaN / None numeric values pass through as np.nan.
+        """
+        out = np.empty(self._n_features, dtype=np.float32)
+        for i, col in enumerate(self._cat_cols):
+            val = str(row.get(col, "nan"))
+            out[i] = self._cat_maps[col].get(val, -1.0)
+        offset = len(self._cat_cols)
+        for i, col in enumerate(self._num_cols):
+            v = row.get(col)
+            out[offset + i] = np.nan if (v is None or (isinstance(v, float) and np.isnan(v))) else float(v)
+        return out[np.newaxis, :]

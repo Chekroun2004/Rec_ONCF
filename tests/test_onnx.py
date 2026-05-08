@@ -8,7 +8,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 
-from rec_oncf.training import export_onnx, predict_proba_onnx
+from rec_oncf.training import export_onnx, predict_proba_onnx, FastPreprocessor
 
 
 def _make_pipeline_and_row():
@@ -99,3 +99,48 @@ def test_onnx_output_shape(tmp_path):
 
     proba = predict_proba_onnx(session, pipe["pre"], row, label_col="LiaisonId")
     assert proba.shape == (1, n_classes)
+
+
+def test_fast_preprocessor_matches_sklearn():
+    """FastPreprocessor.encode must produce the same float32 array as ColumnTransformer.transform."""
+    pipe, row, _ = _make_pipeline_and_row()
+    ct = pipe["pre"]
+    fp = FastPreprocessor(ct)
+
+    extra = ["LiaisonId", "CodeClient", "DateHeureDepartVoyageSegment"]
+    row_clean = row.drop(columns=[c for c in extra if c in row.columns])
+    X_sklearn = ct.transform(row_clean).astype(np.float32)
+
+    row_dict = row.iloc[0].to_dict()
+    X_fast = fp.encode(row_dict)
+
+    np.testing.assert_array_equal(X_sklearn, X_fast)
+
+
+def test_fast_preprocessor_unknown_category():
+    """An unseen category value must encode to -1.0 (matching OrdinalEncoder unknown_value=-1)."""
+    pipe, row, _ = _make_pipeline_and_row()
+    fp = FastPreprocessor(pipe["pre"])
+    cat_cols = list(pipe["pre"].transformers_[0][2])
+
+    row_dict = row.iloc[0].to_dict()
+    row_dict["TypeParcoursId"] = "UNSEEN_VALUE_XYZ"
+
+    X_fast = fp.encode(row_dict)
+    type_idx = cat_cols.index("TypeParcoursId")
+    assert X_fast[0, type_idx] == -1.0
+
+
+def test_fast_preprocessor_nan_numeric_passthrough():
+    """NaN in a numeric column must survive as np.nan in the output array."""
+    pipe, row, _ = _make_pipeline_and_row()
+    fp = FastPreprocessor(pipe["pre"])
+    cat_cols = list(pipe["pre"].transformers_[0][2])
+    num_cols = list(pipe["pre"].transformers_[1][2])
+
+    row_dict = row.iloc[0].to_dict()
+    row_dict["PrixParLiaison"] = float("nan")
+
+    X_fast = fp.encode(row_dict)
+    prix_idx = len(cat_cols) + num_cols.index("PrixParLiaison")
+    assert np.isnan(X_fast[0, prix_idx])
