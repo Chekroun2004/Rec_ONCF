@@ -11,7 +11,7 @@ from rec_oncf.cold_start import ColdStartRecommender, build_cold_start_recommend
 from rec_oncf.config import Paths
 from rec_oncf.features import compute_inference_row
 from rec_oncf.io import read_parquet
-from rec_oncf.training import TrainArtifacts, load_artifacts, predict_proba, predict_proba_onnx
+from rec_oncf.training import FastPreprocessor, TrainArtifacts, load_artifacts, predict_proba, predict_proba_onnx
 
 _COLD_START = {"mode": "cold_start", "recommendations": []}
 
@@ -27,7 +27,8 @@ class Recommender:
     artifacts: TrainArtifacts
     history_lookup: dict[str, pd.DataFrame]
     cold_start_rec: ColdStartRecommender
-    onnx_session: object | None = None  # onnxruntime.InferenceSession
+    onnx_session: object | None = None        # onnxruntime.InferenceSession
+    fast_preprocessor: FastPreprocessor | None = None
 
     @classmethod
     def from_paths(cls, paths: Paths) -> Recommender:
@@ -44,7 +45,8 @@ class Recommender:
                 "Run scripts/06_export_onnx.py first."
             )
         onnx_session = InferenceSession(str(paths.onnx_model_path))
-        return cls._build(artifacts, clean, cold_start_rec, onnx_session)
+        fast_preprocessor = FastPreprocessor(artifacts.pipeline["pre"])
+        return cls._build(artifacts, clean, cold_start_rec, onnx_session, fast_preprocessor)
 
     @classmethod
     def from_data(
@@ -63,6 +65,7 @@ class Recommender:
         clean_df: pd.DataFrame,
         cold_start_rec: ColdStartRecommender,
         onnx_session: object | None = None,
+        fast_preprocessor: FastPreprocessor | None = None,
     ) -> Recommender:
         history_lookup = {
             str(cid): grp.sort_values("DateHeureDepartVoyageSegment")
@@ -73,6 +76,7 @@ class Recommender:
             history_lookup=history_lookup,
             cold_start_rec=cold_start_rec,
             onnx_session=onnx_session,
+            fast_preprocessor=fast_preprocessor,
         )
 
     def recommend(
@@ -112,12 +116,15 @@ class Recommender:
             return {"mode": "model", "recommendations": candidates[:k]}
 
         if self.onnx_session is not None:
-            proba = predict_proba_onnx(
-                self.onnx_session,
-                self.artifacts.pipeline["pre"],
-                feat_row,
-                label_col="LiaisonId",
-            )[0]
+            if self.fast_preprocessor is not None:
+                row_dict = feat_row.iloc[0].to_dict()
+                X_pre = self.fast_preprocessor.encode(row_dict)
+            else:
+                drop = [c for c in ["LiaisonId", "CodeClient"] if c in feat_row.columns]
+                drop += [c for c in feat_row.columns if feat_row[c].dtype.kind == "M"]
+                X = feat_row.drop(columns=drop)
+                X_pre = self.artifacts.pipeline["pre"].transform(X).astype(np.float32)
+            proba = self.onnx_session.run(["probabilities"], {"input": X_pre})[0]
         else:
             proba = predict_proba(self.artifacts, feat_row, label_col="LiaisonId")[0]
 
