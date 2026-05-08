@@ -124,7 +124,7 @@ class Recommender:
                 drop += [c for c in feat_row.columns if feat_row[c].dtype.kind == "M"]
                 X = feat_row.drop(columns=drop)
                 X_pre = self.artifacts.pipeline["pre"].transform(X).astype(np.float32)
-            proba = self.onnx_session.run(["probabilities"], {"input": X_pre})[0]
+            proba = self.onnx_session.run(["probabilities"], {"input": X_pre})[0][0]
         else:
             proba = predict_proba(self.artifacts, feat_row, label_col="LiaisonId")[0]
 
