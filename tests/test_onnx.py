@@ -144,3 +144,18 @@ def test_fast_preprocessor_nan_numeric_passthrough():
     X_fast = fp.encode(row_dict)
     prix_idx = len(cat_cols) + num_cols.index("PrixParLiaison")
     assert np.isnan(X_fast[0, prix_idx])
+
+
+def test_fast_preprocessor_pandas_na_numeric_passthrough():
+    """pd.NA in a numeric column must survive as np.nan (not raise TypeError)."""
+    pipe, row, _ = _make_pipeline_and_row()
+    fp = FastPreprocessor(pipe["pre"])
+    cat_cols = list(pipe["pre"].transformers_[0][2])
+    num_cols = list(pipe["pre"].transformers_[1][2])
+
+    row_dict = row.iloc[0].to_dict()
+    row_dict["PrixParLiaison"] = pd.NA
+
+    X_fast = fp.encode(row_dict)
+    prix_idx = len(cat_cols) + num_cols.index("PrixParLiaison")
+    assert np.isnan(X_fast[0, prix_idx])
