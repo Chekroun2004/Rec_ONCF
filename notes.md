@@ -295,7 +295,7 @@ recommender.recommend(code_client, k=1)  # returns dict
 | Feature engineering (script 02) | ✅ Done | `features.parquet` — 491,680 × 26 cols |
 | Model training (script 03) | ✅ Done | Models saved, metrics exceed all thresholds |
 | Baselines (script 04) | ✅ Done | `reports/baseline_metrics.json` |
-| Test suite (89 tests) | ✅ All passing | Last run: 89/89 green |
+| Test suite (93 tests) | ✅ All passing | Last run: 93/93 green |
 | FastAPI app (`apps/api/main.py`) | ✅ Ready | Model exists, lifespan loads at startup |
 | API endpoint test (live) | ✅ Done | `/health` + `/recommend` × 5 cases tested |
 | Two-stage filter in `recommender` | ✅ Fixed | Top-k now restricted to candidates |
@@ -397,7 +397,7 @@ Deleted the following files that were no longer needed:
 # 6. Export ONNX model + benchmark (~2 min — loads 281MB model)
 .venv\Scripts\python.exe scripts/06_export_onnx.py
 
-# 7. Run tests (~10 s, 89 tests)
+# 7. Run tests (~10 s, 93 tests)
 .venv\Scripts\python.exe -m pytest tests/ -v
 
 # 8. Retrain with guardrail (optional — ~43 min on CPU)
