@@ -295,7 +295,7 @@ recommender.recommend(code_client, k=1)  # returns dict
 | Feature engineering (script 02) | ✅ Done | `features.parquet` — 491,680 × 26 cols |
 | Model training (script 03) | ✅ Done | Models saved, metrics exceed all thresholds |
 | Baselines (script 04) | ✅ Done | `reports/baseline_metrics.json` |
-| Test suite (93 tests) | ✅ All passing | Last run: 93/93 green |
+| Test suite (99 tests) | ✅ All passing | Last run: 99/99 green |
 | FastAPI app (`apps/api/main.py`) | ✅ Ready | Model exists, lifespan loads at startup |
 | API endpoint test (live) | ✅ Done | `/health` + `/recommend` × 5 cases tested |
 | Two-stage filter in `recommender` | ✅ Fixed | Top-k now restricted to candidates |
@@ -308,6 +308,7 @@ recommender.recommend(code_client, k=1)  # returns dict
 | Retraining pipeline (script 07) | ✅ Done | `scripts/07_retrain.py --dry-run`; guardrail blocks if HR@1 drops >5pp |
 | Structured logging (`apps/api/main.py`) | ✅ Done | JSON logs → `logs/api.log`; per-request `mode`, `latency_ms`, `k`, `n_recommendations`; `code_client` never logged |
 | ONCF schedule scraping (`schedule.py`) | ✅ Done | 24 stations, Redis+memory cache, `include_schedule` flag in API |
+| A/B testing framework (`apps/api/main.py`) | ✅ Done | `?variant=a|b`, `/feedback`, `request_id` correlation |
 
 ---
 
@@ -366,8 +367,7 @@ Deleted the following files that were no longer needed:
 
 2. **Production-grade retraining pipeline** ✅ done — `scripts/07_retrain.py` (guardrail KPI) + `tasks/oncf_daily_retrain.xml` (Task Scheduler, 02h00 quotidien) + `scripts/retrain_job.bat` (wrapper avec logs rotatifs). Enregistrer avec : `schtasks /Create /XML tasks\oncf_daily_retrain.xml /TN "ONCF\DailyRetrain" /F` (PowerShell admin).
 
-3. **A/B testing framework** — `/recommend?variant=A|B` to compare
-   two models in production and measure CTR uplift.
+3. **A/B testing framework** ✅ done — `?variant=a|b` query param routes to `recommender_a` (prod) or `recommender_b` (challenger). `request_id` UUID in response correlates serve + click events. `POST /feedback {request_id, liaison_id, clicked}` logs to `api.log`. Challenger files: `models/xgb_ranker_challenger.{json,onnx}` + `models/label_encoder_challenger.joblib` — if absent, variant B silently falls back to A.
 
 4. **Structured logging** ✅ done — JSON logs in `logs/api.log`; per-request `mode`, `latency_ms`, `k`, `n_recommendations`; `code_client` never logged.
 
@@ -397,7 +397,7 @@ Deleted the following files that were no longer needed:
 # 6. Export ONNX model + benchmark (~2 min — loads 281MB model)
 .venv\Scripts\python.exe scripts/06_export_onnx.py
 
-# 7. Run tests (~10 s, 93 tests)
+# 7. Run tests (~10 s, 99 tests)
 .venv\Scripts\python.exe -m pytest tests/ -v
 
 # 8. Retrain with guardrail (optional — ~43 min on CPU)
