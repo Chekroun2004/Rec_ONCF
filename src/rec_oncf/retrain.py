@@ -88,6 +88,19 @@ def promote_artifacts(staging_dir: Path, models_dir: Path) -> None:
             shutil.copy2(src, models_dir / src.name)
 
 
+def write_challenger_artifacts(staging_dir: Path, models_dir: Path) -> None:
+    """Copy model artifacts from staging to models/ with _challenger suffix."""
+    name_map = {
+        "xgb_ranker.json": "xgb_ranker_challenger.json",
+        "label_encoder.joblib": "label_encoder_challenger.joblib",
+        "xgb_ranker.onnx": "xgb_ranker_challenger.onnx",
+    }
+    for src_name, dst_name in name_map.items():
+        src = staging_dir / src_name
+        if src.exists():
+            shutil.copy2(src, models_dir / dst_name)
+
+
 def retrain_pipeline(
     paths: Paths,
     *,
@@ -121,11 +134,9 @@ def retrain_pipeline(
         "guardrail_passes": passes,
         "guardrail_reason": reason,
         "promoted": False,
+        "challenger_updated": False,
         "dry_run": dry_run,
     }
-
-    if not passes:
-        return report
 
     staging_dir = paths.models_dir / "staging"
     staging_dir.mkdir(parents=True, exist_ok=True)
@@ -143,11 +154,17 @@ def retrain_pipeline(
         label_encoder_path=staging_dir / paths.label_encoder_path.name,
         metadata=metadata,
     )
+    export_onnx(new_arts.pipeline, staging_dir / paths.onnx_model_path.name)
+
+    if not dry_run:
+        write_challenger_artifacts(staging_dir, paths.models_dir)
+        report["challenger_updated"] = True
+
+    if not passes:
+        return report
 
     cs = build_cold_start_recommender(clean_df)
     save_cold_start(cs, staging_dir / paths.cold_start_path.name)
-
-    export_onnx(new_arts.pipeline, staging_dir / paths.onnx_model_path.name)
 
     if not dry_run:
         promote_artifacts(staging_dir, paths.models_dir)

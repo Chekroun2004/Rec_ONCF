@@ -14,6 +14,7 @@ from rec_oncf.retrain import (
     load_current_metrics,
     promote_artifacts,
     retrain_pipeline,
+    write_challenger_artifacts,
 )
 from rec_oncf.training import temporal_split, train_xgb_multiclass
 
@@ -205,11 +206,15 @@ def test_retrain_pipeline_promotes_on_first_run(tmp_path):
     )
     assert report["guardrail_passes"] is True
     assert report["promoted"] is True
+    assert report["challenger_updated"] is True
     assert report["dry_run"] is False
     assert (paths.models_dir / "xgb_ranker.json").exists()
     assert (paths.models_dir / "label_encoder.joblib").exists()
     assert (paths.models_dir / "xgb_ranker.onnx").exists()
     assert (paths.models_dir / "cold_start.joblib").exists()
+    assert (paths.models_dir / "xgb_ranker_challenger.json").exists()
+    assert (paths.models_dir / "label_encoder_challenger.joblib").exists()
+    assert (paths.models_dir / "xgb_ranker_challenger.onnx").exists()
 
 
 def test_retrain_pipeline_dry_run_does_not_promote(tmp_path):
@@ -222,7 +227,9 @@ def test_retrain_pipeline_dry_run_does_not_promote(tmp_path):
     )
     assert report["dry_run"] is True
     assert report["promoted"] is False
+    assert report["challenger_updated"] is False
     assert not (paths.models_dir / "xgb_ranker.json").exists()
+    assert not (paths.models_dir / "xgb_ranker_challenger.json").exists()
 
 
 def test_retrain_pipeline_blocked_by_guardrail(tmp_path):
@@ -238,4 +245,24 @@ def test_retrain_pipeline_blocked_by_guardrail(tmp_path):
     )
     assert report["guardrail_passes"] is False
     assert report["promoted"] is False
+    assert report["challenger_updated"] is True
     assert not (paths.models_dir / "xgb_ranker.json").exists()
+    assert (paths.models_dir / "xgb_ranker_challenger.json").exists()
+    assert (paths.models_dir / "xgb_ranker_challenger.onnx").exists()
+
+
+def test_write_challenger_artifacts(tmp_path):
+    staging = tmp_path / "staging"
+    staging.mkdir()
+    models = tmp_path / "models"
+    models.mkdir()
+    (staging / "xgb_ranker.json").write_bytes(b"model")
+    (staging / "label_encoder.joblib").write_bytes(b"le")
+    (staging / "xgb_ranker.onnx").write_bytes(b"onnx")
+
+    write_challenger_artifacts(staging, models)
+
+    assert (models / "xgb_ranker_challenger.json").read_bytes() == b"model"
+    assert (models / "label_encoder_challenger.joblib").read_bytes() == b"le"
+    assert (models / "xgb_ranker_challenger.onnx").read_bytes() == b"onnx"
+    assert not (models / "xgb_ranker.json").exists()
