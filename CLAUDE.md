@@ -364,7 +364,7 @@ Deleted the following files that were no longer needed:
    No model retraining was needed. Next latency lever if ever needed: replace pandas ops
    in generate_candidates and compute_inference_row with pure numpy (~10ms additional savings).
 
-2. **Production-grade retraining pipeline** — weekly cron scheduling (KPI guardrail ✅ done in `scripts/07_retrain.py`; only cron scheduling via Windows Task Scheduler remains TODO).
+2. **Production-grade retraining pipeline** ✅ done — `scripts/07_retrain.py` (guardrail KPI) + `tasks/oncf_daily_retrain.xml` (Task Scheduler, 02h00 quotidien) + `scripts/retrain_job.bat` (wrapper avec logs rotatifs). Enregistrer avec : `schtasks /Create /XML tasks\oncf_daily_retrain.xml /TN "ONCF\DailyRetrain" /F` (PowerShell admin).
 
 3. **A/B testing framework** — `/recommend?variant=A|B` to compare
    two models in production and measure CTR uplift.
