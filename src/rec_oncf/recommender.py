@@ -119,12 +119,14 @@ class Recommender:
             if self.fast_preprocessor is not None:
                 row_dict = feat_row.iloc[0].to_dict()
                 X_pre = self.fast_preprocessor.encode(row_dict)
+                proba = self.onnx_session.run(["probabilities"], {"input": X_pre})[0][0]
             else:
-                drop = [c for c in ["LiaisonId", "CodeClient"] if c in feat_row.columns]
-                drop += [c for c in feat_row.columns if feat_row[c].dtype.kind == "M"]
-                X = feat_row.drop(columns=drop)
-                X_pre = self.artifacts.pipeline["pre"].transform(X).astype(np.float32)
-            proba = self.onnx_session.run(["probabilities"], {"input": X_pre})[0][0]
+                proba = predict_proba_onnx(
+                    self.onnx_session,
+                    self.artifacts.pipeline["pre"],
+                    feat_row,
+                    label_col="LiaisonId",
+                )[0]
         else:
             proba = predict_proba(self.artifacts, feat_row, label_col="LiaisonId")[0]
 
