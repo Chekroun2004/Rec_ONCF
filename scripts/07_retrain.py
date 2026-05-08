@@ -43,8 +43,11 @@ def _print_report(report: dict) -> None:
         print("DRY RUN — models/ not changed.")
     elif report["promoted"]:
         print("New model promoted to models/")
+        print("Challenger files updated  → restart server to activate ?variant=b")
     else:
         print("Promotion blocked. models/ unchanged.")
+        if report.get("challenger_updated"):
+            print("Challenger files updated  → restart server, test with ?variant=b before manual promotion")
     print()
 
 
