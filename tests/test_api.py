@@ -191,3 +191,34 @@ def test_recommend_include_schedule_returns_empty_lists_for_unmapped_stations(cl
     assert "schedules" in body
     for deps in body["schedules"].values():
         assert deps == []
+
+
+def test_recommend_default_variant_is_a(client):
+    resp = client.post("/recommend", json={"code_client": "1001", "k": 1})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["variant"] == "a"
+
+
+def test_recommend_variant_b_returns_b_label(client):
+    # recommender_b == recommender_a in fixture (no challenger) — routing still works
+    resp = client.post("/recommend?variant=b", json={"code_client": "1001", "k": 1})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["variant"] == "b"
+    assert body["mode"] == "model"
+
+
+def test_recommend_unknown_variant_treated_as_a(client):
+    resp = client.post("/recommend?variant=xyz", json={"code_client": "1001", "k": 1})
+    assert resp.status_code == 200
+    assert resp.json()["variant"] == "a"
+
+
+def test_recommend_has_uuid_request_id(client):
+    import uuid
+    resp = client.post("/recommend", json={"code_client": "1001", "k": 1})
+    body = resp.json()
+    assert "request_id" in body
+    # Raises ValueError if not a valid UUID
+    uuid.UUID(body["request_id"])
