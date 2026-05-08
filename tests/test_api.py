@@ -222,3 +222,19 @@ def test_recommend_has_uuid_request_id(client):
     assert "request_id" in body
     # Raises ValueError if not a valid UUID
     uuid.UUID(body["request_id"])
+
+
+def test_feedback_ok(client):
+    resp = client.post("/feedback", json={
+        "request_id": "550e8400-e29b-41d4-a716-446655440000",
+        "liaison_id": "L123",
+        "clicked": True,
+    })
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "ok"}
+
+
+def test_feedback_missing_field_returns_422(client):
+    # liaison_id and clicked are required
+    resp = client.post("/feedback", json={"request_id": "550e8400-e29b-41d4-a716-446655440000"})
+    assert resp.status_code == 422
