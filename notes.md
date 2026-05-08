@@ -72,7 +72,7 @@ Rec_ONCF/
 │   ├── test_api.py         # 9 tests   ✅ passing  (FastAPI TestClient — /health, /recommend, validation, schedule enrichment)
 │   ├── test_schedule.py    # 14 tests  ✅ passing  (station codes, HTML parser, HTTP mock, caching)
 │   ├── test_cold_start.py  # 9 tests   ✅ passing  (co-occurrence, recommend, save/load)
-│   ├── test_onnx.py        # 3 tests   ✅ passing  (export, proba parity, output shape)
+│   ├── test_onnx.py        # 7 tests   ✅ passing  (export, proba parity, output shape, FastPreprocessor)
 │   ├── test_retrain.py     # 15 tests  ✅ passing  (load_metrics, guardrail, evaluate, promote, pipeline)
 │   └── __init__.py
 │
@@ -304,7 +304,7 @@ recommender.recommend(code_client, k=1)  # returns dict
 | .gitignore + README + CI | ✅ Done | Project polish + GH Actions |
 | Cold-start CF (`cold_start.py`) | ✅ Done | Co-occurrence lookup for users with 1-2 trips; `models/cold_start.joblib` |
 | ONNX Runtime inference | ✅ Done | `models/xgb_ranker.onnx` (148 MB); predict p50 ~24.5ms (was ~104ms, 4.2x speedup) |
-| API latency p50 (ONNX) | ✅ ~25 ms | XGBoost step reduced from ~104ms to ~24.5ms via ONNX Runtime |
+| API latency p50 (ONNX + FastPreprocessor) | ✅ ~13.74 ms | FastPreprocessor replaced ColumnTransformer.transform (11.31ms → ~0.01ms); p99 ~16.89ms |
 | Retraining pipeline (script 07) | ✅ Done | `scripts/07_retrain.py --dry-run`; guardrail blocks if HR@1 drops >5pp |
 | Structured logging (`apps/api/main.py`) | ✅ Done | JSON logs → `logs/api.log`; per-request `mode`, `latency_ms`, `k`, `n_recommendations`; `code_client` never logged |
 | ONCF schedule scraping (`schedule.py`) | ✅ Done | 24 stations, Redis+memory cache, `include_schedule` flag in API |
@@ -357,12 +357,12 @@ Deleted the following files that were no longer needed:
 
 ## What's Left to Do (Phase 3)
 
-1. **Reduce inference latency** (current p50 = 852 ms, target < 100 ms).
-   Major redesign: replace multiclass softmax by a **binary pairwise
-   ranker** scored only on the 10 candidates (~100× fewer scores per
-   request). This unlocks per-candidate features like
-   `liaison_global_freq` that don't fit a multiclass setup. Several
-   days of work.
+1. **Inference latency** ✅ target met. p50 = ~13.74ms, p99 = ~16.89ms (both < 100ms).
+   FastPreprocessor replaced sklearn ColumnTransformer.transform on the hot path
+   (saved 11.31ms/request, 1469x speedup on that step alone). Profiling: candidates 2.7ms,
+   compute_inference_row 1.4ms, FastPreprocessor ~0.01ms, ONNX 3.2ms, scoring 0.002ms.
+   No model retraining was needed. Next latency lever if ever needed: replace pandas ops
+   in generate_candidates and compute_inference_row with pure numpy (~10ms additional savings).
 
 2. **Production-grade retraining pipeline** — weekly cron scheduling (KPI guardrail ✅ done in `scripts/07_retrain.py`; only cron scheduling via Windows Task Scheduler remains TODO).
 
