@@ -227,8 +227,9 @@ class FastPreprocessor:
     """
 
     def __init__(self, ct: ColumnTransformer) -> None:
-        _, cat_enc, cat_cols = ct.transformers_[0]   # ("cat", OrdinalEncoder, [...])
-        _, _, num_cols = ct.transformers_[1]          # ("num", "passthrough", [...])
+        transformers_by_name = {name: (enc, cols) for name, enc, cols in ct.transformers_}
+        cat_enc, cat_cols = transformers_by_name["cat"]
+        _, num_cols = transformers_by_name["num"]
 
         self._cat_cols: list[str] = list(cat_cols)
         self._num_cols: list[str] = list(num_cols)
@@ -252,5 +253,5 @@ class FastPreprocessor:
         offset = len(self._cat_cols)
         for i, col in enumerate(self._num_cols):
             v = row.get(col)
-            out[offset + i] = np.nan if (v is None or (isinstance(v, float) and np.isnan(v))) else float(v)
+            out[offset + i] = np.nan if pd.isna(v) else float(v)
         return out[np.newaxis, :]
