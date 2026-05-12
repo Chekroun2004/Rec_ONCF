@@ -10,11 +10,14 @@ from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 from pydantic import BaseModel, Field
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_DIR = PROJECT_ROOT / "src"
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
@@ -76,6 +79,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="ONCF Recommender", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def index():
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 class RecommendRequest(BaseModel):
@@ -89,6 +98,7 @@ class RecommendResponse(BaseModel):
     variant: str
     request_id: str
     recommendations: list[str]
+    labels: dict[str, str] = {}
     schedules: dict[str, list[dict[str, str]]] | None = None
 
 

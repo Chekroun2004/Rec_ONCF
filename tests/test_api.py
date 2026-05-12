@@ -238,3 +238,23 @@ def test_feedback_missing_field_returns_422(client):
     # liaison_id and clicked are required
     resp = client.post("/feedback", json={"request_id": "550e8400-e29b-41d4-a716-446655440000"})
     assert resp.status_code == 422
+
+
+def test_index_serves_html(client):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/html")
+    assert "ONCF" in resp.text
+
+
+def test_static_assets_are_served(client):
+    resp = client.get("/static/app.js")
+    assert resp.status_code == 200
+
+
+def test_recommend_response_has_labels_dict(client):
+    resp = client.post("/recommend", json={"code_client": "1001", "k": 1})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "labels" in body
+    assert isinstance(body["labels"], dict)
