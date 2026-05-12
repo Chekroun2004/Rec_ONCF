@@ -79,7 +79,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="ONCF Recommender", lifespan=lifespan)
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+# NOTE: StaticFiles validates the directory at import time. Keep apps/api/static/
+# committed (do NOT add it to .gitignore) — the guard below only avoids an
+# unhelpful import-time crash if it is ever missing.
+if STATIC_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/", include_in_schema=False)

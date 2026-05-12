@@ -21,7 +21,11 @@ def _build_label_lookup(clean_df: pd.DataFrame) -> dict[str, str]:
     """LiaisonId -> "GARE DEPART → GARE ARRIVEE". Empty if columns absent."""
     if not set(_LABEL_COLS) <= set(clean_df.columns):
         return {}
-    sub = clean_df.loc[:, list(_LABEL_COLS)].drop_duplicates("LiaisonId")
+    sub = (
+        clean_df.loc[:, list(_LABEL_COLS)]
+        .dropna(subset=["DesignationFrGareDepart", "DesignationFrGareArrive"])
+        .drop_duplicates("LiaisonId")
+    )
     return {
         str(dep_arr.LiaisonId): f"{dep_arr.DesignationFrGareDepart} → {dep_arr.DesignationFrGareArrive}"
         for dep_arr in sub.itertuples(index=False)
