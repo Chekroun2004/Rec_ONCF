@@ -44,13 +44,19 @@ Rec_ONCF/
 │   ├── recommender.py      # Recommender dataclass — from_paths / from_data / recommend()
 │   ├── schedule.py         # ONCF live schedule scraping — STATION_CODES, build_liaison_station_map,
 │   │                       #   fetch_departures, get_schedule (Redis/memory cache, HTML parsing)
+│   ├── popularity.py       # build_popularity_list() — LiaisonIds ordered by global frequency;
+│   │                       #   save_popularity / load_popularity
 │   └── __init__.py
 │
 ├── apps/
 │   ├── __init__.py
 │   └── api/
 │       ├── __init__.py
-│       └── main.py         # FastAPI app — POST /recommend, GET /health
+│       ├── main.py         # FastAPI app — GET /, GET /health, POST /recommend, POST /feedback
+│       └── static/         # Demo web page assets (served at GET /static/*)
+│           ├── index.html  # ONCF-styled single-page demo
+│           ├── styles.css
+│           └── app.js
 │
 ├── scripts/
 │   ├── 01_make_dataset.py  # raw CSVs → data/processed/oncf_clean.parquet  ✅ done
@@ -60,20 +66,22 @@ Rec_ONCF/
 │   ├── 05_build_cold_start.py # oncf_clean → models/cold_start.joblib  ✅ done
 │   ├── 06_export_onnx.py   # xgb_ranker.json → models/xgb_ranker.onnx + benchmark  ✅ done
 │   ├── 07_retrain.py       # full retrain + KPI guardrail → promote models/  ✅ done
+│   ├── 08_build_popularity.py # oncf_clean → models/popularity.joblib  ✅ done
 │   └── _doc_gen.py         # utility — prints dataset stats to stdout (not part of pipeline)
 │
 ├── tests/
 │   ├── test_candidates.py  # 11 tests  ✅ passing
 │   ├── test_features.py    # 12 tests  ✅ passing
 │   ├── test_metrics.py     # 4 tests   ✅ passing
-│   ├── test_recommender.py # 5 tests   ✅ passing
+│   ├── test_recommender.py # 9 tests   ✅ passing
 │   ├── test_training.py    # 2 tests   ✅ passing
 │   ├── test_cleaning.py    # 5 tests   ✅ passing  (cancellation propagation, cold start, join, etc.)
-│   ├── test_api.py         # 9 tests   ✅ passing  (FastAPI TestClient — /health, /recommend, validation, schedule enrichment)
+│   ├── test_api.py         # 18 tests  ✅ passing  (FastAPI TestClient — /health, /recommend, validation, schedule enrichment, variant routing, /feedback, labels, popularity fallback, demo page)
 │   ├── test_schedule.py    # 14 tests  ✅ passing  (station codes, HTML parser, HTTP mock, caching)
 │   ├── test_cold_start.py  # 9 tests   ✅ passing  (co-occurrence, recommend, save/load)
 │   ├── test_onnx.py        # 7 tests   ✅ passing  (export, proba parity, output shape, FastPreprocessor)
-│   ├── test_retrain.py     # 15 tests  ✅ passing  (load_metrics, guardrail, evaluate, promote, pipeline)
+│   ├── test_retrain.py     # 16 tests  ✅ passing  (load_metrics, guardrail, evaluate, promote, pipeline, write_challenger)
+│   ├── test_popularity.py  # 3 tests   ✅ passing  (build, save/load, order by frequency)
 │   └── __init__.py
 │
 ├── data/processed/
@@ -84,7 +92,8 @@ Rec_ONCF/
 │   ├── xgb_ranker.json     # 281 MB — saved with joblib despite .json ext (do NOT change)
 │   ├── label_encoder.joblib# 8.5 KB
 │   ├── cold_start.joblib   # 31 KB — co-occurrence lookup (produced by script 05)
-│   └── xgb_ranker.onnx     # 148 MB — ONNX export (produced by script 06)
+│   ├── xgb_ranker.onnx     # 148 MB — ONNX export (produced by script 06)
+│   └── popularity.joblib   # ~120 KB — global popularity fallback list (produced by script 08)
 │
 ├── reports/
 │   ├── cleaning_report.json
@@ -150,7 +159,7 @@ Rec_ONCF/
 **Algorithm:** XGBoost multiclass (`multi:softprob`), sklearn Pipeline
 **Split:** temporal — 80% train / 20% test by `DateHeureDepartVoyageSegment` (393,344 train / 98,261 test after filtering unseen labels)
 **Preprocessing:** `ColumnTransformer` — `OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)` for 7 cat cols, passthrough for 15 num cols
-**Cold-start rule:** if user has < 3 bookings in history → return `cold_start` mode, no recommendation
+**Cold-start rule:** if user has < 3 bookings in history (or is unknown / produces no candidates) → fall back to `mode: "popularity"` (top-k global frequency list from `popularity.joblib`). Only returns empty `mode: "cold_start"` if `popularity.joblib` is absent.
 
 **Why OrdinalEncoder (not OHE):** `prev_liaison` has 1,011 unique values — OHE would explode the feature matrix to 5,000+ columns. OrdinalEncoder keeps it at ~23 columns.
 
@@ -228,6 +237,7 @@ xgb_model_path         = models_dir / "xgb_ranker.json"     # saved with joblib
 label_encoder_path     = models_dir / "label_encoder.joblib"
 cold_start_path        = models_dir / "cold_start.joblib"
 onnx_model_path        = models_dir / "xgb_ranker.onnx"     # 148 MB, produced by script 06
+popularity_path        = models_dir / "popularity.joblib"    # ~120 KB, produced by script 08
 features_parquet       = data/processed/features.parquet
 processed_dataset_parquet = data/processed/oncf_clean.parquet
 ```
@@ -241,17 +251,26 @@ processed_dataset_parquet = data/processed/oncf_clean.parquet
 FastAPI app — **written, model available, ready to start.**
 
 **Endpoints:**
+- `GET /` → ONCF-styled demo web page (self-contained HTML/CSS/JS; POSTs to `/recommend` and renders top-k routes). Static assets served at `GET /static/*` from `apps/api/static/`. `code_client` is only ever sent in the POST body — never in the URL or browser storage (Loi 09-08).
 - `GET /health` → `{"status": "ok"}`
-- `POST /recommend` → `{"mode": "model"|"cold_start", "recommendations": ["LiaisonId", ...]}`
+- `POST /recommend?variant=a|b` → `{"mode": "model"|"cold_start_cf"|"popularity"|"cold_start", "recommendations": [...], "labels": {"LiaisonId": "GARE DEPART → GARE ARRIVEE", ...}, "variant": "a"|"b", "request_id": "<uuid>"}`
+- `POST /feedback` → `{"status": "ok"}` — log click event for CTR measurement
 
-**Request body:**
+**Request body (`/recommend`):**
 ```json
 {"code_client": "12345", "k": 3, "include_schedule": false}
 ```
 `k` is clamped to [1, 3] by Pydantic validation.
+`variant` query param (default `"a"`): `"b"` routes to challenger model; unknown values fall back to `"a"`.
 `include_schedule` (bool, default false): when true, each recommended LiaisonId is enriched with next departures scraped from oncf.ma (cached 1hr per (origin, dest, date)). Stations without a known ONCF code return `[]` silently. Adds a `schedules` dict to the response.
 
-**Startup:** Uses FastAPI lifespan — calls `Recommender.from_paths(paths)` once at startup.
+**Request body (`/feedback`):**
+```json
+{"request_id": "<uuid>", "liaison_id": "R1", "clicked": true}
+```
+`request_id` must be a valid UUID4 matching the one returned by `/recommend`. Correlates serve + click events for CTR uplift measurement (no `code_client` ever logged — Loi 09-08).
+
+**Startup:** Uses FastAPI lifespan — loads `recommender_a` (prod model) and `recommender_b` (challenger; falls back to A if challenger files absent) into `app.state`.
 
 **Start command:**
 ```powershell
@@ -272,18 +291,21 @@ recommender.recommend(code_client, k=1)  # returns dict
 
 **`recommend()` logic (TWO-STAGE Candidate Generation + Ranking):**
 1. Look up `code_client` in `history_lookup` (built from `oncf_clean.parquet`)
-2. If history is `None` → return `_COLD_START`
-3. If `len(history) < 3` → `cold_start_rec.recommend()` → return `{"mode": "cold_start_cf", ...}` or `_COLD_START`
-4. `generate_candidates()` from history → if empty → `_COLD_START`
+2. If history is `None` → `_fallback(k)` → `{"mode": "popularity", "recommendations": <top-k global>}` (or `{"mode": "cold_start", "recommendations": []}` if `popularity.joblib` absent)
+3. If `len(history) < 3` → `cold_start_rec.recommend()` → return `{"mode": "cold_start_cf", ...}` or `_fallback(k)`
+4. `generate_candidates()` from history → if empty → `_fallback(k)`
 5. `compute_inference_row(history)` — features built ON THE FLY from live history
 6. **ONNX fast path**: `predict_proba_onnx(onnx_session, preprocessor, feat_row)` → probabilities over 1,011 classes in ~24ms
 7. **Filter scores to candidates**: `le.transform(valid_candidates)` → keep only candidate indices
 8. Sort filtered scores descending, take top-`k` → return `{"mode": "model", "recommendations": [...]}`
 9. Edge case: if no candidate is known to encoder, fall back to raw `candidates[:k]` order
+10. Every result dict also carries `"labels": {liaison_id: "GARE DEPART → GARE ARRIVEE", ...}` for all recommended ids that have an entry in `liaison_label_lookup` (unknown ids silently omitted).
 
 **In-memory lookups (built at startup):**
 - `history_lookup: dict[str, DataFrame]` — keyed by `CodeClient`, sorted by date
 - `onnx_session: InferenceSession | None` — loaded from `xgb_ranker.onnx`; `None` in tests (sklearn fallback)
+- `popularity: list[str]` — top LiaisonIds by global booking frequency, loaded from `popularity.joblib` (empty list if artifact absent)
+- `liaison_label_lookup: dict[str, str]` — maps each LiaisonId to `"GARE DEPART → GARE ARRIVEE"`, built from `oncf_clean.parquet` at startup
 
 ---
 
@@ -295,7 +317,7 @@ recommender.recommend(code_client, k=1)  # returns dict
 | Feature engineering (script 02) | ✅ Done | `features.parquet` — 491,680 × 26 cols |
 | Model training (script 03) | ✅ Done | Models saved, metrics exceed all thresholds |
 | Baselines (script 04) | ✅ Done | `reports/baseline_metrics.json` |
-| Test suite (99 tests) | ✅ All passing | Last run: 99/99 green |
+| Test suite (110 tests) | ✅ All passing | Last run: 110/110 green |
 | FastAPI app (`apps/api/main.py`) | ✅ Ready | Model exists, lifespan loads at startup |
 | API endpoint test (live) | ✅ Done | `/health` + `/recommend` × 5 cases tested |
 | Two-stage filter in `recommender` | ✅ Fixed | Top-k now restricted to candidates |
@@ -309,6 +331,7 @@ recommender.recommend(code_client, k=1)  # returns dict
 | Structured logging (`apps/api/main.py`) | ✅ Done | JSON logs → `logs/api.log`; per-request `mode`, `latency_ms`, `k`, `n_recommendations`; `code_client` never logged |
 | ONCF schedule scraping (`schedule.py`) | ✅ Done | 24 stations, Redis+memory cache, `include_schedule` flag in API |
 | A/B testing framework (`apps/api/main.py`) | ✅ Done | `?variant=a|b`, `/feedback`, `request_id` correlation |
+| Popularity fallback + demo UI | ✅ Done | `mode: "popularity"` replaces empty cold_start; `"labels"` key in every `/recommend` response; ONCF-styled demo page at `GET /` |
 
 ---
 
@@ -371,7 +394,9 @@ Deleted the following files that were no longer needed:
 
 4. **Structured logging** ✅ done — JSON logs in `logs/api.log`; per-request `mode`, `latency_ms`, `k`, `n_recommendations`; `code_client` never logged.
 
-5. **Embeddings of liaisons** (long term) — Word2Vec on trip sequences
+5. **Popularity fallback + demo UI** ✅ done — `popularity.py` + `scripts/08_build_popularity.py` → `models/popularity.joblib` (~1,067 liaisons, ~120 KB). `_COLD_START` constant removed; all no-recommendation branches now call `_fallback(k)` returning `mode: "popularity"`. Every `/recommend` response includes a `"labels"` dict. ONCF-styled demo page served at `GET /`; static assets at `apps/api/static/`; `code_client` never leaves the POST body (Loi 09-08). 110 tests passing.
+
+6. **Embeddings of liaisons** (long term) — Word2Vec on trip sequences
    to capture semantic similarity between routes.
 
 ---
@@ -397,13 +422,16 @@ Deleted the following files that were no longer needed:
 # 6. Export ONNX model + benchmark (~2 min — loads 281MB model)
 .venv\Scripts\python.exe scripts/06_export_onnx.py
 
-# 7. Run tests (~10 s, 99 tests)
+# 7. Build global-popularity fallback list (~5 s)
+.venv\Scripts\python.exe scripts/08_build_popularity.py
+
+# 8. Run tests (~10 s, 110 tests)
 .venv\Scripts\python.exe -m pytest tests/ -v
 
-# 8. Retrain with guardrail (optional — ~43 min on CPU)
+# 9. Retrain with guardrail (optional — ~43 min on CPU)
 .venv\Scripts\python.exe scripts/07_retrain.py --dry-run   # evaluate only
 .venv\Scripts\python.exe scripts/07_retrain.py              # evaluate + promote
 
-# 9. Start API
+# 10. Start API
 .venv\Scripts\python.exe -m uvicorn apps.api.main:app --reload
 ```
