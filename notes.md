@@ -4,6 +4,29 @@
 
 ---
 
+## 🚧 RESUME HERE — next session (paused 2026-05-12)
+
+**Branch state:** work is on branch **`feat/popularity-fallback-demo-ui`** (10 commits, `c34cd46`..`3c68c14`), **NOT merged to `main`**. 110/110 tests pass. The popularity-fallback + demo-UI feature is implemented; spec at `docs/superpowers/specs/2026-05-12-demo-ui-popularity-fallback-design.md`, plan at `docs/superpowers/plans/2026-05-12-demo-ui-popularity-fallback.md`. **Decision still pending**: merge to `main` / open PR / keep as-is — but first fix the three bugs below (found during manual UI testing of `GET /`).
+
+> A uvicorn dev server may still be running on port 8125 from the last session — kill stray `python.exe` if so.
+
+### Open bugs to fix (priority order) — debugging was started but not finished
+
+**Bug C — `mode: "model"` can return fewer than `k` recommendations.** (highest impact, simplest fix)
+- Repro: pick a client whose history has only 1–2 distinct `LiaisonId`, call `POST /recommend {k:3}` → only 2 (or 1) recommendations come back.
+- Root cause (confirmed by reading code): `candidates.generate_candidates()` returns only the *distinct LiaisonIds in the user's own history* (≤ `max_candidates`). `Recommender._recommend_core()` ranks those and takes `[:k]` — no padding. So `len(valid_candidates) < k` ⇒ short list.
+- Fix: after the model-ranked recs, pad up to `k` with entries from `self.popularity` (and/or cold-start co-occurrence neighbours) that aren't already present. Add a TDD test: user with a 2-route history → `recommend(cc, k=3)` returns exactly 3, model recs first. (Also sanity-check `apps/api/static/app.js` actually sends the selected `k` — but the backend is the real cause.)
+
+**Bug A — `include_schedule=true` always yields "Horaires indisponibles" (`schedules[id] == []` for everyone).**
+- Root cause: NOT yet confirmed — investigation was interrupted. Strong hypothesis: `schedule.fetch_departures()` does a plain `requests.get("https://www.oncf.ma/fr/Horaires?from[...]&to[...]&datedep=...")` and `_parse_schedule_html()` looks for `div.container > table > tbody > tr`; oncf.ma very likely renders that table **client-side via JS**, so the GET returns only the HTML shell ⇒ parser returns `[]` every time. (Also: a wrong/outdated URL format or station-name mismatch are alternative causes.) The 24-station `STATION_CODES` map looks fine and includes CASA VOYAGEURS/FES/TANGER VILLE/RABAT AGDAL/KENITRA which were the failing cases, so it's not the code map.
+- Next step (Phase 1 of systematic-debugging): actually fetch the URL for CASA VOYAGEURS→FES and inspect the returned HTML — is the schedule table present in the raw response? If JS-rendered: options are (a) find ONCF's underlying JSON/AJAX endpoint and call that, (b) headless browser (too heavy for this), (c) drop live scraping and ship a curated static timetable, (d) keep it but label it best-effort. The `test_schedule.py` suite passes because it mocks the HTML — it doesn't catch this.
+
+**Bug B — latency 6–8 s when `include_schedule=true`** (plain `/recommend` is ~12–20 ms — fine).
+- Root cause: `fetch_departures()` has `timeout=10` s, and `apps/api/main.py:recommend()` calls `get_schedule()` **sequentially** for each of the `k` recommendations ⇒ up to ~30 s; observed 6–8 s. Empty results are deliberately not cached, so every request re-scrapes. Compounds with Bug A (slow *and* empty).
+- Fix options: don't block the `/recommend` response on schedules at all (return recs immediately; UI lazy-loads schedules per card via a separate `GET /schedule/{liaison_id}` endpoint), and/or parallelise the scrapes, and/or drop the per-call timeout to ~2–3 s. For the "zero-click first page" use case, schedules probably shouldn't be on the critical path.
+
+---
+
 ## Project Goal
 
 Build a proactive route recommender ("zero-click search") for ONCF (Morocco's national railway).
@@ -184,19 +207,19 @@ xgb.XGBClassifier(
 ```
 
 **Target metrics (thresholds from spec):**
-- `hit_rate@1 > 0.30` (primary)
-- `hit_rate@3 > 0.50`
-- `mrr@3 > 0.35`
+- `hit_rate@1 > 0.50` (primary)
+- `hit_rate@3 > 0.60`
+- `mrr@3 > 0.60`
 
 ---
 
 ## Offline Metrics (Sprint 2 retrain — 2026-05-04)
 
-| Metric | Sprint 1 | **Sprint 2** | Δ | Threshold | Pass |
-|---|---|---|---|---|---|
-| `hit_rate@1` | 0.7395 | **0.7628** | +2.33 pp | > 0.30 | ✅ |
-| `hit_rate@3` | 0.8877 | **0.9055** | +1.78 pp | > 0.50 | ✅ |
-| `mrr@3`      | 0.8064 | **0.8277** | +2.13 pp | > 0.35 | ✅ |
+|        Metric| Sprint 1  | **Sprint 2** | Δ          | Threshold   | Pass   
+|---           |---        |---           |---         |---          |---     
+| `hit_rate@1` | 0.7395    | **0.7628**   | +2.33 pp   | > 0.30      | ✅     
+| `hit_rate@3` | 0.8877    | **0.9055**   | +1.78 pp   | > 0.50      | ✅    
+| `mrr@3`      | 0.8064    | **0.8277**   | +2.13 pp   | > 0.35      | ✅     
 
 Improvement driven by the new `user_top_liaison_share` feature.
 
