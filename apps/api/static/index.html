@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ONCF — Système de recommandation de trajet zéro-clic. Démo interne." />
+  <title>ONCF · Recommandation de trajet</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+
+  <!-- ═══ HEADER ═══ -->
+  <header class="site-header" role="banner">
+    <div class="header-inner">
+      <div class="wordmark">
+        <span class="wordmark-oncf">ONCF</span>
+        <span class="wordmark-sep" aria-hidden="true"></span>
+        <span class="wordmark-sub">Office National des Chemins de Fer</span>
+      </div>
+      <div class="header-tag">
+        <span class="tag-icon" aria-hidden="true">
+          <!-- train icon SVG -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="11" rx="3"/>
+            <path d="M7 18v2M17 18v2M2 12h20"/>
+            <path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </span>
+        Recommandation de trajet — démo
+      </div>
+    </div>
+    <div class="header-accent" aria-hidden="true"></div>
+  </header>
+
+  <!-- ═══ MAIN ═══ -->
+  <main class="main-layout" role="main">
+
+    <!-- Form card -->
+    <section class="form-section" aria-labelledby="form-title">
+      <div class="form-card" role="form">
+        <div class="form-card-header">
+          <h1 id="form-title" class="form-title">Recherche de recommandations</h1>
+          <p class="form-subtitle">Saisissez un identifiant client pour obtenir ses trajets suggérés.</p>
+        </div>
+
+        <form id="recommend-form" novalidate autocomplete="off">
+          <!-- Code client -->
+          <div class="field-group">
+            <label for="code-client" class="field-label">
+              Code client
+              <span class="field-required" aria-label="obligatoire">*</span>
+            </label>
+            <div class="field-input-wrap">
+              <span class="field-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </span>
+              <input
+                type="text"
+                id="code-client"
+                name="code_client"
+                class="field-input"
+                placeholder="ex. 123456"
+                aria-describedby="code-client-error"
+                aria-required="true"
+                inputmode="numeric"
+                maxlength="20"
+              />
+            </div>
+            <span id="code-client-error" class="field-error" role="alert" aria-live="polite"></span>
+          </div>
+
+          <!-- k selector -->
+          <div class="field-group">
+            <label class="field-label" id="k-label">Nombre de recommandations</label>
+            <div class="segmented-group" role="group" aria-labelledby="k-label">
+              <label class="seg-option">
+                <input type="radio" name="k" value="1" aria-label="1 recommandation" />
+                <span class="seg-btn">1</span>
+              </label>
+              <label class="seg-option">
+                <input type="radio" name="k" value="2" aria-label="2 recommandations" />
+                <span class="seg-btn">2</span>
+              </label>
+              <label class="seg-option">
+                <input type="radio" name="k" value="3" checked aria-label="3 recommandations" />
+                <span class="seg-btn">3</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Schedule toggle -->
+          <div class="field-group field-group--inline">
+            <label class="toggle-label" for="include-schedule">
+              <span class="toggle-wrap">
+                <input type="checkbox" id="include-schedule" name="include_schedule" role="switch" />
+                <span class="toggle-track" aria-hidden="true">
+                  <span class="toggle-thumb"></span>
+                </span>
+              </span>
+              <span class="toggle-text">
+                Afficher les horaires
+                <span class="toggle-hint">Prochains départs depuis oncf.ma</span>
+              </span>
+            </label>
+          </div>
+
+          <!-- Submit -->
+          <div class="form-actions">
+            <button type="submit" id="submit-btn" class="btn-primary" aria-busy="false">
+              <span class="btn-content">
+                <span class="btn-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                  </svg>
+                </span>
+                <span class="btn-text">Recommander</span>
+                <span class="btn-spinner" aria-hidden="true"></span>
+              </span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Results region -->
+    <section class="results-section" id="results-section" aria-label="Résultats" aria-live="polite">
+
+      <!-- Error banner -->
+      <div id="error-banner" class="error-banner" role="alert" hidden>
+        <span class="error-icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </span>
+        <span id="error-message" class="error-text"></span>
+      </div>
+
+      <!-- Empty state (initial) -->
+      <div id="empty-state" class="empty-state">
+        <div class="empty-illustration" aria-hidden="true">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+            <rect x="4" y="20" width="56" height="30" rx="8" fill="var(--oncf-slate)" opacity="0.06"/>
+            <rect x="12" y="26" width="40" height="4" rx="2" fill="var(--oncf-slate)" opacity="0.15"/>
+            <rect x="12" y="34" width="28" height="4" rx="2" fill="var(--oncf-slate)" opacity="0.10"/>
+            <circle cx="20" cy="54" r="4" fill="var(--oncf-slate)" opacity="0.12"/>
+            <circle cx="44" cy="54" r="4" fill="var(--oncf-slate)" opacity="0.12"/>
+            <path d="M32 14 L36 20 L28 20 Z" fill="var(--oncf-orange)" opacity="0.5"/>
+          </svg>
+        </div>
+        <p class="empty-title">Aucune recherche effectuée</p>
+        <p class="empty-sub">Saisissez un code client et lancez une recommandation.</p>
+      </div>
+
+      <!-- Route cards container -->
+      <div id="cards-container" class="cards-container" hidden></div>
+
+      <!-- Empty results state -->
+      <div id="no-results" class="no-results-state" hidden>
+        <p>Aucune recommandation disponible pour ce client.</p>
+      </div>
+
+      <!-- Status footer -->
+      <footer id="result-footer" class="result-footer" hidden>
+        <div class="footer-left">
+          <span id="mode-badge" class="mode-badge"></span>
+        </div>
+        <div class="footer-right">
+          <span id="request-id-display" class="request-id" aria-label="Identifiant de requête"></span>
+          <span id="latency-display" class="latency"></span>
+        </div>
+      </footer>
+
+    </section>
+
+  </main>
+
+  <!-- ═══ FOOTER ═══ -->
+  <footer class="page-footer" role="contentinfo">
+    <span>ONCF · Système de recommandation interne &mdash; données à usage analytique uniquement</span>
+  </footer>
+
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>
