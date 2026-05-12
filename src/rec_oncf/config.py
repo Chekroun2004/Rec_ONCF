@@ -21,6 +21,7 @@ class Paths:
     label_encoder_path: Path
     cold_start_path: Path
     onnx_model_path: Path
+    popularity_path: Path
 
 
 def default_paths() -> Paths:
@@ -40,6 +41,7 @@ def default_paths() -> Paths:
     label_encoder_path = models_dir / "label_encoder.joblib"
     cold_start_path = models_dir / "cold_start.joblib"
     onnx_model_path = models_dir / "xgb_ranker.onnx"
+    popularity_path = models_dir / "popularity.joblib"
 
     return Paths(
         project_root=project_root,
@@ -55,4 +57,5 @@ def default_paths() -> Paths:
         label_encoder_path=label_encoder_path,
         cold_start_path=cold_start_path,
         onnx_model_path=onnx_model_path,
+        popularity_path=popularity_path,
     )
