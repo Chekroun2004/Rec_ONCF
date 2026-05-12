@@ -136,3 +136,43 @@ def test_cold_start_few_trips_returns_cf_mode():
     result = rec.recommend("2001", k=1)
     assert result["mode"] == "cold_start_cf"
     assert len(result["recommendations"]) >= 1
+
+
+def test_unknown_user_falls_back_to_popularity():
+    arts = _make_artifacts()
+    clean = _make_clean_df()
+    rec = Recommender.from_data(arts, clean, popularity=["C", "A", "B"])
+    result = rec.recommend("9999", k=2)
+    assert result["mode"] == "popularity"
+    assert result["recommendations"] == ["C", "A"]
+    assert result["recommendations"]  # never empty
+
+
+def test_unknown_user_without_popularity_is_cold_start():
+    arts = _make_artifacts()
+    clean = _make_clean_df()
+    rec = Recommender.from_data(arts, clean)  # no popularity
+    result = rec.recommend("9999", k=2)
+    assert result["mode"] == "cold_start"
+    assert result["recommendations"] == []
+
+
+def test_recommend_result_always_has_labels_key():
+    arts = _make_artifacts()
+    clean = _make_clean_df()
+    rec = Recommender.from_data(arts, clean, popularity=["A", "B"])
+    for cc in ("1001", "9999"):
+        result = rec.recommend(cc, k=2)
+        assert "labels" in result
+        assert isinstance(result["labels"], dict)
+
+
+def test_recommend_labels_map_liaison_to_station_pair():
+    arts = _make_artifacts()
+    clean = _make_clean_df()
+    clean["DesignationFrGareDepart"] = "GARE X"
+    clean["DesignationFrGareArrive"] = "GARE Y"
+    rec = Recommender.from_data(arts, clean, popularity=["A"])
+    result = rec.recommend("1001", k=3)
+    for lid in result["recommendations"]:
+        assert result["labels"][lid] == "GARE X → GARE Y"
