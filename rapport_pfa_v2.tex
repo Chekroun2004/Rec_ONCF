@@ -1,0 +1,2021 @@
+% ================================================================
+%  Rapport de Projet de Fin d'Année
+%  Système de Recommandation Proactif ONCF -- Zero-Click Search
+%  Auteur : Omar Chekroun
+%  Établissement : Université Mohammed V de Rabat
+%                  Faculté des Sciences de Rabat
+%  Année universitaire : 2025 -- 2026
+%  Compilateur : pdfLaTeX (Overleaf)
+% ================================================================
+
+\documentclass[12pt, a4paper]{report}
+
+% ── Encodage & langue ──────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+
+% ── Mise en page ───────────────────────────────────────────────────
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ── Graphiques & couleurs ──────────────────────────────────────────
+\usepackage{graphicx}
+\graphicspath{{pic/}}
+\usepackage{float}
+\usepackage[dvipsnames]{xcolor}
+\definecolor{oncfOrange}{RGB}{230, 83, 0}
+\definecolor{oncfBlue}{RGB}{0, 75, 141}
+\definecolor{codebg}{RGB}{248, 248, 248}
+
+% ── En-têtes & pieds de page ───────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{oncfBlue}{Système de Recommandation Proactif ONCF}}
+\fancyhead[R]{\small\textcolor{oncfBlue}{Omar Chekroun}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Titres chapitres & sections ────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{oncfBlue}}
+  {\chaptertitlename\ \thechapter}{12pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{0pt}{20pt}
+
+\titleformat{\section}
+  {\Large\bfseries\color{oncfBlue}}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\large\bfseries\color{oncfBlue}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\itshape}{\thesubsubsection}{1em}{}
+
+% ── Tableaux ───────────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{longtable}
+
+% ── Maths ─────────────────────────────────────────────────────────
+\usepackage{amsmath, amssymb}
+
+% ── Code source ───────────────────────────────────────────────────
+\usepackage{listings}
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  captionpos=b,
+  tabsize=4,
+  showstringspaces=false,
+  extendedchars=true,
+  keywordstyle=\bfseries\color{blue!70!black},
+  commentstyle=\itshape\color{gray},
+  stringstyle=\color{orange!80!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=8pt,
+  literate={é}{{\'{e}}}1{è}{{\`{e}}}1{ê}{{\^{e}}}1{à}{{\`{a}}}1
+           {ù}{{\`{u}}}1{ô}{{\^{o}}}1{î}{{\^{i}}}1{ç}{{\c{c}}}1
+           {É}{{\'{E}}}1{È}{{\`{E}}}1{À}{{\`{A}}}1
+           {â}{{\^{a}}}1{û}{{\^{u}}}1{œ}{{\oe{}}}1,
+}
+\lstdefinestyle{python}{language=Python,
+  morekeywords={True,False,None,self,dataclass,async,await,yield,from,import}}
+\lstdefinestyle{bash}{language=bash, numbers=none}
+\lstdefinestyle{json}{language={}, morestring=[b]", numbers=none}
+
+% ── Légendes ──────────────────────────────────────────────────────
+\usepackage{caption}
+\captionsetup{font=small, labelfont=bf, labelsep=period}
+
+% ── Listes ────────────────────────────────────────────────────────
+\usepackage{enumitem}
+
+% ── Hyperliens ────────────────────────────────────────────────────
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=oncfOrange,
+  citecolor=oncfBlue,
+  urlcolor=blue!70!black,
+  pdfauthor={Omar Chekroun},
+  pdftitle={Système de Recommandation Proactif ONCF},
+}
+
+% ── Boîte de note ─────────────────────────────────────────────────
+\usepackage{tcolorbox}
+\tcbuselibrary{skins}
+\newtcolorbox{notebox}{
+  colback=oncfOrange!8, colframe=oncfOrange, arc=3pt,
+  fonttitle=\bfseries, title={Note}
+}
+
+% ── Commandes utilitaires ─────────────────────────────────────────
+% \img[largeur]{chemin/image.ext}{Légende}  — insère une vraie photo
+\newcommand{\img}[3][0.80\textwidth]{%
+  \begin{figure}[H]
+  \centering
+  \includegraphics[width=#1, keepaspectratio]{#2}%
+  \caption{#3}%
+  \end{figure}%
+}
+% \imgplaceholder{Description}{Légende}  — boîte grise temporaire
+\newcommand{\imgplaceholder}[2]{%
+  \begin{figure}[H]
+  \centering
+  \fbox{\begin{minipage}{0.75\textwidth}
+    \centering\vspace{1.5cm}
+    \textcolor{gray}{\large\textit{[#1]}}
+    \vspace{1.5cm}
+  \end{minipage}}
+  \caption{#2}
+  \end{figure}
+}
+
+% ================================================================
+\begin{document}
+% ================================================================
+
+% ─────────────────────── PAGE DE GARDE ──────────────────────────
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{center}
+
+% ── Logos (remplacer par \includegraphics après) ──
+\begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[height=3cm, keepaspectratio]{LogoFsr.png}\\[0.2cm]
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[height=3cm, keepaspectratio]{oncf.png}\\[0.2cm]
+\end{minipage}
+
+\vspace{0.5cm}
+\noindent\rule{\textwidth}{2pt}\\[0.1cm]
+\noindent\rule{\textwidth}{0.6pt}
+\vspace{0.3cm}
+
+{\small Faculté des Sciences de Rabat ---
+Département Informatique}\\[0.2cm]
+{\small Filière~: Sciences de l'Ingénieur Informatique}
+
+\vspace{1.5cm}
+{\small\textsc{Rapport de Projet de Fin d'Année}}
+
+\vspace{1.2cm}
+{\color{oncfOrange}\rule{0.6\textwidth}{1.5pt}}\\[0.5cm]
+{\Huge\bfseries Système de Recommandation}\\[0.4cm]
+{\Huge\bfseries Proactif ONCF}\\[0.5cm]
+{\Large\itshape «~Zero-Click Search~»}\\[0.4cm]
+{\color{oncfOrange}\rule{0.6\textwidth}{1.5pt}}
+
+\vspace{0.8cm}
+{\large Prédiction du trajet ferroviaire suivant\\
+pour l'application mobile ONCF Voyages}
+
+\vspace{1.5cm}
+
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Réalisé par}        & Omar \textsc{Chekroun} \\
+\hline
+\textbf{Établissement}      & UM5 --- Faculté des Sciences de Rabat \\
+\hline
+\textbf{Filière}            & Sciences de l'Ingénieur Informatique \\
+\hline
+\textbf{Organisme d'accueil}& ONCF --- Direction des Systèmes d'Information et Digital \\
+\hline
+\textbf{Email}              & omarchekroun39@gmail.com \\
+\hline
+\textbf{Année universitaire}& 2025 -- 2026 \\
+\hline
+\end{tabular}
+
+\vfill
+
+\end{center}
+\end{titlepage}
+
+% ─────────────────────── REMERCIEMENTS ──────────────────────────
+\newpage
+\chapter*{Remerciements}
+\addcontentsline{toc}{chapter}{Remerciements}
+
+Au terme de ce stage, je tiens à adresser mes sincères remerciements à
+toutes les personnes qui ont contribué, de près ou de loin, à la réussite
+de ce projet.
+
+Mes premiers remerciements vont naturellement à mes \textbf{parents}, pour
+leur amour inconditionnel, leur patience et les sacrifices qu'ils ont
+consentis tout au long de mon parcours. Leur soutien a été ma force dans
+les moments les plus exigeants. Je remercie également l'ensemble de ma
+\textbf{famille} pour leur encouragement constant et leur bienveillance.
+
+J'adresse mes plus vifs remerciements à \textbf{Mme~Rania~Basri}, mon
+encadrante de stage, pour sa disponibilité, ses conseils avisés et
+l'accompagnement qu'elle m'a apporté tout au long de ce projet. Sa
+rigueur et son expertise ont été déterminantes dans la conduite de ce
+travail.
+
+Je remercie chaleureusement l'\textbf{Office National des Chemins de
+Fer (ONCF)}, et plus particulièrement l'ensemble du \textbf{corps de la
+Direction des Systèmes d'Information et Digital} et de l'équipe
+\textbf{SI~Voyageurs}, pour leur accueil, leur confiance et la richesse
+du cas d'usage qu'ils m'ont confié.
+
+Enfin, ma gratitude va à l'ensemble du \textbf{corps professoral du
+Département Informatique} de la \textbf{Faculté des Sciences de Rabat
+--- Université Mohammed~V}, pour la qualité de la formation dispensée et
+les bases académiques solides qui ont rendu ce projet possible.
+
+\vspace{1cm}
+\hfill\textit{Omar Chekroun, Mai 2026}
+
+% ─────────────────────── RÉSUMÉ ─────────────────────────────────
+\newpage
+\chapter*{Résumé}
+\addcontentsline{toc}{chapter}{Résumé}
+
+Ce rapport présente le développement d'un \textbf{système de recommandation
+proactif} de trajets ferroviaires pour l'application mobile \textbf{ONCF
+Voyages}. Les voyageurs réguliers sont aujourd'hui contraints de ressaisir
+manuellement leurs trajets habituels à chaque ouverture de l'application~:
+cette friction quotidienne est une source d'abandon et de frustration. La
+solution proposée, le \textbf{«~Zero-Click Search~»}, prédit automatiquement
+le prochain trajet de l'utilisateur et le lui présente dès le lancement de
+l'application --- sans aucune interaction de sa part.
+
+Le système est fondé sur une architecture deux étapes (sélection heuristique
+de candidats + classifieur \textbf{XGBoost} multiclasse) et couvre le cycle
+complet~: collecte et nettoyage des données, ingénierie de variables, entraîne\-ment
+du modèle, déploiement via API REST, et réentraînement automatique avec
+guardrail qualité. Les performances dépassent largement les objectifs fixés,
+avec une latence API inférieure à 14~ms.
+
+\bigskip
+\noindent\textbf{Mots-clés~:} système de recommandation, Zero-Click Search,
+XGBoost multiclasse, Candidate Generation, ONNX Runtime, FastAPI, ONCF.
+
+% ─────────────────────── ABSTRACT ───────────────────────────────
+\newpage
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+This report presents the development of a \textbf{proactive railway trip
+recommender system} for the \textbf{ONCF Voyages} mobile application. Regular
+commuters currently face daily search friction, forced to manually re-enter
+the same trips every time they open the app. The proposed solution, called
+\textbf{"Zero-Click Search"}, predicts the user's most likely next trip at
+app launch and displays it immediately --- with no required interaction.
+
+The system is built on a two-stage architecture (heuristic candidate selection
++ multiclass \textbf{XGBoost} ranking) and covers the full lifecycle: data
+cleaning, feature engineering, model training, REST API deployment with ONNX
+Runtime inference, and automated retraining with a quality guardrail. Offline
+results significantly exceed initial targets, with API latency under 14\,ms.
+
+\bigskip
+\noindent\textbf{Keywords~:} recommender system, Zero-Click Search, multiclass
+XGBoost, Candidate Generation, ONNX Runtime, FastAPI, ONCF.
+
+% ─────────────────────── TABLES ──────────────────────────────────
+\begingroup
+\hypersetup{linkcolor=black, citecolor=black}
+\newpage
+\tableofcontents
+
+\newpage
+\listoffigures
+\addcontentsline{toc}{chapter}{Liste des Figures}
+
+\newpage
+\listoftables
+\addcontentsline{toc}{chapter}{Liste des Tableaux}
+\endgroup
+
+% ─────────────────────── ABRÉVIATIONS ───────────────────────────
+\newpage
+\chapter*{Liste des Abréviations}
+\addcontentsline{toc}{chapter}{Liste des Abréviations}
+
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Acronyme} & \textbf{Signification} \\
+\hline
+ONCF   & Office National des Chemins de Fer \\
+\hline
+DSID   & Direction des Systèmes d'Information et Digital (de l'ONCF) \\
+\hline
+CNDP   & Commission Nationale de contrôle de la protection des Données à caractère Personnel \\
+\hline
+PFA    & Projet de Fin d'Année \\
+\hline
+UM5    & Université Mohammed V de Rabat \\
+\hline
+ML     & Machine Learning (apprentissage automatique) \\
+\hline
+XGBoost & eXtreme Gradient Boosting \\
+\hline
+GBDT   & Gradient Boosted Decision Trees \\
+\hline
+ONNX   & Open Neural Network Exchange \\
+\hline
+API    & Application Programming Interface \\
+\hline
+REST   & REpresentational State Transfer \\
+\hline
+HTTP   & HyperText Transfer Protocol \\
+\hline
+JSON   & JavaScript Object Notation \\
+\hline
+HR@k   & Hit Rate at $k$ --- taux de présence de la vraie liaison dans le top-$k$ \\
+\hline
+MRR    & Mean Reciprocal Rank (rang réciproque moyen) \\
+\hline
+O/D    & Origine / Destination \\
+\hline
+OE     & Ordinal Encoding \\
+\hline
+OHE    & One-Hot Encoding \\
+\hline
+CF     & Collaborative Filtering (filtrage collaboratif) \\
+\hline
+CTR    & Click-Through Rate (taux de clic) \\
+\hline
+GPU    & Graphics Processing Unit \\
+\hline
+CPU    & Central Processing Unit \\
+\hline
+VRAM   & Video Random Access Memory \\
+\hline
+OOM    & Out-Of-Memory (saturation de la mémoire) \\
+\hline
+CUDA   & Compute Unified Device Architecture \\
+\hline
+p50    & 50\textsuperscript{e} percentile de latence (médiane) \\
+\hline
+p99    & 99\textsuperscript{e} percentile de latence \\
+\hline
+TDD    & Test-Driven Development \\
+\hline
+\end{tabularx}
+
+% ================================================================
+% CHAPITRE 1 : CONTEXTE GÉNÉRAL ET ÉTUDE PRÉLIMINAIRE
+% ================================================================
+\newpage
+\chapter{Contexte Général et Étude Préliminaire}
+
+\section{Présentation de l'Organisme d'Accueil}
+
+\subsection{L'ONCF~: Acteur Public Stratégique du Maroc}
+
+\img[0.45\textwidth]{oncf.png}{Logo de l'Office National des Chemins de Fer}
+
+L'\textbf{Office National des Chemins de Fer (ONCF)} est l'établissement
+public marocain chargé de l'exploitation, de la maintenance et du
+développement du réseau ferroviaire national. Fondé en 1963 par la fusion
+de trois compagnies ferroviaires privées héritées de la période coloniale,
+il est placé sous la tutelle du Ministère de l'Équipement, du Transport,
+de la Logistique et de l'Eau.
+
+Le réseau ferroviaire marocain s'étend sur environ \textbf{2\,300 kilomètres}
+de voies, reliant les principales villes du Royaume~: de Tanger et Oujda au
+nord et à l'est, jusqu'à Marrakech et Oued Zem au sud. L'ONCF transporte
+chaque année plusieurs dizaines de millions de voyageurs, positionnant le
+Maroc parmi les pays africains les mieux dotés en infrastructure ferroviaire.
+
+\subsection{L'Application Mobile ONCF Voyages}
+
+\imgplaceholder{Insérer captures d'écran de l'application ONCF Voyages}{Interface de l'application mobile ONCF Voyages}
+
+L'application mobile \textbf{ONCF Voyages}, disponible sur iOS et Android,
+est le canal numérique principal de réservation des billets de train au Maroc.
+Elle permet aux voyageurs de~:
+\begin{itemize}
+\item consulter les horaires et la disponibilité des trains~;
+\item réserver et payer des billets en ligne~;
+\item gérer leur carnet de voyages et leurs billets électroniques~;
+\item accéder à des offres promotionnelles personnalisées.
+\end{itemize}
+
+L'application génère un \textbf{flux continu de données de réservation}
+structurées, constituant un actif analytique de premier plan.
+
+\subsection{Direction des Systèmes d'Information et Digital}
+
+La \textbf{Direction des Systèmes d'Information et Digital (DSID)} de l'ONCF
+pilote la transformation numérique de l'établissement. Elle est organisée autour
+d'une direction centrale appuyée par des entités transverses et cinq pôles
+opérationnels~:
+
+\begin{itemize}
+\item \textbf{Entités transverses~:} PMO Méthodes \& Qualité, Cybersécurité \&
+    Confiance Numérique, Gouvernance et Conformité SI.
+\item \textbf{Digital Innovation et Stratégie SI~:} Services Mobiles IT,
+    Urbanisation \& Stratégie SI.
+\item \textbf{SI Commercial~:} SI Fret et Logistique, SI Voyageurs,
+    Compétences SIV (Systèmes d'Information Voyageurs).
+\item \textbf{SI Ressources et SI Ferroviaires~:} Systèmes Transports
+    Intelligents, SI Ressources Ferroviaires.
+\item \textbf{SI Support et Pilotage~:} RH, Juridique et Corporate,
+    SI Finances et Gestion.
+\item \textbf{Ressources SI et Centre Opérations~:} Data Center Cloud,
+    Desk \& NOC, Mobilité \& Équipements SI, Réseaux SI \& Vidéosurveillance.
+\end{itemize}
+
+Ce projet de stage a été réalisé au sein du pôle \textbf{SI Commercial},
+dans l'entité \textbf{SI~Voyageurs}, qui est en charge des systèmes
+d'information liés à la mobilité des voyageurs et à l'application mobile
+ONCF Voyages. C'est dans ce cadre que s'inscrit le présent projet de
+recommandation proactive.
+
+% ─────────────────────────────────────────────────────────────────
+\section{Problématique et Contexte du Projet}
+
+\subsection{La Friction de Recherche}
+
+Un voyageur régulier emprunte quotidiennement, souvent plusieurs fois par
+semaine, le même trajet~: par exemple, \textit{Casablanca Voyageurs}
+$\rightarrow$ \textit{Rabat Agdal}, ou \textit{Kénitra} $\rightarrow$
+\textit{Ain Seba\"{a}}. À chaque ouverture de l'application, il doit
+néanmoins~:
+
+\begin{enumerate}
+\item saisir la gare de départ~;
+\item saisir la gare d'arrivée~;
+\item sélectionner une date~;
+\item lancer la recherche~;
+\item choisir un train parmi les résultats.
+\end{enumerate}
+
+Cette répétition de cinq étapes pour un trajet identique est ce que l'on
+nomme la \textbf{friction de recherche}. Elle est une source mesurable
+d'abandon et de frustration chez les voyageurs réguliers.
+
+\subsection{La Solution Proposée~: Zero-Click Search}
+
+\imgplaceholder{Insérer schéma conceptuel Zero-Click Search}{Concept du Zero-Click Search~: recommandation proactive à l'ouverture de l'app}
+
+Le concept de \textbf{Zero-Click Search} consiste à prédire, dès l'ouverture
+de l'application, le trajet que l'utilisateur s'apprête à rechercher, et à
+le lui présenter directement --- sans qu'il ait à saisir quoi que ce soit.
+L'utilisateur n'a plus qu'à confirmer ou ignorer la suggestion.
+
+Ce concept est inspiré des pratiques de recommandation proactive de Google,
+Amazon et Netflix, adaptées ici au domaine du transport ferroviaire marocain.
+
+\subsection{Formulation Formelle du Problème}
+
+\begin{notebox}
+Étant donné l'historique complet $H_u = \{t_1, t_2, \ldots, t_n\}$ des
+réservations d'un client $u$ (avec $t_i$ une réservation caractérisée par
+une liaison, une date, une classe, un prix et des métadonnées), prédire la
+prochaine liaison $l^* = \arg\max_l P(l \mid H_u)$ que l'utilisateur
+va réserver, et retourner un classement des $k$ liaisons les plus probables.
+\end{notebox}
+
+% ─────────────────────────────────────────────────────────────────
+\section{Objectifs du Projet}
+
+Les objectifs ont été définis en début de projet en concertation avec la
+Direction Digitale de l'ONCF~:
+
+\begin{itemize}
+\item[\checkmark] Concevoir une architecture de recommandation
+    \textbf{compatible production}~: scalable, interprétable, à faible
+    latence ($< 100$~ms).
+\item[\checkmark] Atteindre des métriques offline moyennes sur le jeu de
+    test temporel~: \textbf{HR@1 moy. $> 50\,\%$}, \textbf{HR@3 moy. $> 60\,\%$},
+    \textbf{MRR@3 $> 60\,\%$}.
+\item[\checkmark] Livrer une \textbf{API REST opérationnelle}, documentée
+    et testée, consommable par l'application mobile.
+\item[\checkmark] Mettre en place un \textbf{pipeline de réentraînement
+    automatique} avec guardrail qualité.
+\item[\checkmark] Concevoir un \textbf{framework A/B testing} pour valider
+    les nouvelles versions du modèle en production.
+\end{itemize}
+
+\textbf{Résultat~:} tous les objectifs ont été atteints, et les métriques
+dépassent significativement les seuils fixés.
+
+% ─────────────────────────────────────────────────────────────────
+\section{Étude de l'Existant~: Benchmark Industriel}
+
+\subsection{Références Industrielles}
+
+Avant d'engager le développement, une étude de l'existant a permis d'identifier
+les approches adoptées par les acteurs leaders pour des problèmes analogues~:
+
+\begin{table}[H]
+\centering
+\caption{Benchmark stratégique~: systèmes de prédiction et de recommandation}
+\label{tab:benchmark}
+\begin{tabularx}{\textwidth}{|>{\bfseries}p{2.4cm}|p{3.8cm}|X|}
+\hline
+\textbf{Acteur} & \textbf{Domaine / Approche} & \textbf{Enseignements clés pour l'ONCF} \\
+\hline
+Uber &
+    Two-Stage~: Candidate Gen.\ + XGBoost &
+    L'heure d'ouverture de l'app est la variable prédictive n\textsuperscript{o}~1.
+    Architecture deux étapes directement transposable au Zero-Click Search ONCF. \\
+\hline
+Trainline /\newline Deutsche Bahn &
+    Hybride~: CF léger + Règles métier &
+    Segmenter navetteurs (quotidiens) et occasionnels~;
+    filtrer les trains complets ou annulés avant tout affichage. \\
+\hline
+Airbnb &
+    GBDT + Embeddings\newline (ranking de conversion) &
+    Pondérer les signaux~: réservation $\gg$ favoris $\gg$ recherche abandonnée.
+    GBDT excelle pour la sensibilité au prix et à la classe. \\
+\hline
+Google Maps &
+    Modèles probabilistes\newline (Chaînes de Markov) &
+    Appliquer un seuil de confiance~: n'afficher la suggestion proactive
+    que si la probabilité dépasse un seuil calibré (ex.~70~\%). \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Choix d'Architecture Retenu}
+
+L'analyse du benchmark a conduit à retenir une \textbf{architecture deux
+étapes inspirée d'Uber}, adaptée au contexte ferroviaire de l'ONCF~:
+
+\begin{itemize}
+\item \textbf{Étape 1 --- Candidate Generation~:} sélection heuristique
+    rapide (basée sur les liaisons les plus fréquentes de l'utilisateur et
+    ses routes récentes) produisant $\leq 10$ candidats.
+\item \textbf{Étape 2 --- Ranking~:} classifieur XGBoost multiclasse sur
+    les candidats, exploitant 26 variables comportementales et temporelles.
+\end{itemize}
+
+\textbf{Pourquoi XGBoost et non un réseau de neurones~?} Les données ONCF
+sont de nature tabulaire (pas d'images, pas de texte libre). La littérature
+récente~[2,~3] montre que les GBDT surpassent systématiquement les réseaux
+de neurones sur des données tabulaires de taille modérée (< 1 million de
+lignes). C'est également le modèle utilisé en production par Uber pour la
+prédiction de destination et par Airbnb pour le ranking --- deux cas d'usage
+directement transposables à l'ONCF.
+
+% ─────────────────────────────────────────────────────────────────
+\section{Méthodologie de Travail}
+
+Le projet a été conduit selon une approche \textbf{itérative et incrémentale}
+organisée en sprints, inspirée de la méthode Scrum~:
+
+\imgplaceholder{Insérer diagramme de Gantt / planning des sprints}{Planning du projet~: phases et sprints}
+
+\begin{table}[H]
+\centering
+\caption{Planning général du projet}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Phase} & \textbf{Durée} & \textbf{Livrables} \\
+\hline
+Étude \& benchmark & Semaine 1--2 &
+    Cahier des charges, choix d'architecture \\
+\hline
+Sprint 1~: Données \& Modèle & Semaine 2--5 &
+    Dataset nettoyé, modèle v1, métriques offline \\
+\hline
+Sprint 2~: Architecture \& API & Semaine 5--7 &
+    Architecture deux étapes, API REST, tests \\
+\hline
+Phase 3~: Production & Semaine 7--8 &
+    ONNX, A/B testing, retrain pipeline \\
+\hline
+Consolidation \& rapport & Semaine 8--9 &
+    Suite de 100 tests, rapport de PFA \\
+\hline
+\end{tabularx}
+\end{table}
+
+Chaque itération a produit des artefacts versionnés (scripts, modèles,
+rapports JSON, tests) permettant la traçabilité complète du développement.
+
+% ================================================================
+% CHAPITRE 2 : ANALYSE ET CONCEPTION
+% ================================================================
+\newpage
+\chapter{Analyse et Conception}
+
+\section{Analyse des Besoins}
+
+\subsection{Besoins Fonctionnels}
+
+\begin{table}[H]
+\centering
+\caption{Besoins fonctionnels du système}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{ID} & \textbf{Priorité} & \textbf{Description} \\
+\hline
+BF-01 & Must & Recommander 1 à 3 liaisons à un utilisateur à partir de son historique \\
+\hline
+BF-02 & Must & Gérer le cas des nouveaux utilisateurs (cold start) sans crash \\
+\hline
+BF-03 & Must & Retourner les recommandations en moins de 100~ms \\
+\hline
+BF-04 & Must & Respecter la Loi 09-08~: CodeClient jamais dans les variables du modèle ni dans les logs \\
+\hline
+BF-05 & Should & Fournir les prochains horaires de départ pour chaque recommandation (optionnel) \\
+\hline
+BF-06 & Should & Permettre un A/B testing entre deux versions du modèle \\
+\hline
+BF-07 & Should & Pipeline de réentraînement automatique avec guardrail qualité \\
+\hline
+BF-08 & Could & Journalisation structurée des clics pour mesurer le CTR \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Besoins Non Fonctionnels}
+
+\begin{table}[H]
+\centering
+\caption{Besoins non fonctionnels}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Critère} & \textbf{Exigence} \\
+\hline
+Latence    & p50 $< 50$~ms, p99 $< 100$~ms \\
+\hline
+Disponibilité & API accessible 24h/24, 7j/7 \\
+\hline
+Scalabilité & Supporter au moins 69\,449 utilisateurs actifs \\
+\hline
+Maintenabilité & Code couvert par des tests automatisés ($\geq 80$~tests) \\
+\hline
+Reproductibilité & Pipeline entièrement scriptable, résultats déterministes \\
+\hline
+Conformité & Aucune donnée nominative dans les logs ou les features \\
+\hline
+Portabilité & Déployable sur Windows Server (machine ONCF) \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────
+\section{Architecture Globale du Système}
+
+\imgplaceholder{Insérer diagramme d'architecture globale (schéma en couches)}{Architecture globale du système de recommandation ONCF}
+
+Le système s'articule en \textbf{quatre couches} distinctes~:
+
+\begin{enumerate}
+\item \textbf{Couche Données~:} fichiers Parquet en lecture seule, produits
+    par les scripts de nettoyage et d'ingénierie des variables. Cette couche
+    est statique entre deux réentraînements.
+
+\item \textbf{Couche Modèle~:} artefacts entraînés (modèle XGBoost sérialisé,
+    label encoder, modèle cold start, export ONNX) stockés dans le répertoire
+    \texttt{models/}.
+
+\item \textbf{Couche Logique~:} bibliothèque Python \texttt{rec\_oncf}
+    (candidate generation, feature computation, recommender, schedule scraping).
+    Aucune dépendance vers la couche API ou la couche données brutes.
+
+\item \textbf{Couche API~:} application FastAPI exposant les endpoints
+    \texttt{/recommend} et \texttt{/feedback}. La couche logique y est
+    consommée en lecture seule.
+\end{enumerate}
+
+\imgplaceholder{Insérer diagramme de composants UML}{Diagramme de composants~: structure modulaire du projet}
+
+% ─────────────────────────────────────────────────────────────────
+\section{Architecture Deux Étapes}
+
+\imgplaceholder{Insérer schéma Candidate Generation + Ranking}{Architecture deux étapes~: Candidate Generation puis Ranking}
+
+L'architecture deux étapes fonctionne comme suit~:
+
+\paragraph{Étape 1 --- Candidate Generation}
+À partir de l'historique de l'utilisateur, un algorithme heuristique
+sélectionne au maximum 10 liaisons candidates. Les règles heuristiques
+combinent~:
+\begin{itemize}
+\item les liaisons empruntées lors des 3 derniers voyages (récence)~;
+\item les liaisons les plus fréquentes dans l'historique complet~;
+\item les liaisons co-fréquentées par des usagers au profil similaire.
+\end{itemize}
+Cette étape est déterministe, rapide ($< 3$~ms), et ne nécessite pas de
+modèle entraîné.
+
+\paragraph{Étape 2 --- Ranking}
+Le classifieur XGBoost calcule, pour chaque liaison de l'espace complet
+(1\,011 classes), une probabilité d'être la prochaine réservation, puis
+restreint le classement aux candidats de l'étape 1. Le top-$k$ est retourné
+à l'utilisateur ($k \in \{1, 2, 3\}$).
+
+% ─────────────────────────────────────────────────────────────────
+\section{Diagrammes UML}
+
+\subsection{Diagramme de Cas d'Utilisation}
+
+\imgplaceholder{Insérer diagramme Use Case UML}{Diagramme de cas d'utilisation}
+
+Les acteurs identifiés sont~:
+\begin{itemize}
+\item \textbf{Utilisateur mobile~:} consulte les recommandations, clique sur
+    une liaison suggérée, effectue ou non une réservation.
+\item \textbf{Application mobile~:} interroge l'API au démarrage, affiche les
+    suggestions, remonte les clics via \texttt{POST /feedback}.
+\item \textbf{Système de réentraînement~:} s'exécute automatiquement chaque nuit,
+    évalue le nouveau modèle, met à jour les fichiers challenger.
+\item \textbf{Data Scientist / Ops~:} consulte les métriques, valide la promotion
+    d'un modèle, configure les paramètres du guardrail.
+\end{itemize}
+
+\subsection{Diagramme de Séquence~: Appel \texttt{/recommend}}
+
+\imgplaceholder{Insérer diagramme de séquence pour POST /recommend}{Diagramme de séquence~: traitement d'une requête de recommandation}
+
+Le traitement d'une requête \texttt{POST /recommend} suit le flux suivant~:
+\begin{enumerate}
+\item L'application mobile envoie \texttt{POST /recommend} avec
+    \texttt{\{code\_client, k, variant\}}.
+\item L'API récupère l'historique de l'utilisateur depuis le
+    \texttt{history\_lookup} (dict en mémoire).
+\item Si l'historique compte moins de 3 voyages~: cold start CF.
+\item Sinon~: candidate generation (heuristique) + feature computation
+    (on-the-fly) + ONNX inference + ranking.
+\item La réponse \texttt{\{mode, variant, request\_id, recommendations\}}
+    est retournée en $\sim 14$~ms (p50).
+\end{enumerate}
+
+\subsection{Diagramme de Classes Simplifié}
+
+\imgplaceholder{Insérer diagramme de classes UML}{Diagramme de classes simplifié}
+
+Les classes principales du système sont~:
+\begin{itemize}
+\item \textbf{\texttt{Recommender}~:} orchestre l'ensemble du pipeline.
+    Attributs~: \texttt{artifacts}, \texttt{history\_lookup},
+    \texttt{cold\_start\_rec}, \texttt{onnx\_session}, \texttt{fast\_preprocessor}.
+\item \textbf{\texttt{TrainArtifacts}~:} encapsule le pipeline sklearn et le
+    label encoder.
+\item \textbf{\texttt{FastPreprocessor}~:} encodeur vectorisé remplaçant
+    \texttt{ColumnTransformer.transform} sur le chemin d'inférence chaud.
+\item \textbf{\texttt{ColdStartRecommender}~:} filtrage collaboratif par
+    co-occurrence pour les nouveaux utilisateurs.
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────
+\section{Conception de la Base de Données et des Données}
+
+\subsection{Schéma des Données Brutes}
+
+Les données brutes fournies par l'ONCF se présentent sous la forme de
+deux fichiers CSV~:
+
+\begin{itemize}
+\item \textbf{\texttt{oncf\_data.csv}~:} 946\,155 lignes de réservations.
+    Champs principaux~: \texttt{CodeClient}, \texttt{AchteurId},
+    \texttt{LiaisonId}, \texttt{DateHeureDepartVoyageSegment},
+    \texttt{TypeParcoursId}, \texttt{ClassePhysiqueId}, \texttt{PrixParLiaison},
+    \texttt{StatutReservation}, etc.
+\item \textbf{\texttt{Liaison.csv}~:} table de référence des liaisons
+    (codes gare de départ et d'arrivée, noms des stations).
+\end{itemize}
+
+\subsection{Schéma du Jeu de Données Propre}
+
+Après nettoyage, le fichier \texttt{oncf\_clean.parquet} (491\,680 lignes)
+conserve les colonnes utiles, avec des types corrigés et sans lignes annulées.
+
+\subsection{Schéma de la Table de Features}
+
+\begin{table}[H]
+\centering
+\caption{Schéma de la table \texttt{features.parquet} --- 26 colonnes (23 variables explicatives et 3 métadonnées)}
+\label{tab:features}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Colonne} & \textbf{Type} & \textbf{Description} \\
+\hline
+\texttt{CodeClient} & str & Clé de lookup uniquement --- jamais une feature \\
+\hline
+\texttt{DateHeureDepartVoyageSegment} & datetime & Utilisé pour le split temporel uniquement \\
+\hline
+\texttt{LiaisonId} & str & \textbf{Variable cible} \\
+\hline
+\texttt{TypeParcoursId} & str (Ordinal) & Type de trajet \\
+\hline
+\texttt{ClassificationId} & str (Ordinal) & Classification de réservation \\
+\hline
+\texttt{ClassePhysiqueId} & str (Ordinal) & Classe physique \\
+\hline
+\texttt{NiveauPrixId} & str (Ordinal) & Niveau de prix \\
+\hline
+\texttt{TrainAutocarId} & str (Ordinal) & Mode de transport \\
+\hline
+\texttt{CarteClientId} & str (Ordinal) & Type de carte client \\
+\hline
+\texttt{prev\_liaison} & str (Ordinal) & Dernière liaison réservée \\
+\hline
+\texttt{user\_top\_liaison\_share} & float & Part des voyages sur la liaison dominante \\
+\hline
+\texttt{PrixParLiaison} & float & Prix (nullable) \\
+\hline
+\texttt{NbrVoySegment} & float & Nombre de segments \\
+\hline
+\texttt{DelaiAnticipation} & float & Jours à l'avance \\
+\hline
+\texttt{user\_trip\_index} & int & Rang du voyage dans l'historique utilisateur \\
+\hline
+\texttt{days\_since\_prev} & float & Jours depuis le voyage précédent (NaN si premier) \\
+\hline
+\texttt{depart\_hour} & int & Heure de départ \\
+\hline
+\texttt{depart\_dow} & int & Jour de la semaine (0 = lundi) \\
+\hline
+\texttt{depart\_month} & int & Mois de départ \\
+\hline
+\texttt{depart\_hour\_sin/cos} & float & Encodage cyclique de l'heure \\
+\hline
+\texttt{depart\_dow\_sin/cos} & float & Encodage cyclique du jour \\
+\hline
+\texttt{depart\_month\_sin/cos} & float & Encodage cyclique du mois \\
+\hline
+\texttt{is\_self\_purchase} & int & 1 si l'acheteur est le voyageur \\
+\hline
+\end{tabularx}
+
+\medskip
+\noindent\textit{Note~:} les trois premières colonnes (\texttt{CodeClient},
+\texttt{DateHeureDepartVoyageSegment}, \texttt{LiaisonId}) sont des
+métadonnées --- elles servent respectivement de clé de lookup, de borne
+pour le split temporel et de variable cible. Seules les 23 colonnes
+restantes sont effectivement passées au modèle comme variables explicatives.
+\end{table}
+
+% ================================================================
+% CHAPITRE 3 : SPRINT 1 --- DONNÉES, MODÈLE, PREMIÈRE VERSION
+% ================================================================
+\newpage
+\chapter{Sprint 1 --- Données, Modélisation et Première Version}
+
+\section{Objectifs du Sprint 1}
+
+Le premier sprint avait pour objectif de poser les fondations du système~:
+obtenir un jeu de données propre, concevoir et entraîner un modèle de base,
+définir la méthodologie d'évaluation, et produire un premier ensemble de
+métriques offline comparables à des baselines.
+
+\section{Exploration et Nettoyage des Données}
+
+\subsection{Profilage du Dataset Brut}
+
+\imgplaceholder{Insérer histogramme de distribution des liaisons}{Distribution des liaisons par fréquence de réservation}
+
+Le dataset brut présente les caractéristiques suivantes~:
+
+\begin{table}[H]
+\centering
+\caption{Caractéristiques du dataset brut}
+\begin{tabular}{|l|r|}
+\hline
+\textbf{Dimension} & \textbf{Valeur} \\
+\hline
+Lignes brutes & 946\,155 \\
+\hline
+Lignes après nettoyage & 491\,680 \\
+\hline
+Taux de conservation & 51{,}9~\% \\
+\hline
+Utilisateurs uniques (actifs) & 69\,449 \\
+\hline
+Liaisons distinctes (avant filtre) & 1\,247 \\
+\hline
+Liaisons conservées après split & 1\,011 \\
+\hline
+Période couverte & 2019 -- 2024 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Règles Métier de Nettoyage}
+
+Le module \texttt{cleaning.py} applique les règles suivantes~:
+
+\begin{enumerate}
+\item \textbf{Propagation des annulations~:} toute réservation liée à un
+    voyage annulé (par jointure sur l'identifiant de voyage) est supprimée,
+    même si la ligne elle-même ne porte pas le statut «~Annulé~».
+\item \textbf{Filtrage cold start~:} les utilisateurs avec moins de 3
+    réservations dans la période d'entraînement sont retirés de la table
+    des features (ils relèvent du module cold start séparé).
+\item \textbf{Déduplication~:} les lignes exactement identiques sur
+    (CodeClient, LiaisonId, DateHeureDepart) sont consolidées.
+\item \textbf{Typages~:} conversion des colonnes de dates en
+    \texttt{datetime64}, des identifiants en \texttt{str}, des montants en
+    \texttt{float64}.
+\end{enumerate}
+
+\imgplaceholder{Insérer rapport de nettoyage (diagramme sankey ou tableau)}{Bilan du nettoyage~: entrées et sorties}
+
+\section{Ingénierie des Variables}
+
+\subsection{Variables Comportementales}
+
+Les variables comportementales capturent les habitudes individuelles de
+l'utilisateur~:
+
+\begin{itemize}
+\item \textbf{\texttt{prev\_liaison}~:} la dernière liaison réservée, codée
+    ordinalement. Variable la plus prédictive (les voyageurs réguliers
+    répètent souvent leurs trajets).
+\item \textbf{\texttt{user\_top\_liaison\_share}~:} part de la liaison
+    dominante dans l'historique de l'utilisateur. Mesure la «~loyauté~»
+    à un trajet habituel.
+\item \textbf{\texttt{user\_trip\_index}~:} rang cumulatif du voyage dans
+    l'historique. Distingue les nouveaux utilisateurs des loyaux.
+\item \textbf{\texttt{days\_since\_prev}~:} intervalle depuis le dernier
+    voyage, capturant la régularité.
+\end{itemize}
+
+\subsection{Variables Temporelles et Encodage Cyclique}
+
+Les horodatages présentent une periodicité (jour de la semaine, heure,
+mois). Un encodage naïf (heure = entier 0--23) introduit une discontinuité
+artificielle entre 23h et 0h. L'\textbf{encodage cyclique} corrige cela~:
+
+\begin{equation}
+\text{hour\_sin} = \sin\!\left(\frac{2\pi \cdot h}{24}\right), \quad
+\text{hour\_cos} = \cos\!\left(\frac{2\pi \cdot h}{24}\right)
+\end{equation}
+
+La même transformation est appliquée au jour de la semaine ($T=7$) et au
+mois ($T=12$).
+
+\imgplaceholder{Insérer graphique encodage cyclique de l'heure}{Encodage cyclique de l'heure de départ (sin/cos)}
+
+\subsection{Pourquoi OrdinalEncoder et non OneHotEncoder~?}
+
+La variable \texttt{prev\_liaison} comporte 1\,011 valeurs distinctes. Un
+\texttt{OneHotEncoder} produirait une matrice de 5\,000+ colonnes, rendant
+l'entraînement prohibitif. L'\texttt{OrdinalEncoder} conserve une seule
+colonne entière, parfaitement compatible avec les arbres de décision de
+XGBoost qui n'ont pas besoin d'une représentation binaire.
+
+\section{Entraînement du Modèle}
+
+\subsection{Formulation comme Classification Multiclasse}
+
+Le problème de recommandation est formulé comme une \textbf{classification
+multiclasse} à 1\,011 classes~: chaque liaison est une classe, et le modèle
+prédit la probabilité de chaque liaison d'être la prochaine réservée.
+
+\subsection{Split Temporel}
+
+Pour évaluer sans fuite de données temporelle, le split est effectué
+\textbf{sur la date de départ}~: les 80\,\% premiers voyages (chronologiquement)
+constituent le jeu d'entraînement, les 20\,\% derniers le jeu de test.
+
+\begin{table}[H]
+\centering
+\caption{Répartition du split temporel}
+\label{tab:split}
+\begin{tabular}{|l|r|r|}
+\hline
+\textbf{Ensemble} & \textbf{Lignes} & \textbf{Proportion} \\
+\hline
+Entraînement & 393\,344 & 80,0~\% \\
+\hline
+Test (après filtre classes inconnues) & 98\,261 & 20,0~\% \\
+\hline
+Test (lignes exclues --- classes inédites) & 75 & $< 0{,}1$~\% \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Hyperparamètres XGBoost}
+
+\begin{lstlisting}[style=python, caption={Hyperparam\`etres du classifieur XGBoost}]
+xgb.XGBClassifier(
+    objective       = "multi:softprob",
+    eval_metric     = "mlogloss",
+    tree_method     = "hist",
+    device          = "cpu",          # GPU OOM sur RTX 3050 4GB
+    n_estimators    = 200,
+    learning_rate   = 0.08,
+    max_depth       = 6,
+    subsample       = 0.9,
+    colsample_bytree= 0.8,
+    reg_lambda      = 1.0,
+    n_jobs          = -1,
+    random_state    = 42,
+)
+\end{lstlisting}
+
+\paragraph{Pourquoi CPU et non GPU~?}
+La carte graphique disponible (NVIDIA RTX 3050, 4 Go de VRAM) provoque un
+\textit{Out-Of-Memory} (OOM) lors de l'entraînement sur 1\,011 classes avec
+une profondeur de 8 et 300 estimateurs. Le basculement sur CPU réduit
+l'empreinte mémoire et permet un entraînement stable en $\sim$43 minutes.
+
+\section{Baselines et Comparaison}
+
+Avant de valider le modèle XGBoost, quatre baselines ont été calculées sur
+le même split temporel~:
+
+\begin{table}[H]
+\centering
+\caption{Comparaison avec les baselines (Sprint 1)}
+\label{tab:baselines-s1}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Modèle} & \textbf{HR@1 moy.} & \textbf{HR@3 moy.} & \textbf{MRR@3 moy.} \\
+\hline
+\texttt{global\_top} (popularité) & 3{,}99~\% & 11{,}25~\% & 7{,}07~\% \\
+\hline
+\texttt{prev\_liaison} (dernier trajet) & 26{,}20~\% & 32{,}04~\% & 28{,}81~\% \\
+\hline
+\texttt{most\_frequent} (fréquence + récence) & 27{,}51~\% & 51{,}28~\% & 38{,}65~\% \\
+\hline
+\textbf{XGBoost Sprint 1} & \textbf{73{,}95~\%} & \textbf{88{,}77~\%} & \textbf{80{,}64~\%} \\
+\hline
+\end{tabular}
+\end{table}
+
+XGBoost surpasse la meilleure baseline (\texttt{most\_frequent}) d'un
+facteur \textbf{2{,}69×} sur HR@1.
+
+\section{Résultats et Bilan du Sprint 1}
+
+\begin{table}[H]
+\centering
+\caption{Métriques moyennes Sprint 1 vs. seuils}
+\label{tab:metrics-s1}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Métrique} & \textbf{Seuil} & \textbf{Sprint 1} & \textbf{Statut} \\
+\hline
+HR@1 moy. & $> 50$~\% & 73{,}95~\% & \textcolor{oncfOrange}{\textbf{$\checkmark$}} \\
+\hline
+HR@3 moy. & $> 60$~\% & 88{,}77~\% & \textcolor{oncfOrange}{\textbf{$\checkmark$}} \\
+\hline
+MRR@3 moy. & $> 60$~\% & 80{,}64~\% & \textcolor{oncfOrange}{\textbf{$\checkmark$}} \\
+\hline
+\end{tabular}
+\end{table}
+
+Bugs identifiés et corrigés en Sprint 1~:
+\begin{itemize}
+\item \textbf{Fuite d'identité~:} \texttt{CodeClient} utilisé comme feature
+    (violation CNDP) $\rightarrow$corrigé dans \texttt{train\_xgb\_multiclass}.
+\item \textbf{Crash labels inédits~:} appel à \texttt{le.transform} sur des
+    classes absentes du train $\rightarrow$filtre ajouté avant l'évaluation.
+\item \textbf{Architecture non appliquée~:} les candidats étaient générés
+    mais jamais utilisés pour filtrer le top-k $\rightarrow$correction dans
+    \texttt{recommender.py}.
+\end{itemize}
+
+% ================================================================
+% CHAPITRE 4 : SPRINT 2 --- ARCHITECTURE COMPLÈTE ET DÉPLOIEMENT
+% ================================================================
+\newpage
+\chapter{Sprint 2 --- Architecture Complète et Déploiement}
+
+\section{Objectifs du Sprint 2}
+
+Le Sprint 2 a visé trois objectifs complémentaires~:
+\begin{enumerate}
+\item \textbf{Améliorer les métriques} par l'ajout d'une nouvelle variable
+    (\texttt{user\_top\_liaison\_share}) et un réentraînement.
+\item \textbf{Consolider l'architecture} en intégrant le cold start CF et
+    en rendant les features calculées \textit{à la volée} (non plus depuis
+    un snapshot statique).
+\item \textbf{Déployer l'API REST} FastAPI avec gestion du cycle de vie du
+    modèle, logging structuré et suite de tests complète.
+\end{enumerate}
+
+\section{Nouvelle Variable~: \texttt{user\_top\_liaison\_share}}
+
+\imgplaceholder{Insérer graphique de distribution de user\_top\_liaison\_share}{Distribution de la variable user\_top\_liaison\_share}
+
+La variable \texttt{user\_top\_liaison\_share} est définie comme~:
+
+\begin{equation}
+\text{user\_top\_liaison\_share} =
+\frac{\text{nombre de voyages sur la liaison dominante de } u}
+     {\text{nombre total de voyages de } u}
+\end{equation}
+
+Cette variable capture la \textbf{loyauté} d'un utilisateur à son trajet
+habituel~: un voyageur domicile/travail aura une valeur proche de 1,
+tandis qu'un voyageur occasionnel explorant différentes liaisons aura une
+valeur faible. Elle est calculée sur l'historique \textbf{strictement passé}
+(par rapport à la ligne courante) pour éviter toute fuite de données.
+
+\section{Features Calculées à la Volée}
+
+Jusqu'au Sprint 2, les features du modèle étaient préchargées depuis le
+fichier \texttt{features.parquet}, figé à la date du dernier entraînement.
+Cette approche est problématique en production~: les nouvelles réservations
+d'un utilisateur (effectuées après le dernier retrain) ne seraient pas prises
+en compte.
+
+La solution adoptée est le calcul \textbf{on-the-fly}~: à chaque requête,
+la fonction \texttt{compute\_inference\_row(history)} recompute les features
+directement depuis l'historique live de l'utilisateur, stocké en mémoire
+dans \texttt{history\_lookup}.
+
+\begin{lstlisting}[style=python, caption={Calcul on-the-fly des features d'inf\'erence}]
+feat_row = compute_inference_row(history, asof=now)
+# history est le DataFrame live de l'utilisateur
+# feat_row est un DataFrame (1 ligne, 26 colonnes)
+\end{lstlisting}
+
+\section{Gestion du Cold Start}
+
+\subsection{Problème}
+
+Les utilisateurs avec moins de 3 réservations ne disposent pas d'un
+historique suffisant pour alimenter le pipeline de features.
+
+\subsection{Solution~: Filtrage Collaboratif par Co-occurrence}
+
+\imgplaceholder{Insérer schéma du filtrage collaboratif cold start}{Module cold start~: co-occurrence entre liaisons}
+
+Le module \texttt{cold\_start.py} construit une \textbf{matrice de
+co-occurrence} entre liaisons~: deux liaisons sont co-associées si un
+même utilisateur les a réservées toutes les deux. Pour un utilisateur
+froid avec 1 ou 2 voyages, le système recommande les liaisons les plus
+fréquemment co-réservées avec ses voyages connus.
+
+\begin{table}[H]
+\centering
+\caption{Stratégie de recommandation selon la taille de l'historique}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Historique} & \textbf{Mode} & \textbf{Réponse API} \\
+\hline
+0 voyage (inconnu) & Cold start & \texttt{\{mode: "cold\_start", recommendations: []\}} \\
+\hline
+1--2 voyages & Cold start CF & \texttt{\{mode: "cold\_start\_cf", recommendations: [...]\}} \\
+\hline
+$\geq 3$ voyages & Modèle XGBoost & \texttt{\{mode: "model", recommendations: [...]\}} \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{API REST FastAPI}
+
+\subsection{Architecture de l'API}
+
+\imgplaceholder{Insérer diagramme de l'architecture API}{Architecture de l'API FastAPI}
+
+L'API est construite avec \textbf{FastAPI 0.115} et \textbf{Pydantic v2}.
+Elle utilise le mécanisme \texttt{lifespan} pour charger le modèle une seule
+fois au démarrage (et non à chaque requête)~:
+
+\begin{lstlisting}[style=python, caption={Lifespan FastAPI~: chargement du mod\`ele au d\'emarrage}]
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    paths = default_paths()
+    app.state.recommender_a = Recommender.from_paths(paths)
+    # Chargement conditionnel du challenger pour A/B testing
+    challenger_onnx = paths.models_dir / "xgb_ranker_challenger.onnx"
+    if challenger_onnx.exists():
+        app.state.recommender_b = Recommender.from_paths(c_paths)
+    else:
+        app.state.recommender_b = app.state.recommender_a
+    yield
+\end{lstlisting}
+
+\subsection{Endpoints}
+
+\begin{table}[H]
+\centering
+\caption{Endpoints de l'API ONCF Recommender}
+\label{tab:endpoints}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Méthode} & \textbf{URL} & \textbf{Description} \\
+\hline
+GET & \texttt{/health} & Healthcheck --- retourne \texttt{\{status: "ok"\}} \\
+\hline
+POST & \texttt{/recommend} & Recommandation de liaisons.
+    Corps~: \texttt{\{code\_client, k, include\_schedule, variant\}} \\
+\hline
+POST & \texttt{/feedback} & Log d'un clic utilisateur.
+    Corps~: \texttt{\{request\_id, liaison\_id, clicked\}} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Exemple de Réponse}
+
+\begin{lstlisting}[style=json, caption={Exemple de r\'eponse de l'endpoint /recommend}]
+{
+  "mode"          : "model",
+  "variant"       : "a",
+  "request_id"    : "550e8400-e29b-41d4-a716-446655440000",
+  "recommendations": ["1011", "2045", "3076"],
+  "schedules"     : {
+    "1011": [{"depart": "07:00", "arrive": "09:30", "train": "1234"}]
+  }
+}
+\end{lstlisting}
+
+\section{Logging Structuré}
+
+Chaque requête génère un événement JSON dans \texttt{logs/api.log}~:
+
+\begin{lstlisting}[style=json, caption={Exemple d'entr\'ee de log structur\'e}]
+{
+  "event"           : "recommend",
+  "variant"         : "a",
+  "request_id"      : "550e8400-...",
+  "mode"            : "model",
+  "k"               : 3,
+  "latency_ms"      : 13.7,
+  "n_recommendations": 3
+}
+\end{lstlisting}
+
+Le champ \texttt{code\_client} est \textbf{absent par construction} de tous
+les événements de log (conformité Loi 09-08).
+
+\section{Suite de Tests Automatisés}
+
+\imgplaceholder{Insérer capture du rapport pytest}{Résultats de la suite de tests pytest}
+
+\begin{table}[H]
+\centering
+\caption{Répartition de la suite de 100 tests}
+\begin{tabular}{|l|r|}
+\hline
+\textbf{Module testé} & \textbf{Tests} \\
+\hline
+\texttt{test\_candidates.py} & 11 \\
+\hline
+\texttt{test\_features.py}   & 12 \\
+\hline
+\texttt{test\_metrics.py}    & 4  \\
+\hline
+\texttt{test\_recommender.py}& 5  \\
+\hline
+\texttt{test\_training.py}   & 2  \\
+\hline
+\texttt{test\_cleaning.py}   & 5  \\
+\hline
+\texttt{test\_api.py}        & 15 \\
+\hline
+\texttt{test\_schedule.py}   & 14 \\
+\hline
+\texttt{test\_cold\_start.py}& 9  \\
+\hline
+\texttt{test\_onnx.py}       & 7  \\
+\hline
+\texttt{test\_retrain.py}    & 16 \\
+\hline
+\textbf{Total} & \textbf{100} \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Résultats Sprint 2}
+
+\begin{table}[H]
+\centering
+\caption{Métriques moyennes comparées Sprint 1 vs. Sprint 2}
+\label{tab:metrics-s2}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Métrique} & \textbf{Sprint 1} & \textbf{Sprint 2} &
+    \textbf{$\Delta$} & \textbf{Seuil} \\
+\hline
+HR@1 moy.  & 73{,}95~\% & \textbf{76{,}28~\%} & +2{,}33 pp &
+    $> 50$~\% \textcolor{oncfOrange}{\textbf{$\checkmark$}} \\
+\hline
+HR@3 moy.  & 88{,}77~\% & \textbf{90{,}55~\%} & +1{,}78 pp &
+    $> 60$~\% \textcolor{oncfOrange}{\textbf{$\checkmark$}} \\
+\hline
+MRR@3 moy. & 80{,}64~\% & \textbf{82{,}77~\%} & +2{,}13 pp &
+    $> 60$~\% \textcolor{oncfOrange}{\textbf{$\checkmark$}} \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Métriques moyennes par segment d'utilisateurs (Sprint 2)}
+\label{tab:metrics-segment}
+\begin{tabular}{|l|r|c|c|c|}
+\hline
+\textbf{Segment} & \textbf{Lignes test} & \textbf{HR@1 moy.} & \textbf{HR@3 moy.} & \textbf{MRR@3 moy.} \\
+\hline
+0--2 voyages en train & 44\,397 & 73{,}9~\% & 89{,}3~\% & 80{,}9~\% \\
+\hline
+3--5 voyages            & 16\,780 & 75{,}2~\% & 90{,}4~\% & 82{,}1~\% \\
+\hline
+6--20 voyages           & 23\,737 & 77{,}9~\% & 91{,}6~\% & 84{,}1~\% \\
+\hline
+21+ voyages (fidèles)   & 13\,347 & \textbf{82{,}7~\%} & \textbf{93{,}1~\%} & \textbf{87{,}4~\%} \\
+\hline
+\end{tabular}
+\end{table}
+
+L'amélioration monotone avec la profondeur d'historique valide que le
+modèle exploite effectivement l'historique individuel (et non des
+corrélations spurieuses).
+
+% ================================================================
+% CHAPITRE 5 : PHASE 3 --- PRODUCTION ET OPTIMISATION
+% ================================================================
+\newpage
+\chapter{Phase 3 --- Production, Optimisation et A/B Testing}
+
+\section{Optimisation de la Latence}
+
+\subsection{Profiling Initial}
+
+\imgplaceholder{Insérer graphique de profiling de latence par étape}{Décomposition de la latence par étape du pipeline}
+
+Un benchmarking précis de chaque étape du pipeline d'inférence a révélé
+la répartition suivante (médiane sur 100 appels)~:
+
+\begin{table}[H]
+\centering
+\caption{Profil de latence avant optimisation}
+\label{tab:latence-pre}
+\begin{tabular}{|l|r|r|}
+\hline
+\textbf{Étape} & \textbf{Durée (ms)} & \textbf{Part} \\
+\hline
+Candidate generation & 2{,}7 & 11{,}8~\% \\
+\hline
+\texttt{compute\_inference\_row} & 1{,}4 & 6{,}1~\% \\
+\hline
+\texttt{ColumnTransformer.transform} & 11{,}3 & 49{,}3~\% \\
+\hline
+ONNX inference (session.run) & 3{,}2 & 14{,}0~\% \\
+\hline
+Scoring et tri des candidats & 0{,}002 & 0{,}0~\% \\
+\hline
+\textbf{Total (avant optim.)} & \textbf{$\sim$ 23} & 100~\% \\
+\hline
+\end{tabular}
+\end{table}
+
+Le bottleneck principal est \texttt{ColumnTransformer.transform} (11{,}3~ms,
+49~\% du temps total).
+
+\subsection{Export ONNX}
+
+La première optimisation a été l'export du modèle XGBoost au format
+\textbf{ONNX} (Open Neural Network Exchange) et l'utilisation d'\textbf{ONNX
+Runtime} pour l'inférence. ONNX Runtime est un moteur d'inférence optimisé
+en C++ qui contourne les surcoûts Python de scikit-learn.
+
+\begin{table}[H]
+\centering
+\caption{Gain de l'export ONNX sur l'inférence}
+\label{tab:onnx-gain}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Étape} & \textbf{Avant ONNX} & \textbf{Après ONNX} \\
+\hline
+Inférence modèle & 104{,}5 ms & 24{,}5 ms \\
+\hline
+Gain & --- & \textbf{4{,}2×} \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{FastPreprocessor~: Encodeur Vectorisé}
+
+\imgplaceholder{Insérer graphique de comparaison FastPreprocessor vs sklearn}{Comparaison de latence~: FastPreprocessor vs ColumnTransformer.transform}
+
+La deuxième optimisation a été le remplacement de
+\texttt{ColumnTransformer.transform} (qui effectue des copies de DataFrame
+pandas coûteuses) par un \textbf{FastPreprocessor} ad hoc~:
+
+\begin{lstlisting}[style=python, caption={Principe du FastPreprocessor}]
+class FastPreprocessor:
+    """Replaces ColumnTransformer on the hot inference path.
+    Encodes a feature dict into a float32 array in ~0.01ms."""
+    def __init__(self, ct: ColumnTransformer) -> None:
+        # Build lookup dicts by introspecting the ColumnTransformer
+        self._cat_maps = {
+            col: {str(v): float(i) for i, v in enumerate(enc.categories_[j])}
+            for col, (j, enc) in ...
+        }
+
+    def encode(self, row: dict) -> np.ndarray:  # shape (1, n_features)
+        # Ordinal encoding via dict lookup (~0.01ms)
+        ...
+\end{lstlisting}
+
+\begin{table}[H]
+\centering
+\caption{Résultats finaux après optimisation (p50 / p99 API)}
+\label{tab:latence-post}
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Configuration} & \textbf{p50} & \textbf{p99} \\
+\hline
+Baseline (sklearn predict) & $\sim$ 852 ms & --- \\
+\hline
++ ONNX Runtime & $\sim$ 56 ms & --- \\
+\hline
++ FastPreprocessor (final) & \textbf{13{,}74 ms} & \textbf{16{,}89 ms} \\
+\hline
+\textbf{Speedup total} & \textbf{62×} & --- \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Enrichissement par les Horaires ONCF}
+
+Le paramètre optionnel \texttt{include\_schedule=true} enrichit chaque
+recommandation avec les prochains départs disponibles, scrapés depuis le
+site \texttt{oncf.ma}. Un cache Redis (TTL 1h) ou mémoire réduit les appels
+réseau redondants.
+
+\begin{lstlisting}[style=json, caption={R\'eponse enrichie avec les horaires}]
+{
+  "recommendations": ["1011"],
+  "schedules": {
+    "1011": [
+      {"depart": "07:00", "arrive": "09:30", "train": "1234"},
+      {"depart": "09:15", "arrive": "11:45", "train": "1256"}
+    ]
+  }
+}
+\end{lstlisting}
+
+\section{Pipeline de Réentraînement Automatique}
+
+\subsection{Architecture du Pipeline}
+
+\imgplaceholder{Insérer diagramme du pipeline de réentraînement}{Pipeline de réentraînement automatique avec guardrail}
+
+Le script \texttt{scripts/07\_retrain.py} exécute le pipeline complet~:
+
+\begin{enumerate}
+\item \textbf{Chargement des données~:} lecture des fichiers
+    \texttt{oncf\_clean.parquet} et \texttt{features.parquet}.
+\item \textbf{Entraînement~:} même hyperparamètres que la version initiale,
+    sur le dataset complet à la date du retrain.
+\item \textbf{Évaluation~:} calcul de HR@1, HR@3, MRR@3 sur le split
+    temporel 20~\%.
+\item \textbf{Guardrail~:} si HR@1 chute de plus de 5 points de pourcentage
+    par rapport au modèle en production, la promotion est bloquée.
+\item \textbf{Écriture challenger~:} le nouveau modèle est \textbf{toujours}
+    sauvegardé en \texttt{models/xgb\_ranker\_challenger.*}, quelle que soit
+    la décision du guardrail.
+\item \textbf{Promotion (conditionnelle)~:} si le guardrail est passé, les
+    fichiers challenger remplacent les fichiers prod.
+\end{enumerate}
+
+\subsection{Planification Windows (Task Scheduler)}
+
+\imgplaceholder{Insérer capture Windows Task Scheduler}{Tâche planifiée ONCF DailyRetrain dans le planificateur Windows}
+
+Le fichier \texttt{tasks/oncf\_daily\_retrain.xml} définit une tâche
+quotidienne à 2h00 du matin. Paramètres clés~:
+\begin{itemize}
+\item \texttt{StartWhenAvailable~: true} --- rattrapage si la machine était
+    éteinte à 2h00.
+\item \texttt{MultipleInstancesPolicy~: IgnoreNew} --- pas de parallélisme
+    accidentel.
+\item \texttt{ExecutionTimeLimit~: PT2H} --- timeout à 2 heures.
+\end{itemize}
+
+\begin{notebox}
+Le retrain automatique est prévu pour s'exécuter sur la \textbf{machine de
+production ONCF}. La configuration actuelle (\texttt{tasks/}) devra être
+adaptée avec les identifiants et chemins de la machine cible avant déploiement.
+\end{notebox}
+
+\section{Framework A/B Testing}
+
+\subsection{Architecture}
+
+\imgplaceholder{Insérer diagramme du framework A/B testing}{Architecture du framework A/B testing}
+
+Le framework A/B testing permet de comparer deux modèles en production~:
+\begin{itemize}
+\item \textbf{Variant A~:} modèle prod (\texttt{xgb\_ranker.onnx}).
+\item \textbf{Variant B~:} modèle challenger (\texttt{xgb\_ranker\_challenger.onnx}).
+\end{itemize}
+
+L'affectation est \textbf{pilotée par le client}~: l'application mobile
+passe le paramètre \texttt{?variant=a} ou \texttt{?variant=b}.
+
+\subsection{Corrélation Serve/Click via \texttt{request\_id}}
+
+Pour mesurer le CTR sans stocker le \texttt{CodeClient} dans les logs
+(conformité Loi 09-08), chaque réponse de \texttt{/recommend} contient un
+\texttt{request\_id} (UUID4 généré côté serveur). L'application envoie ce
+même identifiant avec le feedback de clic~:
+
+\begin{lstlisting}[style=json, caption={\'Ev\'enements serve et click corr\'el\'es via request\_id}]
+// Serve event (api.log)
+{"event": "recommend", "request_id": "abc-...", "variant": "b",
+ "mode": "model", "latency_ms": 13.7}
+
+// Click event (api.log)
+{"event": "feedback", "request_id": "abc-...",
+ "liaison_id": "1011", "clicked": true}
+\end{lstlisting}
+
+L'analyse CTR offline se fait par jointure sur \texttt{request\_id}.
+
+\subsection{Workflow de Promotion d'un Challenger}
+
+\begin{enumerate}
+\item Le retrain automatique produit \texttt{xgb\_ranker\_challenger.*}.
+\item Redémarrage du serveur API (ou déploiement blue/green).
+\item L'application mobile route 50~\% du trafic sur \texttt{?variant=b}.
+\item Après 7 jours~: analyse des logs, comparaison des CTR.
+\item Si le challenger est meilleur~: renommer les fichiers challenger en
+    fichiers prod, redémarrer.
+\end{enumerate}
+
+% ================================================================
+% CHAPITRE 6 : TECHNOLOGIES ET OUTILS
+% ================================================================
+\newpage
+\chapter{Technologies et Outils}
+
+\section{Environnement de Développement}
+
+\begin{table}[H]
+\centering
+\caption{Environnement et infrastructure}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Composant} & \textbf{Version} & \textbf{Rôle} \\
+\hline
+Python & 3.12.10 & Langage principal du pipeline \\
+\hline
+Windows 11 Pro & 10.0.26200 & Environnement de développement \\
+\hline
+PowerShell & 5.1 & Automatisation et scripts système \\
+\hline
+Git & 2.x & Versioning du code \\
+\hline
+Visual Studio Code & 1.9x & Éditeur principal \\
+\hline
+\end{tabularx}
+\end{table}
+
+\imgplaceholder{Insérer captures IDE et outils de développement}{Environnement de développement~: VS Code et structure du projet}
+
+\section{Bibliothèques Machine Learning et Données}
+
+\begin{table}[H]
+\centering
+\caption{Stack machine learning et données}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Bibliothèque} & \textbf{Version} & \textbf{Usage} \\
+\hline
+XGBoost & 3.2.0 & Classifieur multiclasse (modèle principal) \\
+\hline
+scikit-learn & 1.x & Pipelines, ColumnTransformer, OrdinalEncoder \\
+\hline
+pandas & 3.x & Manipulation des DataFrames \\
+\hline
+numpy & 1.26+ & Calculs numériques vectorisés \\
+\hline
+ONNX Runtime & 1.x & Inférence optimisée (remplace scikit-learn predict) \\
+\hline
+skl2onnx & 1.x & Export du pipeline sklearn vers ONNX \\
+\hline
+joblib & 1.x & Sérialisation des artefacts modèle \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Développement API et Infrastructure}
+
+\begin{table}[H]
+\centering
+\caption{Stack API et infrastructure}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Outil} & \textbf{Version} & \textbf{Usage} \\
+\hline
+FastAPI & 0.115 & Framework API REST asynchrone \\
+\hline
+Pydantic & v2 & Validation des données d'entrée/sortie \\
+\hline
+Uvicorn & 0.3x & Serveur ASGI (run de l'API) \\
+\hline
+Loguru & 0.7 & Logging structuré en JSON \\
+\hline
+Redis & 5.x & Cache des horaires ONCF (TTL 1h) \\
+\hline
+BeautifulSoup4 & 4.x & Scraping des horaires ONCF.ma \\
+\hline
+Requests & 2.x & Appels HTTP vers ONCF.ma \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Tests et Qualité du Code}
+
+\begin{table}[H]
+\centering
+\caption{Outils de test et qualité}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Outil} & \textbf{Usage} \\
+\hline
+pytest & Runner de tests, fixtures, paramétrage \\
+\hline
+unittest.mock & Mocking HTTP et dépendances externes \\
+\hline
+GitHub Actions & CI/CD~: exécution automatique des tests sur push \\
+\hline
+ruff & Linting Python rapide \\
+\hline
+\end{tabularx}
+\end{table}
+
+\imgplaceholder{Insérer capture du pipeline GitHub Actions CI}{Pipeline CI/CD~: exécution automatique des 100 tests}
+
+\section{Structure du Projet}
+
+\begin{lstlisting}[style=bash, caption={Structure du d\'ep\^ot Git}]
+Rec_ONCF/
++-- src/rec_oncf/       # Bibliotheque Python (importable)
+|   +-- cleaning.py     # Nettoyage CSV -> Parquet
+|   +-- features.py     # Feature engineering
+|   +-- training.py     # XGBoost + FastPreprocessor
+|   +-- candidates.py   # Candidate Generation
+|   +-- recommender.py  # Orchestrateur principal
+|   +-- cold_start.py   # CF pour nouveaux utilisateurs
+|   +-- schedule.py     # Scraping horaires ONCF
+|   +-- retrain.py      # Pipeline de retrain + guardrail
+|   +-- config.py       # Chemins et configuration
++-- apps/api/main.py    # API FastAPI
++-- scripts/            # Scripts du pipeline (01 a 07)
++-- tests/              # 100 tests pytest
++-- models/             # Artefacts entraines (.onnx, .joblib)
++-- data/processed/     # Parquet nettoyes
++-- docs/               # Specs et plans techniques
++-- tasks/              # XML Task Scheduler Windows
+\end{lstlisting}
+
+% ================================================================
+% CHAPITRE 7 : CONCLUSION ET PERSPECTIVES
+% ================================================================
+\newpage
+\chapter{Conclusion et Perspectives}
+
+\section{Bilan du Projet}
+
+Ce projet de fin d'année a abouti à la conception et au déploiement d'un
+\textbf{système de recommandation proactif complet}, allant des données
+brutes jusqu'à une API REST testée et optimisée pour la production.
+
+\subsection{Objectifs Atteints}
+
+L'ensemble des objectifs initiaux ont été atteints, et les métriques dépassent
+largement les seuils fixés~:
+
+\begin{table}[H]
+\centering
+\caption{Bilan final des objectifs et réalisations}
+\label{tab:bilan}
+\begin{tabularx}{\textwidth}{|X|c|c|}
+\hline
+\textbf{Objectif} & \textbf{Cible} & \textbf{Résultat} \\
+\hline
+Hit Rate moyen@1 & $> 50$~\% & \textbf{76{,}3~\%} \textcolor{oncfOrange}{$\checkmark$} \\
+\hline
+Hit Rate moyen@3 & $> 60$~\% & \textbf{90{,}6~\%} \textcolor{oncfOrange}{$\checkmark$} \\
+\hline
+MRR@3 moyen & $> 60$~\% & \textbf{82{,}8~\%} \textcolor{oncfOrange}{$\checkmark$} \\
+\hline
+Latence API (p50) & $< 50$~ms & \textbf{13{,}74 ms} \textcolor{oncfOrange}{$\checkmark$} \\
+\hline
+Latence API (p99) & $< 100$~ms & \textbf{16{,}89 ms} \textcolor{oncfOrange}{$\checkmark$} \\
+\hline
+Tests automatisés & $\geq 80$ & \textbf{100 tests} \textcolor{oncfOrange}{$\checkmark$} \\
+\hline
+Conformité Loi 09-08 & Totale & \textbf{Vérifiée par tests} \textcolor{oncfOrange}{$\checkmark$} \\
+\hline
+Pipeline retrain automatique & Oui & \textbf{Opérationnel} \textcolor{oncfOrange}{$\checkmark$} \\
+\hline
+Framework A/B testing & Oui & \textbf{Opérationnel} \textcolor{oncfOrange}{$\checkmark$} \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Difficultés Rencontrées}
+
+Trois difficultés techniques majeures ont été surmontées pendant le projet~:
+
+\begin{enumerate}
+\item \textbf{Saturation VRAM GPU (OOM)~:} l'entraînement XGBoost sur 1\,011
+    classes avec la carte graphique RTX 3050 (4 Go) provoquait des crashes
+    silencieux. Solution~: basculement sur CPU (\texttt{device="cpu"}), ce
+    qui s'est avéré plus stable et suffisant pour la volumétrie du projet.
+
+\item \textbf{Fuite d'identité (privacy)~:} dans une version intermédiaire,
+    \texttt{CodeClient} était inclus comme variable de modèle, créant une
+    dépendance nominative contraire à la Loi 09-08. Le bug a été détecté lors
+    de la revue des tests et corrigé systématiquement dans toutes les fonctions
+    du pipeline.
+
+\item \textbf{Bottleneck de prétraitement~:} \texttt{ColumnTransformer.transform}
+    représentait 49~\% de la latence totale (11{,}3~ms sur 23~ms). Le
+    \texttt{FastPreprocessor}, basé sur des lookups dictionnaires, a réduit
+    cette étape à $<$ 0{,}01~ms (speedup de 1\,469×).
+\end{enumerate}
+
+\section{Perspectives d'Amélioration}
+
+\subsection{Court Terme~: Déploiement ONCF}
+
+\begin{itemize}
+\item Adapter la configuration du Task Scheduler (XML) et du script Batch
+    pour la machine de production ONCF (chemins, identifiants système).
+\item Intégrer la boucle A/B testing avec l'application mobile ONCF Voyages.
+\item Mettre en place un tableau de bord de suivi des métriques CTR (Grafana
+    ou Power BI) sur la base des logs structurés.
+\end{itemize}
+
+\subsection{Moyen Terme~: Enrichissement du Modèle}
+
+\begin{itemize}
+\item \textbf{Features de popularité globale~:} intégrer des variables de
+    saisonnalité agrégées (ex.~: taux de remplissage historique d'une liaison
+    à une date donnée) pour les nouveaux utilisateurs.
+\item \textbf{Features de contexte de l'app~:} intégrer l'heure d'ouverture
+    de l'application comme signal de prédiction.
+\item \textbf{Réduction du cold start~:} explorer des embeddings de liaisons
+    (Word2Vec sur les séquences de trajets) pour améliorer les recommandations
+    des utilisateurs avec 1--2 voyages.
+\end{itemize}
+
+\subsection{Long Terme~: Embeddings de Liaisons}
+
+Une piste à plus long terme est l'utilisation de \textbf{Word2Vec appliqué
+aux séquences de trajets}~: chaque utilisateur est vu comme une «~phrase~»
+composée de liaisons successives. L'entraînement sur l'ensemble des séquences
+produirait des représentations vectorielles des liaisons capturant leur
+\textit{similarité sémantique} (liaisons empruntées par les mêmes types de
+voyageurs). Ces embeddings pourraient être utilisés comme features
+supplémentaires du modèle XGBoost ou comme base d'un candidat generator
+plus sophistiqué.
+
+\section{Conclusion}
+
+Ce projet a démontré qu'il est possible de construire un système de
+recommandation ferroviaire performant, conforme à la réglementation, et
+prêt pour la production, en s'appuyant sur des technologies open source
+matures et une méthodologie rigoureuse. L'architecture deux étapes
+(Candidate Generation + XGBoost Ranking), combinée à l'optimisation
+d'inférence ONNX et au pipeline de réentraînement automatique, constitue
+une base solide pour un déploiement à l'échelle du réseau ONCF.
+
+Le système est en mesure de recommander correctement le prochain trajet d'un
+voyageur régulier dans \textbf{plus de 76~\% des cas} au premier essai, et
+dans \textbf{plus de 90~\% des cas} parmi les trois premières suggestions,
+en moins de 14 millisecondes.
+
+\subsection*{Apprentissages Personnels}
+
+Au-delà des chiffres, ce stage m'a permis de consolider plusieurs
+compétences clés que la formation académique seule ne peut couvrir
+entièrement~:
+
+\begin{itemize}
+\item \textbf{Architecture deux étapes} (Candidate Generation puis
+    Ranking)~: comprendre que la performance d'un système de recommandation
+    repose autant sur la sélection rapide de candidats que sur la qualité
+    du classifieur final --- un enseignement directement issu des pratiques
+    industrielles d'Uber et d'Airbnb.
+\item \textbf{Optimisation de bout en bout}~: profiler un pipeline,
+    identifier le goulot d'étranglement (\texttt{ColumnTransformer}, 49~\%
+    du temps), puis le remplacer par une implémentation \textit{ad hoc}
+    (\texttt{FastPreprocessor}). Apprendre à mesurer avant d'optimiser.
+\item \textbf{Conformité réglementaire (Loi 09-08) en pratique}~: traiter
+    la confidentialité non comme une contrainte secondaire mais comme un
+    invariant du code (\texttt{CodeClient} jamais en feature ni en log,
+    \texttt{request\_id} pour la corrélation anonyme).
+\item \textbf{Méthodologie de production}~: tests automatisés (100 tests),
+    intégration continue, pipeline de réentraînement avec guardrail,
+    framework A/B testing --- l'écart entre un \textit{notebook qui marche}
+    et un \textit{système déployable} se mesure en milliers de lignes de
+    code de support.
+\end{itemize}
+
+\subsection*{Ouverture}
+
+La méthode développée ici n'est pas spécifique au cas Zero-Click Search.
+La même architecture deux étapes, le même pipeline d'industrialisation et
+les mêmes garde-fous de conformité peuvent être transposés à d'autres
+problématiques de l'ONCF~: recommandation de créneaux pour le \textbf{fret
+ferroviaire}, suggestion proactive d'\textbf{offres tarifaires} adaptées au
+profil voyageur, ou priorisation des tickets dans l'\textbf{outil de
+support client}. Ce projet constitue ainsi non seulement une livraison
+fonctionnelle, mais aussi un \textbf{patron architectural réutilisable}
+pour l'écosystème SI de l'ONCF.
+
+% ─────────────────────── BIBLIOGRAPHIE ──────────────────────────
+\newpage
+\chapter*{Bibliographie}
+\addcontentsline{toc}{chapter}{Bibliographie}
+
+\begin{enumerate}[label={[\arabic*]}]
+
+\item Chen, T., \& Guestrin, C. (2016). \textit{XGBoost: A Scalable Tree
+    Boosting System}. Proceedings of the 22nd ACM SIGKDD International
+    Conference on Knowledge Discovery and Data Mining, 785--794.
+
+\item Grinsztajn, L., Oyallon, E., \& Varoquaux, G. (2022). \textit{Why
+    tree-based models still outperform deep learning on tabular data}.
+    Advances in Neural Information Processing Systems (NeurIPS) 35.
+
+\item Shwartz-Ziv, R., \& Armon, A. (2021). \textit{Tabular data: Deep
+    learning is not all you need}. arXiv preprint arXiv:2106.03253.
+
+\item Yi, X. et al. (2019). \textit{Sampling-Bias-Corrected Neural Modeling
+    for Large Corpus Item Recommendations}. Proceedings of RecSys 2019.
+
+\item Documentation officielle FastAPI. \url{https://fastapi.tiangolo.com/}
+
+\item Documentation officielle XGBoost. \url{https://xgboost.readthedocs.io/}
+
+\item Documentation ONNX Runtime. \url{https://onnxruntime.ai/docs/}
+
+\item Loi n° 09-08 relative à la protection des personnes physiques à
+    l'égard du traitement des données à caractère personnel.
+    Bulletin Officiel du Maroc, n° 5711, 2009.
+
+\item Office National des Chemins de Fer (ONCF). Rapport d'activité annuel.
+    \url{https://www.oncf.ma/}
+
+\end{enumerate}
+
+% ─────────────────────── ANNEXES ────────────────────────────────
+\newpage
+\appendix
+\chapter{Métriques Offline Détaillées}
+
+\section{Rapport JSON de Métriques}
+
+Le fichier \texttt{reports/offline\_metrics.json} produit par
+\texttt{scripts/03\_train\_ranker.py} contient les métriques détaillées~:
+
+\begin{lstlisting}[style=json, caption={Extrait du rapport de m\'etriques offline}]
+{
+  "hit_rate_at_1" : 0.7628,
+  "hit_rate_at_3" : 0.9055,
+  "mrr_at_3"      : 0.8277,
+  "train_rows"    : 393344,
+  "test_rows"     : 98261,
+  "n_classes"     : 1011,
+  "training_time_s": 2587.4,
+  "dataset_fingerprint": "4d0dfd12e0b60341"
+}
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────
+\chapter{Commandes de Reproduction}
+
+L'ensemble du pipeline est reproductible avec les commandes suivantes
+(à exécuter dans l'ordre, depuis la racine du projet)~:
+
+\begin{lstlisting}[style=bash, caption={Pipeline de reproduction complet}]
+# 1. Environnement Python
+python -m venv .venv
+.venv\Scripts\pip install -e .
+
+# 2. Pipeline de donnees
+.venv\Scripts\python scripts/01_make_dataset.py
+.venv\Scripts\python scripts/02_build_features.py
+
+# 3. Modele
+.venv\Scripts\python scripts/03_train_ranker.py     # ~43 min
+.venv\Scripts\python scripts/04_baselines.py
+.venv\Scripts\python scripts/05_build_cold_start.py
+.venv\Scripts\python scripts/06_export_onnx.py
+
+# 4. Tests
+.venv\Scripts\python -m pytest tests/ -v            # 100 tests
+
+# 5. API
+.venv\Scripts\python -m uvicorn apps.api.main:app --reload
+\end{lstlisting}
+
+% ────────────────────────────
+
+─────────────────────────────────────
+\chapter{Schéma de l'API}
+
+\section{Endpoint \texttt{POST /recommend}}
+
+\begin{lstlisting}[style=json, caption={Sch\'ema de requ\^ete /recommend}]
+// Request
+{
+  "code_client"      : "12345",       // Identifiant client
+  "k"                : 3,             // Nombre de recommandations (1-3)
+  "include_schedule" : false,         // Enrich with schedule
+  "variant"          : "a"            // Variant A/B ("a" ou "b")
+}
+
+// Response
+{
+  "mode"            : "model",
+  "variant"         : "a",
+  "request_id"      : "uuid4-...",
+  "recommendations" : ["1011", "2045", "3076"],
+  "schedules"       : { ... }        // optionnel
+}
+\end{lstlisting}
+
+\section{Endpoint \texttt{POST /feedback}}
+
+\begin{lstlisting}[style=json, caption={Sch\'ema de requ\^ete /feedback}]
+// Request
+{
+  "request_id"  : "uuid4-...",        // From /recommend response
+  "liaison_id"  : "1011",             // Liaison clicked by user
+  "clicked"     : true
+}
+
+// Response
+{ "status": "ok" }
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────
+\chapter{Extrait du Code Source}
+
+\section{Fonction \texttt{recommend} (Recommender)}
+
+\begin{lstlisting}[style=python, caption={Logique principale de recommandation}]
+def recommend(self, code_client: str, k: int = 1) -> dict:
+    history = self.history_lookup.get(code_client)
+    if history is None:
+        return {"mode": "cold_start", "recommendations": []}
+
+    if len(history) < 3:
+        recs = self.cold_start_rec.recommend(history, k)
+        return {"mode": "cold_start_cf", "recommendations": recs}
+
+    candidates = generate_candidates(history, user_id=code_client)
+    if not candidates:
+        return {"mode": "cold_start", "recommendations": []}
+
+    feat_row = compute_inference_row(history)
+    # ONNX inference + FastPreprocessor (~14ms total)
+    row_dict = feat_row.iloc[0].to_dict()
+    X_pre = self.fast_preprocessor.encode(row_dict)
+    proba = self.onnx_session.run(
+        ["probabilities"], {"input": X_pre}
+    )[0][0]
+
+    le = self.artifacts.label_encoder
+    valid = [c for c in candidates if c in set(le.classes_)]
+    cand_idx = le.transform(np.asarray(valid))
+    order = np.argsort(-proba[cand_idx])[:k]
+    recs = [valid[i] for i in order]
+    return {"mode": "model", "recommendations": recs}
+\end{lstlisting}
+
+
+\end{document}
+
+
+
+
+
+
+
+
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Réalisé par}        & Omar \textsc{Chekroun} \\
+\hline
+\textbf{Établissement}      & UM5 --- Faculté des Sciences de Rabat \\
+\hline
+\textbf{Filière}            & Informatique, Gouvernance et Transformation Digitaleqpp \\
+\hline
+\textbf{Organisme d'accueil}& ONCF --- Direction des Systèmes d'Information et Digital \\
+\hline
+\textbf{Durée du stage}        & 3 Mois \\
+\hline
+\textbf{Email}              & omarchekroun39@gmail.com \\
+\hline
+\textbf{Année universitaire}& 2025 -- 2026 \\
+\hline
+\end{tabular}
