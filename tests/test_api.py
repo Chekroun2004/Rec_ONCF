@@ -258,3 +258,24 @@ def test_recommend_response_has_labels_dict(client):
     body = resp.json()
     assert "labels" in body
     assert isinstance(body["labels"], dict)
+
+
+def test_schedule_endpoint_returns_liaison_and_empty_list_for_unmapped(client):
+    """GET /schedule/{id} always returns 200 with liaison_id and schedule list."""
+    resp = client.get("/schedule/A")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["liaison_id"] == "A"
+    assert isinstance(body["schedule"], list)
+    # liaison_map is {} in fixture → no station codes → empty list
+    assert body["schedule"] == []
+
+
+def test_schedule_endpoint_mocked_returns_data(client):
+    mock_deps = [{"depart": "08:00", "arrive": "10:30", "train": "705"}]
+    with patch("apps.api.main.get_schedule", return_value=mock_deps):
+        resp = client.get("/schedule/A")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["liaison_id"] == "A"
+    assert body["schedule"] == mock_deps

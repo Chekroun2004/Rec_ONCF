@@ -4,6 +4,7 @@ import dataclasses
 import sys
 import time
 import uuid as _uuid
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -132,10 +133,10 @@ def recommend(req: RecommendRequest, variant: str = "a"):
 
     if req.include_schedule and result["recommendations"]:
         now = datetime.now(tz=ZoneInfo("Africa/Casablanca"))
-        result["schedules"] = {
-            lid: get_schedule(lid, app.state.liaison_map, now, redis_client=app.state.redis)
-            for lid in result["recommendations"]
-        }
+        def _fetch(lid: str) -> tuple[str, list]:
+            return lid, get_schedule(lid, app.state.liaison_map, now, redis_client=app.state.redis)
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            result["schedules"] = dict(pool.map(_fetch, result["recommendations"]))
 
     latency_ms = round((time.perf_counter() - t0) * 1000, 1)
     logger.bind(
@@ -148,6 +149,18 @@ def recommend(req: RecommendRequest, variant: str = "a"):
         n_recommendations=len(result["recommendations"]),
     ).info("recommend")
     return result
+
+
+class ScheduleResponse(BaseModel):
+    liaison_id: str
+    schedule: list[dict[str, str]]
+
+
+@app.get("/schedule/{liaison_id}", response_model=ScheduleResponse)
+def schedule_endpoint(liaison_id: str):
+    now = datetime.now(tz=ZoneInfo("Africa/Casablanca"))
+    deps = get_schedule(liaison_id, app.state.liaison_map, now, redis_client=app.state.redis)
+    return {"liaison_id": liaison_id, "schedule": deps}
 
 
 @app.post("/feedback", response_model=FeedbackResponse)

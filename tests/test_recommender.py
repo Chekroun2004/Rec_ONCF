@@ -176,3 +176,22 @@ def test_recommend_labels_map_liaison_to_station_pair():
     result = rec.recommend("1001", k=3)
     for lid in result["recommendations"]:
         assert result["labels"][lid] == "GARE X → GARE Y"
+
+
+def test_model_pads_to_k_with_popularity():
+    """User with only 2 distinct routes in history must still get k=3 recs when popularity is set.
+    Model-ranked recs come first; popularity fills the remainder."""
+    arts = _make_artifacts()
+    # _make_clean_df: user 1001 has 5 trips but only routes A and B (2 distinct).
+    # generate_candidates → [A, B]; model can rank at most 2 → pad to 3 with C from popularity.
+    clean = _make_clean_df()
+    rec = Recommender.from_data(arts, clean, popularity=["C", "A", "B"])
+    result = rec.recommend("1001", k=3)
+    assert result["mode"] == "model"
+    assert len(result["recommendations"]) == 3
+    # The padded entry (C) must not appear before the model-ranked entries (A and B)
+    model_routes = {"A", "B"}
+    recs = result["recommendations"]
+    # A and B should be in positions 0 and 1 (model-ranked), C at position 2 (padded)
+    assert set(recs[:2]) == model_routes
+    assert recs[2] == "C"
