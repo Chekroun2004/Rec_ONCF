@@ -169,6 +169,13 @@ class Recommender:
         cand_scores = proba[cand_idx]
         order = np.argsort(-cand_scores)[:k]
         recs = [valid_candidates[i] for i in order]
+        if len(recs) < k and self.popularity:
+            existing = set(recs)
+            for lid in self.popularity:
+                if lid not in existing:
+                    recs.append(lid)
+                    if len(recs) == k:
+                        break
         return {"mode": "model", "recommendations": recs}
 
     # --- public API ------------------------------------------------------

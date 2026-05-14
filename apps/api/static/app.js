@@ -189,12 +189,40 @@ function renderScheduleItems(items) {
 // ── Card rendering ─────────────────────────────────────────────
 
 /**
+ * Update the schedule slot for a liaison card once the lazy fetch completes.
+ * @param {string} liaisonId
+ * @param {Array<Record<string, string>>} items
+ */
+function updateScheduleSlot(liaisonId, items) {
+  const slot = [...cardsContainer.querySelectorAll("[data-schedule-slot]")]
+    .find(el => el.getAttribute("data-schedule-slot") === liaisonId);
+  if (!slot) return;
+  const loading = slot.querySelector(".schedule-loading");
+  if (loading) {
+    loading.insertAdjacentHTML("afterend", renderScheduleItems(items));
+    loading.remove();
+  }
+}
+
+/**
+ * Fetch a single liaison's schedule from GET /schedule/{id} and update its card.
+ * @param {string} liaisonId
+ */
+function lazyLoadSchedule(liaisonId) {
+  fetch(`/schedule/${encodeURIComponent(liaisonId)}`)
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(data => updateScheduleSlot(liaisonId, data.schedule ?? []))
+    .catch(() => updateScheduleSlot(liaisonId, []));
+}
+
+/**
  * Render all route cards into the cards container.
  * @param {string[]} recommendations
  * @param {Record<string, string>} labels
  * @param {Record<string, Array<Record<string, string>>> | undefined} schedules
+ * @param {boolean} [showScheduleSlots] - when true and schedules is absent, render loading placeholders
  */
-function renderCards(recommendations, labels, schedules) {
+function renderCards(recommendations, labels, schedules, showScheduleSlots = false) {
   cardsContainer.innerHTML = "";
 
   if (!recommendations || recommendations.length === 0) {
@@ -228,6 +256,19 @@ function renderCards(recommendations, labels, schedules) {
             Prochains départs
           </div>
           ${scheduleSectionHtml}
+        </div>
+      `;
+    } else if (showScheduleSlots) {
+      scheduleHtml = `
+        <div class="schedule-section" data-schedule-slot="${escapeHtml(id)}">
+          <div class="schedule-header">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Prochains départs
+          </div>
+          <p class="schedule-loading">Chargement…</p>
         </div>
       `;
     }
@@ -286,14 +327,11 @@ async function submitRecommendation() {
 
   try {
     // code_client goes ONLY in the POST body — never in URL or query string.
+    // Schedules are NOT requested here — they lazy-load per card via GET /schedule/{id}.
     const response = await fetch("/recommend", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        code_client: codeClient,
-        k: k,
-        include_schedule: includeSchedule,
-      }),
+      body: JSON.stringify({ code_client: codeClient, k: k }),
     });
 
     const latencyMs = Math.round(performance.now() - t0);
@@ -319,15 +357,19 @@ async function submitRecommendation() {
      *   variant: string,
      *   request_id: string,
      *   recommendations: string[],
-     *   labels?: Record<string, string>,
-     *   schedules?: Record<string, Array<Record<string,string>>>
+     *   labels?: Record<string, string>
      * }} */
     const data = await response.json();
 
-    // 5. Render cards
-    renderCards(data.recommendations ?? [], data.labels ?? {}, data.schedules);
+    // 5. Render cards (with schedule loading slots if checkbox is checked)
+    renderCards(data.recommendations ?? [], data.labels ?? {}, undefined, includeSchedule);
 
-    // 6. Render footer
+    // 6. Lazy-load schedules per card after recommendations are rendered
+    if (includeSchedule && data.recommendations?.length) {
+      data.recommendations.forEach(id => lazyLoadSchedule(id));
+    }
+
+    // 7. Render footer
     renderModeBadge(data.mode ?? "cold_start");
     requestIdEl.textContent = data.request_id ? truncateId(data.request_id) : "";
     requestIdEl.setAttribute("title", data.request_id ?? "");
