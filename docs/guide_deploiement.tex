@@ -93,4 +93,43 @@ documentées~: \textbf{Docker} (recommandée) et \textbf{Python venv}
 
 % --- contenu inséré par les tâches suivantes ---
 
+\section{Pré-requis}
+
+\subsection{Hardware minimal}
+
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{Ressource} & \textbf{Recommandation} \\
+\midrule
+CPU & 4 cœurs minimum (8 recommandés pour traffic > 100 req/s) \\
+RAM & 8 Go minimum (le modèle XGBoost charge 281 Mo, le lookup historique ~250 Mo) \\
+Disque & 5 Go pour les artefacts modèles, logs et données traitées \\
+Réseau & accès sortant uniquement si scraper \texttt{oncf.ma} activé \\
+GPU & non requis (l'inférence se fait sur CPU via ONNX Runtime) \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Système d'exploitation}
+
+Le service tourne sur~:
+\begin{itemize}
+\item \textbf{Linux} (Ubuntu 22.04 LTS, Debian 12, RHEL 9) --- voie nominale
+\item \textbf{Windows Server 2019/2022} --- supporté via Docker Desktop ou WSL2
+\end{itemize}
+
+\subsection{Logiciels requis}
+
+\textbf{Pour la voie Docker (recommandée) }:
+\begin{itemize}
+\item Docker Engine $\geq$ 24.0
+\item Docker Compose v2 (\texttt{docker compose}, plugin intégré)
+\end{itemize}
+
+\textbf{Pour la voie venv (fallback) }:
+\begin{itemize}
+\item Python 3.12.x (3.12.10 testé)
+\item \texttt{pip} $\geq$ 23.0
+\item Optionnellement Redis 7.x pour le cache des horaires
+\end{itemize}
+
 \end{document}
