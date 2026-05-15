@@ -132,4 +132,109 @@ Le service tourne sur~:
 \item Optionnellement Redis 7.x pour le cache des horaires
 \end{itemize}
 
+\section{Voie nominale~: déploiement par Docker}
+
+\subsection{Récupération du code}
+
+\begin{lstlisting}[language=bash]
+git clone <url-du-repo-ONCF> oncf-recommender
+cd oncf-recommender
+\end{lstlisting}
+
+\subsection{Configuration des variables d'environnement}
+
+Copier le fichier d'exemple et l'adapter~:
+
+\begin{lstlisting}[language=bash]
+cp deploy/.env.example deploy/.env
+nano deploy/.env  # ou vi/notepad
+\end{lstlisting}
+
+Variables documentées~:
+
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{Variable} & \textbf{Rôle} \\
+\midrule
+\texttt{LOG\_LEVEL} & Niveau de log (DEBUG, INFO, WARNING, ERROR) \\
+\texttt{MODEL\_DIR} & Chemin vers les artefacts modèles (par défaut \texttt{/app/models}) \\
+\texttt{DATA\_DIR} & Chemin vers les datasets traités (par défaut \texttt{/app/data/processed}) \\
+\texttt{REDIS\_URL} & URL Redis pour le cache horaires (ex.\ \texttt{redis://redis:6379/0}) \\
+\texttt{API\_PORT} & Port d'écoute sur l'hôte (par défaut 8000) \\
+\texttt{API\_WORKERS} & Nombre de workers uvicorn (1 suffit pour la charge ONCF typique) \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Placement des artefacts modèles}
+
+Les modèles ne sont \textbf{pas} embarqués dans l'image Docker pour
+faciliter les promotions sans rebuild. Ils sont montés en volume depuis
+l'hôte~:
+
+\begin{lstlisting}[language=bash]
+# Depuis la racine du projet
+ls models/
+# Attendu:
+#   xgb_ranker.json            (281 Mo)
+#   xgb_ranker.onnx            (148 Mo)
+#   label_encoder.joblib       (8.5 Ko)
+#   cold_start.joblib          (31 Ko)
+#   popularity.joblib          (~120 Ko)
+#   xgb_ranker.meta.json       (~2 Ko)
+\end{lstlisting}
+
+Si \texttt{models/} est absent ou incomplet, transférer les artefacts
+depuis l'environnement de pré-production. Lancer le pipeline complet de
+ré-entraînement (\texttt{scripts/03\_train\_ranker.py},
+\texttt{05\_build\_cold\_start.py}, \texttt{06\_export\_onnx.py},
+\texttt{08\_build\_popularity.py}) prend environ 50 minutes sur CPU.
+
+\subsection{Build et démarrage}
+
+\begin{lstlisting}[language=bash]
+cd deploy
+docker compose build
+docker compose up -d
+\end{lstlisting}
+
+Vérification du healthcheck~:
+
+\begin{lstlisting}[language=bash]
+docker compose ps
+# api  ... healthy
+# redis ... healthy
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash]
+curl http://localhost:8000/health
+# {"status":"ok","model_loaded":true,"popularity_loaded":true,"n_users_history":69449}
+\end{lstlisting}
+
+\subsection{Test fonctionnel}
+
+\begin{lstlisting}[language=bash]
+curl -X POST http://localhost:8000/recommend \
+     -H "Content-Type: application/json" \
+     -d '{"code_client":"12345","k":3}'
+\end{lstlisting}
+
+Réponse attendue (exemple)~:
+\begin{lstlisting}
+{
+  "mode": "model",
+  "variant": "a",
+  "request_id": "...",
+  "recommendations": ["LIAISON_1","LIAISON_2","LIAISON_3"],
+  "labels": {"LIAISON_1":"CASA -> RABAT", ...}
+}
+\end{lstlisting}
+
+\subsection{Arrêt et logs}
+
+\begin{lstlisting}[language=bash]
+docker compose down              # arrêt propre
+docker compose logs -f api       # suivi des logs
+docker compose logs --tail=200   # 200 dernières lignes
+\end{lstlisting}
+
 \end{document}
