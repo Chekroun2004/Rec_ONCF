@@ -507,10 +507,43 @@ dépassent significativement les seuils fixés.
 % ─────────────────────────────────────────────────────────────────
 \section{Étude de l'Existant~: Benchmark Industriel}
 
-\subsection{Références Industrielles}
+\subsection{Références Ferroviaires Européennes}
 
-Avant d'engager le développement, une étude de l'existant a permis d'identifier
-les approches adoptées par les acteurs leaders pour des problèmes analogues~:
+Le secteur ferroviaire européen offre plusieurs cas d'usage proches du
+notre. Les informations ci-dessous sont issues de communications
+publiques (blogs techniques, conférences, white-papers).
+
+\paragraph{SNCF Connect (France).} L'application SNCF Connect intègre
+depuis 2022 un assistant conversationnel et un système de
+recommandation de destinations. L'architecture publique connue repose
+sur des microservices Kubernetes et une couche de personnalisation
+nourrie par l'historique de recherche et de réservation. En 2024,
+SNCF Connect a reporté plus de 1{,}5 milliard de visites et 226 millions
+de billets vendus via son application~\cite{sncf-connect}. Enseignement
+pour l'ONCF~: SNCF privilégie une approche de \textbf{recommandation
+contextuelle} (heure de la requête, mobilité observée), exactement le
+levier que nous exploitons via \texttt{depart\_hour\_sin/cos} et
+\texttt{user\_trip\_index}.
+
+\paragraph{Deutsche Bahn (DB Navigator).} L'app DB Navigator personnalise
+ses suggestions de trajets selon les habitudes du voyageur (origine
+fréquente, horaires récurrents). La DB a publiquement documenté
+l'usage de modèles de prévision de demande pour optimiser l'occupation
+des trains, mais pas directement la stack du recommender mobile.
+Enseignement~: combinaison \textbf{règles métier + ML léger} pour
+respecter les contraintes opérationnelles (capacité, annulations)~\cite{db-navigator}.
+
+\paragraph{Trenitalia (Italie).} Le moins documenté publiquement parmi
+les trois~; les communications portent surtout sur la digitalisation
+des canaux de vente. Cette absence est en soi un enseignement~: dans
+l'écosystème ferroviaire, les détails techniques sont rarement
+externalisés, ce qui justifie une analyse complémentaire des patterns
+ML mobile génériques (voir~\S\ref{sec:benchmark-ml-mobile} ci-après).
+
+\subsection{Benchmark Stratégique~: Acteurs Transversaux}
+
+Au-delà du ferroviaire, une analyse des acteurs leaders pour des
+problèmes analogues a été conduite~:
 
 \begin{table}[H]
 \centering
