@@ -323,4 +323,140 @@ s'appuyer sur \texttt{systemctl status} (Linux) ou le journal des services
 Windows.
 \end{tcolorbox}
 
+\section{Observabilité}
+
+\subsection{Logs}
+
+L'API écrit des logs structurés (JSON) dans \texttt{/app/logs/api.log}
+(Docker) ou \texttt{logs/api.log} (venv), avec rotation automatique
+(10 Mo / fichier, rétention 7 jours).
+
+Champs journalisés à chaque appel \texttt{/recommend}~:
+\texttt{event}, \texttt{variant}, \texttt{request\_id}, \texttt{mode},
+\texttt{k}, \texttt{latency\_ms}, \texttt{n\_recommendations}.
+
+\begin{tcolorbox}[warnBox, title=Conformité Loi 09-08]
+Le \texttt{code\_client} n'apparaît jamais dans les logs --- uniquement
+l'UUID de requête. Vérifier en production~: \texttt{grep code\_client
+logs/api.log} doit ne rien retourner.
+\end{tcolorbox}
+
+\subsection{Healthcheck enrichi}
+
+\begin{lstlisting}[language=bash]
+curl http://localhost:8000/health
+\end{lstlisting}
+
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{Champ} & \textbf{Signification} \\
+\midrule
+\texttt{status} & "ok" si le modèle est chargé, "degraded" sinon \\
+\texttt{model\_loaded} & Booléen --- session ONNX disponible \\
+\texttt{popularity\_loaded} & Booléen --- liste de fallback chargée \\
+\texttt{n\_users\_history} & Taille du lookup historique en mémoire \\
+\bottomrule
+\end{tabularx}
+
+\section{Ré-entraînement périodique}
+
+Le pipeline de ré-entraînement (\texttt{scripts/07\_retrain.py}) inclut un
+\textbf{garde-fou KPI}~: un nouveau modèle n'est promu en production que
+si \texttt{HR@1} n'a pas baissé de plus de 5 points.
+
+\subsection{Lancement manuel (test)}
+
+\begin{lstlisting}[language=bash]
+# Évaluation seule (sans promotion)
+.venv/bin/python scripts/07_retrain.py --dry-run
+
+# Évaluation + promotion si KPI OK
+.venv/bin/python scripts/07_retrain.py
+\end{lstlisting}
+
+\subsection{Planification}
+
+\textbf{Linux (cron)~:}
+\begin{lstlisting}
+0 2 * * * /opt/oncf-recommender/.venv/bin/python /opt/oncf-recommender/scripts/07_retrain.py >> /opt/oncf-recommender/logs/retrain.log 2>&1
+\end{lstlisting}
+
+\textbf{Windows~:} utiliser le fichier \texttt{tasks/oncf\_daily\_retrain.xml}
+fourni dans le repo~:
+\begin{lstlisting}[language=powershell]
+schtasks /Create /XML tasks\oncf_daily_retrain.xml /TN "ONCF\DailyRetrain" /F
+\end{lstlisting}
+
+\section{Troubleshooting}
+
+\subsection{Erreurs fréquentes}
+
+\textbf{1. \texttt{RuntimeError: Model not found}}
+
+Cause~: les fichiers \texttt{models/xgb\_ranker.json},
+\texttt{label\_encoder.joblib} ou \texttt{xgb\_ranker.onnx} sont absents
+du volume monté.
+
+Solution~: vérifier la présence des fichiers et leur permission de
+lecture pour l'UID 1000 (utilisateur \texttt{oncf} dans le conteneur).
+
+\textbf{2. \texttt{Redis unavailable --- using in-memory schedule cache}}
+
+Cause~: Redis n'est pas joignable.
+
+Solution~: non bloquant --- le fallback en mémoire fonctionne. Pour
+restaurer Redis, vérifier \texttt{docker compose ps redis} et
+\texttt{redis-cli -h redis ping}.
+
+\textbf{3. Latence p99 anormalement élevée}
+
+Cause possible~: un seul worker uvicorn saturé.
+
+Solution~: augmenter \texttt{API\_WORKERS} dans \texttt{.env} (chaque
+worker charge un modèle en mémoire, prévoir +1 Go RAM par worker).
+
+\textbf{4. \texttt{ImportError: redis}}
+
+Cause~: la voie venv ne l'a pas installé.
+
+Solution~: \texttt{pip install redis} (optionnel --- le code fonctionne
+sans).
+
+\textbf{5. PDF du rapport ne compile pas}
+
+Hors scope déploiement --- contacter le développeur (non critique pour
+le service).
+
+\section{Rollback}
+
+\subsection{Modèle (cas le plus fréquent)}
+
+Le pipeline de ré-entraînement écrit toujours un \textbf{challenger}
+avant de promouvoir~:
+
+\begin{lstlisting}[language=bash]
+ls models/
+#   xgb_ranker.json                    <-- prod
+#   xgb_ranker_challenger.json         <-- dernier challenger évalué
+#   xgb_ranker_previous.json           <-- ancien prod (si promotion récente)
+\end{lstlisting}
+
+Pour annuler la dernière promotion~:
+
+\begin{lstlisting}[language=bash]
+cd models/
+mv xgb_ranker.json xgb_ranker_bad.json
+mv xgb_ranker_previous.json xgb_ranker.json
+# idem pour label_encoder et .onnx
+docker compose restart api
+\end{lstlisting}
+
+\subsection{Code applicatif}
+
+\begin{lstlisting}[language=bash]
+git log --oneline -10
+git checkout <sha-stable>
+cd deploy && docker compose build api && docker compose up -d api
+\end{lstlisting}
+
 \end{document}
