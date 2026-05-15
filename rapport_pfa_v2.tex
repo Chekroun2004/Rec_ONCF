@@ -576,6 +576,120 @@ Google Maps &
 \end{tabularx}
 \end{table}
 
+\subsection{Patterns Industriels de Déploiement ML Mobile}
+\label{sec:benchmark-ml-mobile}
+
+Au-delà du ferroviaire, quatre patterns industriels ont été analysés
+pour positionner nos choix techniques face à l'état de l'art.
+
+\subsubsection{Pattern 1 --- Model Serving}
+
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{Solution} & \textbf{Forces / faiblesses} \\
+\midrule
+TensorFlow Serving & Optimisé TF/Keras, gRPC haute performance, mais
+inadapté aux modèles GBDT. \\
+TorchServe & Idem côté PyTorch, peu pertinent pour les arbres de
+décision. \\
+\textbf{ONNX Runtime} & Format de modèle interopérable, support natif
+XGBoost via conversion, latence sous-10\,ms sur CPU. \textbf{Retenu
+pour notre projet.} \\
+Triton Inference Server (NVIDIA) & Très performant pour GPU, surdimensionné
+pour notre charge (< 100 req/s, sans GPU disponible). \\
+\bottomrule
+\end{tabularx}
+
+\textbf{Notre choix~:} ONNX Runtime, déployé en in-process dans le
+serveur FastAPI~\cite{onnx}. Bénéfice mesuré~: p50 passée de 104\,ms (sklearn
+direct) à 14\,ms (ONNX + FastPreprocessor), soit un facteur~7
+d'amélioration.
+
+\subsubsection{Pattern 2 --- A/B Testing en Production}
+
+\paragraph{Booking.com} exécute en permanence plus de 1\,000
+expérimentations A/B simultanées~\cite{booking-ml}. La règle clé~: tout changement
+visible utilisateur doit passer par une expérience contrôlée. Leur
+plateforme interne route les utilisateurs par bucket (hash sur user ID)
+et calcule les uplifts métier (taux de réservation, revenu par
+visiteur) en near-real-time.
+
+\paragraph{Netflix} privilégie les \textit{interleaving experiments}
+pour les systèmes de ranking, où les recommandations de deux modèles
+sont mélangées dans la même réponse utilisateur pour réduire la
+variance et accélérer la prise de décision.
+
+\textbf{Notre approche~:} A/B testing via paramètre \texttt{?variant=a|b}
+sur l'endpoint \texttt{/recommend}, avec un challenger
+(\texttt{xgb\_ranker\_challenger.onnx}) chargé en parallèle au démarrage.
+Chaque réponse porte un \texttt{request\_id} (UUID) corrélé via
+l'endpoint \texttt{/feedback}, ce qui permet de calculer le CTR uplift
+sans jamais journaliser de données personnelles.
+
+\subsubsection{Pattern 3 --- MLOps et Cycles de Ré-entraînement}
+
+\paragraph{Uber Michelangelo} est la plateforme interne d'Uber pour
+le ML en production~\cite{michelangelo}. Sa philosophie~: \textit{garbage in, garbage out}~;
+80~\% de l'effort va dans le pipeline de données, pas dans le modèle.
+Le ré-entraînement est déclenché soit par planification, soit par
+détection de drift (KS test sur les distributions de features).
+
+\paragraph{Spotify} documente publiquement son \textit{ML Platform}~\cite{spotify-ml},
+qui formalise quatre étapes~: ingestion, training, scoring batch,
+serving online. Les garde-fous KPI sont systématiques avant promotion.
+
+\textbf{Notre approche~:} ré-entraînement quotidien planifié
+(\texttt{scripts/07\_retrain.py}, 02h00 Casablanca), avec garde-fou KPI
+(promotion bloquée si \texttt{HR@1} baisse de plus de 5 points). Le
+challenger est toujours conservé sur disque pour rollback rapide.
+
+\subsubsection{Pattern 4 --- Latence et Expérience Mobile}
+
+L'expérience utilisateur sur mobile dégrade fortement au-delà de
+100\,ms perçus pour une interaction~; les leaders du e-commerce (Amazon,
+Booking) visent typiquement des p99 inférieures à 200\,ms côté API
+recommandation.
+
+\paragraph{Amazon} a publié dès 2006 que +100\,ms de latence sur ses
+pages produit coûtaient \textasciitilde 1~\% de revenu~\cite{amazon-latency}. Leur stack
+recommander tient des p99 sous 50\,ms via du précalcul agressif et un
+cache multi-niveaux.
+
+\paragraph{Booking.com} a documenté l'usage de modèles \emph{compacts}
+(GBDT distillés, embeddings de petite dimension) plutôt que des
+architectures lourdes, précisément pour maintenir des latences mobile
+acceptables. Une augmentation de 30~\% de la latence coûte environ
+0{,}5~\% en taux de conversion~\cite{booking-ml}.
+
+\textbf{Notre approche~:} latence p50 mesurée à 14\,ms,
+p99 à 17\,ms~; conforme aux standards de l'industrie pour un cas
+d'usage analogue. Levier principal~: ONNX Runtime + FastPreprocessor
+vectorisé (gain $\times 1\,469$ sur l'étape de prétraitement).
+
+\subsubsection{Synthèse~: Positionnement de nos Choix Techniques}
+
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\linewidth}{@{}p{3.5cm}p{3.5cm}X@{}}
+\toprule
+\textbf{Décision} & \textbf{Standard industrie} & \textbf{Notre choix} \\
+\midrule
+Algorithme & GBDT pour tabulaire & XGBoost \\
+Format modèle & ONNX (interopérable) & ONNX \\
+Latence cible mobile & p99 < 200\,ms & p99 = 17\,ms \\
+Cadence retraining & quotidien à hebdo & quotidien \\
+Garde-fou promotion & systématique & HR@1 ne baisse pas > 5\,pts \\
+A/B testing & systématique pour reco & \texttt{?variant=a|b} \\
+Logs personnels & exclus (RGPD/CNDP) & \texttt{code\_client} jamais loggé \\
+\bottomrule
+\end{tabularx}
+\renewcommand{\arraystretch}{1}
+
+Aucun de nos choix techniques ne s'écarte significativement de l'état
+de l'art. Le projet apporte une contribution principalement
+d'\textbf{intégration} (architecture deux-étapes, garde-fou KPI,
+boucle de feedback A/B) plutôt que de rupture algorithmique --- ce qui
+est l'objectif attendu pour un projet de fin d'études en ingénierie.
+
 \subsection{Choix d'Architecture Retenu}
 
 L'analyse du benchmark a conduit à retenir une \textbf{architecture deux
