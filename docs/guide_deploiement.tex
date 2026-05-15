@@ -1,0 +1,96 @@
+% ================================================================
+%  Guide de Déploiement — ONCF Zero-Click Recommender
+%  Auteur : Omar Chekroun (stagiaire)
+%  Compilateur : pdfLaTeX
+% ================================================================
+
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage[top=2.2cm, bottom=2.2cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+\usepackage[dvipsnames, table]{xcolor}
+\definecolor{oncfOrange}{RGB}{230, 83, 0}
+\definecolor{oncfBlue}{RGB}{0, 75, 141}
+\definecolor{lightGray}{RGB}{245, 245, 245}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{oncfBlue}{Guide de Déploiement -- ONCF Zero-Click}}
+\fancyhead[R]{\small\textcolor{oncfBlue}{O. Chekroun}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\usepackage{titlesec}
+\titleformat{\section}{\Large\bfseries\color{oncfBlue}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\large\bfseries\color{oncfBlue}}{\thesubsection}{0.7em}{}
+
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{lightGray},
+  frame=single,
+  rulecolor=\color{black!20},
+  breaklines=true,
+  showstringspaces=false,
+  columns=flexible,
+  keywordstyle=\color{oncfBlue}\bfseries,
+}
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=*, itemsep=2pt, topsep=3pt}
+\usepackage[most]{tcolorbox}
+\tcbset{
+  warnBox/.style={
+    colback=red!5, colframe=red!50!black, boxrule=0.6pt,
+    arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+    fonttitle=\bfseries
+  },
+  infoBox/.style={
+    colback=lightGray, colframe=oncfBlue, boxrule=0.4pt,
+    arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+    fonttitle=\bfseries\color{oncfBlue}
+  }
+}
+\usepackage[hidelinks]{hyperref}
+
+\begin{document}
+
+\begin{center}
+  {\Large\bfseries\color{oncfBlue}
+   Guide de Déploiement\par}
+  \vspace{2pt}
+  {\large\color{oncfOrange}\textit{ONCF Zero-Click Search Recommender}\par}
+  \vspace{8pt}
+  {\large À l'attention de l'équipe SI ONCF\par}
+  \vspace{4pt}
+  {\small Omar Chekroun -- Mai 2026}
+\end{center}
+
+\vspace{4pt}
+\hrule
+\vspace{15pt}
+
+\tableofcontents
+\vspace{15pt}
+\hrule
+\vspace{15pt}
+
+\section*{Objet du document}
+
+Ce guide explique comment déployer le service de recommandation
+\textit{Zero-Click Search} sur l'infrastructure ONCF. Deux voies sont
+documentées~: \textbf{Docker} (recommandée) et \textbf{Python venv}
+(fallback si Docker n'est pas disponible).
+
+% --- contenu inséré par les tâches suivantes ---
+
+\end{document}
