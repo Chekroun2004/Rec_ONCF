@@ -119,7 +119,17 @@ class FeedbackResponse(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    rec = getattr(app.state, "recommender_a", None)
+    model_loaded = rec is not None and rec.onnx_session is not None
+    popularity_loaded = rec is not None and bool(rec.popularity)
+    n_users_history = len(rec.history_lookup) if rec is not None else 0
+    status = "ok" if model_loaded else "degraded"
+    return {
+        "status": status,
+        "model_loaded": model_loaded,
+        "popularity_loaded": popularity_loaded,
+        "n_users_history": n_users_history,
+    }
 
 
 @app.post("/recommend", response_model=RecommendResponse, response_model_exclude_none=True)
