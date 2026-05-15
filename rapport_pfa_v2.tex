@@ -966,6 +966,53 @@ mois ($T=12$).
 
 \imgplaceholder{Insérer graphique encodage cyclique de l'heure}{Encodage cyclique de l'heure de départ (sin/cos)}
 
+\subsubsection{Famille 3 --- Variables Contextuelles}
+
+Ces variables décrivent le contexte de la transaction sans porter sur
+l'utilisateur~:
+
+\begin{itemize}
+\item \textbf{\texttt{PrixParLiaison}~:} prix unitaire de la liaison.
+    Discrimine fortement les profils sensibles au prix.
+\item \textbf{\texttt{NbrVoySegment}~:} nombre de segments de voyage
+    (correspondances). Capture les trajets directs vs.\ avec changements.
+\item \textbf{\texttt{DelaiAnticipation}~:} nombre de jours d'anticipation
+    de la réservation. Discrimine les voyageurs planificateurs des
+    réservations de dernière minute.
+\item \textbf{\texttt{TypeParcoursId}, \texttt{ClassificationId},
+    \texttt{ClassePhysiqueId}, \texttt{NiveauPrixId},
+    \texttt{TrainAutocarId}, \texttt{CarteClientId}~:} variables
+    catégorielles métier de l'ONCF (type de trajet, classe, type de carte).
+    Encodées par \texttt{OrdinalEncoder}.
+\item \textbf{\texttt{is\_self\_purchase}~:} indicateur binaire (1 si
+    l'acheteur est le voyageur lui-même, 0 sinon). Distingue les achats
+    pour soi des achats pour un tiers.
+\end{itemize}
+
+\subsubsection{Famille 4 --- Variables Dérivées}
+
+Ces variables sont calculées à la volée à partir de l'historique de
+l'utilisateur, et constituent le levier le plus puissant pour la
+personnalisation~:
+
+\begin{itemize}
+\item \textbf{\texttt{user\_top\_liaison\_share}~:} part de la liaison
+    dominante dans l'historique. Variable introduite en Sprint 2, à
+    l'origine d'un gain de +2{,}3 points de \texttt{HR@1} en passant de
+    0{,}74 à 0{,}76. Calculée strictement sur le passé (pas de fuite).
+\item \textbf{\texttt{prev\_liaison}~:} dernière liaison réservée. Encodée
+    ordinalement parmi 1\,011 valeurs distinctes.
+\end{itemize}
+
+\paragraph{Pourquoi calculer ces variables à la volée~?} En production,
+les nouvelles réservations arrivent en continu, mais le modèle n'est
+ré-entraîné qu'une fois par jour. Si l'on s'appuyait sur un snapshot
+statique des features (par exemple \texttt{features.parquet}), les
+recommandations seraient désynchronisées des comportements récents. Le
+module \texttt{features.compute\_inference\_row()} recalcule les
+variables dérivées à chaque requête à partir de l'historique courant,
+garantissant que la recommandation reflète l'état le plus à jour.
+
 \subsubsection{Choix Technique~: OrdinalEncoder vs OneHotEncoder}
 
 La variable \texttt{prev\_liaison} comporte 1\,011 valeurs distinctes. Un
