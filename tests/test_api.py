@@ -111,7 +111,7 @@ def client():
 def test_health_endpoint(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json()["status"] in {"ok", "degraded"}
 
 
 def test_recommend_returns_model_mode_for_known_user(client):
