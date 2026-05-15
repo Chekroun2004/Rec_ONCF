@@ -1547,6 +1547,61 @@ L'analyse CTR offline se fait par jointure sur \texttt{request\_id}.
 % CHAPITRE 6 : TECHNOLOGIES ET OUTILS
 % ================================================================
 \newpage
+\section{Pivot Post-Réunion ONCF (mai 2026)}
+\label{sec:pivot-post-reunion}
+
+À l'issue de la réunion de cadrage avec les équipes ONCF (Data, SI, Mobile,
+Sécurité), plusieurs ajustements ont été décidés pour clôturer le projet
+dans sa version livrable.
+
+\subsection{Source de Données~: Migration vers CSV}
+
+L'export statique \texttt{oncf\_data.csv} utilisé pour le prototype est
+remplacé par deux fichiers CSV fournis par l'ONCF~:
+
+\begin{itemize}
+\item \texttt{users\_history.csv} --- historique des réservations indexé
+    par \texttt{CodeClient}, mis à jour périodiquement par les équipes Data.
+\item \texttt{trains\_schedule.csv} --- horaires statiques par liaison,
+    substitut au scraping de \texttt{oncf.ma} (page JavaScript inaccessible
+    côté serveur).
+\end{itemize}
+
+Pour absorber cette migration sans casser la suite de 113 tests existants,
+une \textbf{couche d'adaptation des sources de données} a été introduite
+(\texttt{src/rec\_oncf/data\_source.py}). Elle expose deux protocoles
+abstraits, \texttt{UserHistorySource} et \texttt{ScheduleSource}, avec une
+implémentation CSV nominale et une rétro-compatibilité parquet pour les
+tests. Le cœur du système (\texttt{Recommender}, candidate generation,
+inférence ONNX) reste strictement identique.
+
+\subsection{Guide de Déploiement Cible ONCF}
+
+Pour permettre à l'équipe SI ONCF de déployer la solution de manière
+autonome, un guide de déploiement complet a été produit
+(\texttt{docs/guide\_deploiement.pdf}, inclus en annexe). Il couvre deux
+voies~: Docker (nominale, recommandée) et environnement virtuel Python
+(fallback si Docker indisponible). Le guide détaille les pré-requis
+hardware, la configuration des variables d'environnement, la procédure de
+ré-entraînement, l'observabilité, le troubleshooting et le rollback.
+
+\subsection{Benchmark Industriel Enrichi}
+
+Le chapitre 2 (\textit{Étude de l'existant}) a été enrichi d'un benchmark
+plus approfondi couvrant à la fois le secteur ferroviaire (SNCF, Deutsche
+Bahn, Trenitalia) et les grands patterns de déploiement de modèles ML sur
+mobile (model serving, A/B testing en production, MLOps, latence p99).
+Cette analyse positionne nos choix techniques face à l'industrie.
+
+\subsection{Périmètre Mobile}
+
+La partie intégration concrète côté application mobile ONCF Voyages a été
+explicitement \textbf{retirée du périmètre livrable}. L'API REST est
+prête à être consommée, mais l'intégration cliente reste à arbitrer avec
+l'équipe Mobile ONCF (cf.\ note de réunion). Les éventuels mockups de
+l'application qui figuraient dans des versions antérieures du rapport
+ont été retirés.
+
 \chapter{Technologies et Outils}
 
 \section{Environnement de Développement}
