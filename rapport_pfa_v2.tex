@@ -921,9 +921,18 @@ Le module \texttt{cleaning.py} applique les règles suivantes~:
 
 \imgplaceholder{Insérer rapport de nettoyage (diagramme sankey ou tableau)}{Bilan du nettoyage~: entrées et sorties}
 
-\section{Ingénierie des Variables}
+\subsection{Ingénierie d'Attributs (IDA)}
+\label{subsec:ida}
 
-\subsection{Variables Comportementales}
+L'\textbf{Ingénierie d'Attributs} (Initial Data Attributes / IDA) est
+l'étape qui transforme les lignes brutes de réservations en variables
+prédictives porteuses de sens métier. Cette étape conditionne fortement
+les performances du modèle XGBoost~: une variable bien pensée peut faire
+gagner plusieurs points de \texttt{HR@1}, là où une variable mal calibrée
+ajoute du bruit. Les 26 variables retenues se regroupent en quatre
+familles décrites ci-après.
+
+\subsubsection{Famille 1 --- Variables Comportementales}
 
 Les variables comportementales capturent les habitudes individuelles de
 l'utilisateur~:
@@ -941,7 +950,7 @@ l'utilisateur~:
     voyage, capturant la régularité.
 \end{itemize}
 
-\subsection{Variables Temporelles et Encodage Cyclique}
+\subsubsection{Famille 2 --- Variables Temporelles et Encodage Cyclique}
 
 Les horodatages présentent une periodicité (jour de la semaine, heure,
 mois). Un encodage naïf (heure = entier 0--23) introduit une discontinuité
@@ -957,7 +966,7 @@ mois ($T=12$).
 
 \imgplaceholder{Insérer graphique encodage cyclique de l'heure}{Encodage cyclique de l'heure de départ (sin/cos)}
 
-\subsection{Pourquoi OrdinalEncoder et non OneHotEncoder~?}
+\subsubsection{Choix Technique~: OrdinalEncoder vs OneHotEncoder}
 
 La variable \texttt{prev\_liaison} comporte 1\,011 valeurs distinctes. Un
 \texttt{OneHotEncoder} produirait une matrice de 5\,000+ colonnes, rendant
