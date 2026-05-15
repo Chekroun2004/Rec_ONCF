@@ -237,4 +237,90 @@ docker compose logs -f api       # suivi des logs
 docker compose logs --tail=200   # 200 dernières lignes
 \end{lstlisting}
 
+\section{Voie alternative~: Python venv}
+
+À utiliser si Docker n'est pas disponible sur l'infrastructure ONCF.
+
+\subsection{Création de l'environnement}
+
+\textbf{Linux~:}
+\begin{lstlisting}[language=bash]
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install fastapi==0.115.* "uvicorn[standard]==0.30.*" \
+    "pydantic>=2.0,<3.0" "pandas>=3.0,<4.0" \
+    xgboost==3.2.* "scikit-learn>=1.4,<2.0" \
+    "onnxruntime>=1.18,<2.0" "joblib>=1.4,<2.0" \
+    "requests>=2.31,<3.0" "beautifulsoup4>=4.12,<5.0" \
+    "loguru>=0.7,<1.0" "redis>=5.0,<6.0"
+\end{lstlisting}
+
+\textbf{Windows~:}
+\begin{lstlisting}[language=powershell]
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install --upgrade pip
+pip install fastapi==0.115.* uvicorn[standard]==0.30.* `
+    pydantic pandas xgboost scikit-learn onnxruntime `
+    joblib requests beautifulsoup4 loguru redis
+\end{lstlisting}
+
+\subsection{Lancement direct (test)}
+
+\begin{lstlisting}[language=bash]
+# Linux
+uvicorn apps.api.main:app --host 0.0.0.0 --port 8000
+
+# Windows
+.venv\Scripts\python.exe -m uvicorn apps.api.main:app --host 0.0.0.0 --port 8000
+\end{lstlisting}
+
+\subsection{Lancement comme service système}
+
+\textbf{Linux (systemd)~:} créer \texttt{/etc/systemd/system/oncf-recommender.service}~:
+
+\begin{lstlisting}
+[Unit]
+Description=ONCF Recommender API
+After=network.target
+
+[Service]
+Type=simple
+User=oncf
+WorkingDirectory=/opt/oncf-recommender
+Environment="PYTHONPATH=/opt/oncf-recommender/src"
+ExecStart=/opt/oncf-recommender/.venv/bin/uvicorn apps.api.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+\end{lstlisting}
+
+Activation~:
+\begin{lstlisting}[language=bash]
+sudo systemctl daemon-reload
+sudo systemctl enable oncf-recommender
+sudo systemctl start oncf-recommender
+sudo systemctl status oncf-recommender
+\end{lstlisting}
+
+\textbf{Windows Server (NSSM)~:}
+\begin{lstlisting}[language=powershell]
+# Installer NSSM (Non-Sucking Service Manager) au préalable
+nssm install ONCFRecommender ^
+  "C:\path\to\.venv\Scripts\python.exe" ^
+  "-m" "uvicorn" "apps.api.main:app" "--host" "0.0.0.0" "--port" "8000"
+nssm set ONCFRecommender AppDirectory "C:\path\to\oncf-recommender"
+nssm start ONCFRecommender
+\end{lstlisting}
+
+\begin{tcolorbox}[infoBox, title=Différences avec Docker]
+La voie venv ne fournit pas l'isolation réseau, le redémarrage automatique
+sur crash applicatif, ni le healthcheck standard. Le monitoring devra
+s'appuyer sur \texttt{systemctl status} (Linux) ou le journal des services
+Windows.
+\end{tcolorbox}
+
 \end{document}
