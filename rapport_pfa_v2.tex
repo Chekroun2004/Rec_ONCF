@@ -55,6 +55,7 @@
 % ── Tableaux ───────────────────────────────────────────────────────
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{pdfpages}
 \usepackage{multirow}
 \usepackage{array}
 \usepackage{longtable}
@@ -2297,6 +2298,21 @@ def recommend(self, code_client: str, k: int = 1) -> dict:
     Learning is Not All You Need", \textit{Information Fusion}, 2022.
 
 \end{thebibliography}
+
+\appendix
+
+\chapter{Guide de Déploiement (à l'attention de l'équipe SI ONCF)}
+\label{ann:guide-deploiement}
+
+Ce guide, livré séparément en tant que PDF autonome
+(\texttt{docs/guide\_deploiement.pdf}), est intégré ci-après en annexe
+à des fins d'archivage. Il décrit la procédure complète de déploiement
+de l'API \textit{Zero-Click Recommender} sur l'infrastructure ONCF,
+avec une voie nominale par Docker et un fallback par environnement
+virtuel Python.
+
+% Décommenter la ligne ci-dessous après compilation de docs/guide_deploiement.pdf :
+% \includepdf[pages=-, scale=0.85, pagecommand={\thispagestyle{fancy}}]{docs/guide_deploiement.pdf}
 
 \end{document}
 
