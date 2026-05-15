@@ -4,27 +4,50 @@
 
 ---
 
-## 🚧 RESUME HERE — next session (paused 2026-05-13)
+## ✅ PIVOT POST-RÉUNION — Chantiers 1–5 complétés (2026-05-15)
 
-**Branch state:** work is on branch **`feat/popularity-fallback-demo-ui`**, **NOT merged to `main`**. 113/113 tests pass. All three bugs from the previous session are now fixed. **Decision still pending**: merge to `main` / open PR / keep as-is.
+**Branch state:** `feat/post-meeting-pivot` — **114/114 tests passent.**
 
-> A uvicorn dev server may still be running from the last session — kill stray `python.exe` if so.
+**Deadline livraison : lundi 2026-05-18 matin.** Les chantiers 1–5 sont terminés.
 
-### Bugs fixed this session (2026-05-13)
+> Voir plan complet : `docs/superpowers/plans/2026-05-15-post-meeting-pivot.md`
 
-**Bug C ✅ — `mode: "model"` returned fewer than `k` recommendations when user had < k distinct routes.**
-- Fix: `recommender.py:_recommend_core()` now pads with `self.popularity` after model ranking if `len(recs) < k`.
-- Test added: `test_model_pads_to_k_with_popularity` in `test_recommender.py`.
+### État des chantiers
 
-**Bug A ✅ (architectural) — schedules from oncf.ma always empty.**
-- Root cause confirmed by live probe: GET `/fr/Horaires` returns 111KB HTML with **no `<table>`** — schedule is rendered entirely by `main.js` client-side via `Oncf.Horraires.init(data-apilink)`. The scraper was never going to work.
-- Fix chosen: decouple schedules from `/recommend` entirely. The UI now lazy-loads schedules per card via `GET /schedule/{liaison_id}`. The scraper is kept as-is (best-effort — empty means the site is down or JS-only). The `include_schedule` flag in `/recommend` still works for non-UI API clients but is no longer used by the demo page.
+| Chantier | Statut | Notes |
+|---|---|---|
+| **1 — MAJ rapport** | ✅ Terminé | Mockup retiré, section pivot + tableau état du projet |
+| **2 — IDA** | ✅ Terminé | IDA fusionnée sous Exploration/Nettoyage, familles 1–4 |
+| **3 — API deploy-ready** | ✅ Terminé | `deploy/` (Dockerfile, compose, .env.example, .dockerignore), `/health` enrichi |
+| **4 — Guide déploiement** | ✅ Terminé (source LaTeX) | `docs/guide_deploiement.tex` (462 lignes). PDF à compiler manuellement (pdflatex non installé). `\includepdf` commenté dans rapport — décommenter après compilation. |
+| **5 — Benchmark PDF** | ✅ Terminé | Chap. 2 enrichi : SNCF/DB/Trenitalia + 4 patterns ML mobile + synthèse + biblio |
+| **6 — Migration CSV** | 🔒 Deferred | En attente des CSV ONCF (`users_history.csv` + `trains_schedule.csv`) |
+| **7 — Finalisation** | ✅ Terminé | CLAUDE.md mis à jour, 114 tests verts |
 
-**Bug B ✅ — latency 6–8 s when schedule toggle was on.**
-- Fix 1 (main.py): `include_schedule` path in `/recommend` now uses `ThreadPoolExecutor(max_workers=3)` — all 3 scrapes in parallel instead of sequential.
-- Fix 2 (app.js + main.py): Demo UI no longer sends `include_schedule: true`. After `/recommend` returns (always fast, ~12–20 ms), cards render immediately, then `GET /schedule/{liaison_id}` fires per card. Each card's schedule section shows "Chargement…" while loading.
-- New endpoint: `GET /schedule/{liaison_id}` → `{liaison_id, schedule: [...]}`.
-- 2 new tests added in `test_api.py`.
+### Prochaine action (avant livraison)
+
+1. **Compiler le rapport** (2 passes, nécessite MiKTeX ou TeX Live) :
+   ```powershell
+   pdflatex -interaction=nonstopmode rapport_pfa_v2.tex
+   pdflatex -interaction=nonstopmode rapport_pfa_v2.tex
+   ```
+2. **Compiler le guide** :
+   ```powershell
+   Set-Location docs; pdflatex -interaction=nonstopmode guide_deploiement.tex; pdflatex -interaction=nonstopmode guide_deploiement.tex; Set-Location ..
+   ```
+3. **Décommenter `\includepdf`** dans `rapport_pfa_v2.tex` (ligne avant `\end{document}`) et recompiler.
+4. **Merger** `feat/post-meeting-pivot` → `main` quand rapport PDF validé.
+
+### Nouveaux fichiers créés (session 2026-05-15)
+
+| Fichier | Description |
+|---|---|
+| `deploy/Dockerfile` | Multi-stage, python:3.12-slim, user non-root `oncf` |
+| `deploy/docker-compose.yml` | Services api + redis:7-alpine, volumes bind-mount |
+| `deploy/.env.example` | 7 variables documentées (LOG_LEVEL, MODEL_DIR, DATA_DIR…) |
+| `deploy/.dockerignore` | Exclusions build context (venv, data, models, tests) |
+| `docs/guide_deploiement.tex` | Guide déploiement complet (pré-requis, Docker, venv, observabilité, rollback) |
+| `tests/test_health_enriched.py` | Test du `/health` enrichi |
 
 ---
 
