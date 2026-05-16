@@ -20,6 +20,9 @@ def _print_report(report: dict) -> None:
     print("=" * 60)
     print("RETRAINING REPORT")
     print("=" * 60)
+    if report.get("window_months"):
+        print(f"Rolling window : last {report['window_months']} months")
+    print(f"Train rows     : {report.get('train_rows', '?')}")
     print()
     print("Current model:")
     if cur:
@@ -60,6 +63,16 @@ def main() -> None:
         action="store_true",
         help="Retrain and evaluate but do not overwrite models/.",
     )
+    parser.add_argument(
+        "--window-months",
+        type=int,
+        default=None,
+        metavar="N",
+        help=(
+            "Only train on the last N months of data (rolling window). "
+            "Keeps training time stable as data accumulates. Default: full history."
+        ),
+    )
     args = parser.parse_args()
 
     paths = default_paths()
@@ -67,8 +80,12 @@ def main() -> None:
         raise FileNotFoundError(
             f"Missing features: {paths.features_parquet}. Run scripts/02_build_features.py first."
         )
-    print(f"{'[DRY RUN] ' if args.dry_run else ''}Starting retrain pipeline (this will take ~43 min on CPU)...")
-    report = retrain_pipeline(paths, dry_run=args.dry_run)
+    window_info = f", rolling window {args.window_months} mois" if args.window_months else ""
+    print(
+        f"{'[DRY RUN] ' if args.dry_run else ''}"
+        f"Starting retrain pipeline{window_info} (~43 min sur CPU)..."
+    )
+    report = retrain_pipeline(paths, dry_run=args.dry_run, window_months=args.window_months)
     _print_report(report)
     sys.exit(0 if report["guardrail_passes"] else 1)
 

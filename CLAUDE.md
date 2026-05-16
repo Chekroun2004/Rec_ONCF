@@ -4,11 +4,11 @@
 
 ---
 
-## ✅ PIVOT POST-RÉUNION — Chantiers 1–5 complétés (2026-05-15)
+## ✅ PIVOT POST-RÉUNION — Chantiers tous terminés (2026-05-15)
 
-**Branch state:** `feat/post-meeting-pivot` — **114/114 tests passent.**
+**Branch state:** `feat/post-meeting-pivot` — **115/115 tests passent.**
 
-**Deadline livraison : lundi 2026-05-18 matin.** Les chantiers 1–5 sont terminés.
+**Deadline livraison : lundi 2026-05-18 matin.** Tout le code et le rapport sont prêts.
 
 > Voir plan complet : `docs/superpowers/plans/2026-05-15-post-meeting-pivot.md`
 
@@ -19,24 +19,31 @@
 | **1 — MAJ rapport** | ✅ Terminé | Mockup retiré, section pivot + tableau état du projet |
 | **2 — IDA** | ✅ Terminé | IDA fusionnée sous Exploration/Nettoyage, familles 1–4 |
 | **3 — API deploy-ready** | ✅ Terminé | `deploy/` (Dockerfile, compose, .env.example, .dockerignore), `/health` enrichi |
-| **4 — Guide déploiement** | ✅ Terminé (source LaTeX) | `docs/guide_deploiement.tex` (462 lignes). PDF à compiler manuellement (pdflatex non installé). `\includepdf` commenté dans rapport — décommenter après compilation. |
+| **4 — Guide déploiement** | ✅ Terminé (intégré au rapport) | Contenu complet intégré directement dans `rapport_pfa_v2.tex` comme annexe (plus de `\includepdf`). |
 | **5 — Benchmark PDF** | ✅ Terminé | Chap. 2 enrichi : SNCF/DB/Trenitalia + 4 patterns ML mobile + synthèse + biblio |
 | **6 — Migration CSV** | 🔒 Deferred | En attente des CSV ONCF (`users_history.csv` + `trains_schedule.csv`) |
-| **7 — Finalisation** | ✅ Terminé | CLAUDE.md mis à jour, 114 tests verts |
+| **7 — Finalisation** | ✅ Terminé | CLAUDE.md mis à jour, 115 tests verts |
+
+### Travail effectué — session 2026-05-15 (après pivot)
+
+#### Rapport `rapport_pfa_v2.tex` (2732 lignes)
+- **12+ corrections** : comptage tests (100→115 partout), `variant` body→query param, `cold_start`→`popularity` pour 0 voyage, `labels` ajouté aux exemples JSON, typos (`periodicité`, flèches sans espace), orphan text supprimé
+- **Bibliographie unifiée** : double bibliographie (enumerate + thebibliography) fusionnée en un seul bloc `\begin{thebibliography}{99}` avec 15 bibitems et `\cite{}` corrects — 0 citation brisée
+- **Double `\appendix` supprimé**, code orphelin après `\end{document}` supprimé
+- **Guide déploiement intégré** : contenu de `docs/guide_deploiement.tex` intégré directement comme `\chapter{Guide de Déploiement}` (8 sections : pré-requis, Docker, venv, observabilité, ré-entraînement, troubleshooting, rollback). Styles `warnBox`/`infoBox` ajoutés au préambule. Plus besoin de `\includepdf`.
+- **Nouvelle sous-section Perspectives** : "Fenêtre Glissante et Scalabilité du Réentraînement" documentant `--window-months`
+
+#### Rolling window dans le pipeline de réentraînement
+- `src/rec_oncf/retrain.py` : paramètre `window_months: int | None` dans `retrain_pipeline()`, filtre sur `DateOffset`, `window_months` et `train_rows` dans le rapport
+- `scripts/07_retrain.py` : argument CLI `--window-months N`, affichage dans le rapport
+- `tests/test_retrain.py` : `test_retrain_pipeline_rolling_window()` — 17 tests (était 16)
+- `CLAUDE.md` : mis à jour (114→115 tests, test_retrain 16→17)
 
 ### Prochaine action (avant livraison)
 
-1. **Compiler le rapport** (2 passes, nécessite MiKTeX ou TeX Live) :
-   ```powershell
-   pdflatex -interaction=nonstopmode rapport_pfa_v2.tex
-   pdflatex -interaction=nonstopmode rapport_pfa_v2.tex
-   ```
-2. **Compiler le guide** :
-   ```powershell
-   Set-Location docs; pdflatex -interaction=nonstopmode guide_deploiement.tex; pdflatex -interaction=nonstopmode guide_deploiement.tex; Set-Location ..
-   ```
-3. **Décommenter `\includepdf`** dans `rapport_pfa_v2.tex` (ligne avant `\end{document}`) et recompiler.
-4. **Merger** `feat/post-meeting-pivot` → `main` quand rapport PDF validé.
+1. **Uploader sur Overleaf** : `rapport_pfa_v2.tex` + dossier `pic/`
+2. **Compiler** (2 passes) et vérifier le PDF
+3. **Merger** `feat/post-meeting-pivot` → `main` quand rapport PDF validé
 
 ### Nouveaux fichiers créés (session 2026-05-15)
 
@@ -46,7 +53,7 @@
 | `deploy/docker-compose.yml` | Services api + redis:7-alpine, volumes bind-mount |
 | `deploy/.env.example` | 7 variables documentées (LOG_LEVEL, MODEL_DIR, DATA_DIR…) |
 | `deploy/.dockerignore` | Exclusions build context (venv, data, models, tests) |
-| `docs/guide_deploiement.tex` | Guide déploiement complet (pré-requis, Docker, venv, observabilité, rollback) |
+| `docs/guide_deploiement.tex` | Guide déploiement source (contenu intégré dans le rapport) |
 | `tests/test_health_enriched.py` | Test du `/health` enrichi |
 
 ---
@@ -127,7 +134,7 @@ Rec_ONCF/
 │   ├── test_schedule.py    # 14 tests  ✅ passing  (station codes, HTML parser, HTTP mock, caching)
 │   ├── test_cold_start.py  # 9 tests   ✅ passing  (co-occurrence, recommend, save/load)
 │   ├── test_onnx.py        # 7 tests   ✅ passing  (export, proba parity, output shape, FastPreprocessor)
-│   ├── test_retrain.py     # 16 tests  ✅ passing  (load_metrics, guardrail, evaluate, promote, pipeline, write_challenger)
+│   ├── test_retrain.py     # 17 tests  ✅ passing  (load_metrics, guardrail, evaluate, promote, pipeline, write_challenger, rolling_window)
 │   ├── test_popularity.py  # 3 tests   ✅ passing  (build, save/load, order by frequency)
 │   └── __init__.py
 │

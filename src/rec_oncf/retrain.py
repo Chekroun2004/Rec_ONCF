@@ -105,10 +105,16 @@ def retrain_pipeline(
     paths: Paths,
     *,
     dry_run: bool = False,
+    window_months: int | None = None,
     features_df: pd.DataFrame | None = None,
     clean_df: pd.DataFrame | None = None,
 ) -> dict:
     """Full pipeline: retrain → evaluate → guardrail → promote.
+
+    Args:
+        window_months: If set, only train on the last N months of data (rolling
+            window). Keeps training time stable as historical data accumulates.
+            None (default) uses the full history.
 
     Returns a report dict. Pass features_df / clean_df to skip disk reads (useful in tests).
     """
@@ -116,6 +122,14 @@ def retrain_pipeline(
         features_df = read_parquet(paths.features_parquet)
     if clean_df is None:
         clean_df = read_parquet(paths.processed_dataset_parquet)
+
+    if window_months is not None:
+        cutoff = features_df["DateHeureDepartVoyageSegment"].max() - pd.DateOffset(
+            months=window_months
+        )
+        features_df = features_df[
+            features_df["DateHeureDepartVoyageSegment"] >= cutoff
+        ].reset_index(drop=True)
 
     current_metrics = load_current_metrics(paths.xgb_model_path.with_suffix(".meta.json"))
 
@@ -136,6 +150,8 @@ def retrain_pipeline(
         "promoted": False,
         "challenger_updated": False,
         "dry_run": dry_run,
+        "window_months": window_months,
+        "train_rows": len(features_df),
     }
 
     staging_dir = paths.models_dir / "staging"

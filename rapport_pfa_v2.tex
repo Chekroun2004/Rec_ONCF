@@ -1,4 +1,4 @@
-% ================================================================
+﻿% ================================================================
 %  Rapport de Projet de Fin d'Année
 %  Système de Recommandation Proactif ONCF -- Zero-Click Search
 %  Auteur : Omar Chekroun
@@ -114,6 +114,17 @@
 \newtcolorbox{notebox}{
   colback=oncfOrange!8, colframe=oncfOrange, arc=3pt,
   fonttitle=\bfseries, title={Note}
+}
+\tcbset{
+  warnBox/.style={
+    colback=red!5, colframe=red!50!black, boxrule=0.6pt, arc=2pt,
+    left=8pt, right=8pt, top=6pt, bottom=6pt, fonttitle=\bfseries
+  },
+  infoBox/.style={
+    colback=gray!8, colframe=oncfBlue, boxrule=0.4pt, arc=2pt,
+    left=8pt, right=8pt, top=6pt, bottom=6pt,
+    fonttitle=\bfseries\color{oncfBlue}
+  }
 }
 
 % ── Commandes utilitaires ─────────────────────────────────────────
@@ -461,7 +472,7 @@ d'abandon et de frustration chez les voyageurs réguliers.
 
 \subsection{La Solution Proposée~: Zero-Click Search}
 
-\imgplaceholder{Insérer schéma conceptuel Zero-Click Search}{Concept du Zero-Click Search~: recommandation proactive à l'ouverture de l'app}
+\img[0.95\textwidth]{zero_click_concept.png}{Concept du Zero-Click Search~: recommandation proactive à l'ouverture de l'app}
 
 Le concept de \textbf{Zero-Click Search} consiste à prédire, dès l'ouverture
 de l'application, le trajet que l'utilisateur s'apprête à rechercher, et à
@@ -706,7 +717,7 @@ L'analyse du benchmark a conduit à retenir une \textbf{architecture deux
 
 \textbf{Pourquoi XGBoost et non un réseau de neurones~?} Les données ONCF
 sont de nature tabulaire (pas d'images, pas de texte libre). La littérature
-récente~[2,~3] montre que les GBDT surpassent systématiquement les réseaux
+récente~\cite{tabular-trees,tabular-gbdt} montre que les GBDT surpassent systématiquement les réseaux
 de neurones sur des données tabulaires de taille modérée (< 1 million de
 lignes). C'est également le modèle utilisé en production par Uber pour la
 prédiction de destination et par Airbnb pour le ranking --- deux cas d'usage
@@ -718,7 +729,7 @@ directement transposables à l'ONCF.
 Le projet a été conduit selon une approche \textbf{itérative et incrémentale}
 organisée en sprints, inspirée de la méthode Scrum~:
 
-\imgplaceholder{Insérer diagramme de Gantt / planning des sprints}{Planning du projet~: phases et sprints}
+\img[0.95\textwidth]{gantt.png}{Planning du projet~: phases et sprints}
 
 \begin{table}[H]
 \centering
@@ -813,7 +824,7 @@ Portabilité & Déployable sur Windows Server (machine ONCF) \\
 % ─────────────────────────────────────────────────────────────────
 \section{Architecture Globale du Système}
 
-\imgplaceholder{Insérer diagramme d'architecture globale (schéma en couches)}{Architecture globale du système de recommandation ONCF}
+\img[0.95\textwidth]{archi_globale.png}{Architecture globale du système de recommandation ONCF}
 
 Le système s'articule en \textbf{quatre couches} distinctes~:
 
@@ -835,12 +846,12 @@ Le système s'articule en \textbf{quatre couches} distinctes~:
     consommée en lecture seule.
 \end{enumerate}
 
-\imgplaceholder{Insérer diagramme de composants UML}{Diagramme de composants~: structure modulaire du projet}
+\img[0.98\textwidth]{uml_composants.png}{Diagramme de composants~: structure modulaire du projet}
 
 % ─────────────────────────────────────────────────────────────────
 \section{Architecture Deux Étapes}
 
-\imgplaceholder{Insérer schéma Candidate Generation + Ranking}{Architecture deux étapes~: Candidate Generation puis Ranking}
+\img[0.98\textwidth]{archi_deux_etapes.png}{Architecture deux étapes~: Candidate Generation puis Ranking}
 
 L'architecture deux étapes fonctionne comme suit~:
 
@@ -867,7 +878,7 @@ restreint le classement aux candidats de l'étape 1. Le top-$k$ est retourné
 
 \subsection{Diagramme de Cas d'Utilisation}
 
-\imgplaceholder{Insérer diagramme Use Case UML}{Diagramme de cas d'utilisation}
+\img[0.95\textwidth]{uml_usecase.png}{Diagramme de cas d'utilisation}
 
 Les acteurs identifiés sont~:
 \begin{itemize}
@@ -883,7 +894,7 @@ Les acteurs identifiés sont~:
 
 \subsection{Diagramme de Séquence~: Appel \texttt{/recommend}}
 
-\imgplaceholder{Insérer diagramme de séquence pour POST /recommend}{Diagramme de séquence~: traitement d'une requête de recommandation}
+\img[0.98\textwidth]{uml_sequence.png}{Diagramme de séquence~: traitement d'une requête de recommandation}
 
 Le traitement d'une requête \texttt{POST /recommend} suit le flux suivant~:
 \begin{enumerate}
@@ -900,7 +911,7 @@ Le traitement d'une requête \texttt{POST /recommend} suit le flux suivant~:
 
 \subsection{Diagramme de Classes Simplifié}
 
-\imgplaceholder{Insérer diagramme de classes UML}{Diagramme de classes simplifié}
+\img[0.98\textwidth]{uml_classes.png}{Diagramme de classes simplifié}
 
 Les classes principales du système sont~:
 \begin{itemize}
@@ -1021,7 +1032,7 @@ métriques offline comparables à des baselines.
 
 \subsection{Profilage du Dataset Brut}
 
-\imgplaceholder{Insérer histogramme de distribution des liaisons}{Distribution des liaisons par fréquence de réservation}
+\img[0.97\textwidth]{hist_liaison_distribution.png}{Distribution des liaisons par fréquence de réservation}
 
 Le dataset brut présente les caractéristiques suivantes~:
 
@@ -1067,7 +1078,7 @@ Le module \texttt{cleaning.py} applique les règles suivantes~:
     \texttt{float64}.
 \end{enumerate}
 
-\imgplaceholder{Insérer rapport de nettoyage (diagramme sankey ou tableau)}{Bilan du nettoyage~: entrées et sorties}
+\img[0.97\textwidth]{rapport_nettoyage.png}{Bilan du nettoyage~: entrées et sorties}
 
 \subsection{Ingénierie d'Attributs (IDA)}
 \label{subsec:ida}
@@ -1100,7 +1111,7 @@ l'utilisateur~:
 
 \subsubsection{Famille 2 --- Variables Temporelles et Encodage Cyclique}
 
-Les horodatages présentent une periodicité (jour de la semaine, heure,
+Les horodatages présentent une périodicité (jour de la semaine, heure,
 mois). Un encodage naïf (heure = entier 0--23) introduit une discontinuité
 artificielle entre 23h et 0h. L'\textbf{encodage cyclique} corrige cela~:
 
@@ -1112,7 +1123,7 @@ artificielle entre 23h et 0h. L'\textbf{encodage cyclique} corrige cela~:
 La même transformation est appliquée au jour de la semaine ($T=7$) et au
 mois ($T=12$).
 
-\imgplaceholder{Insérer graphique encodage cyclique de l'heure}{Encodage cyclique de l'heure de départ (sin/cos)}
+\img[0.97\textwidth]{encodage_cyclique.png}{Encodage cyclique de l'heure de départ (sin/cos)}
 
 \subsubsection{Famille 3 --- Variables Contextuelles}
 
@@ -1252,6 +1263,8 @@ le même split temporel~:
 XGBoost surpasse la meilleure baseline (\texttt{most\_frequent}) d'un
 facteur \textbf{2{,}69×} sur HR@1.
 
+\img[0.97\textwidth]{metrics_comparison.png}{Comparaison XGBoost vs.\ baselines~: supériorité du modèle sur les trois métriques}
+
 \section{Résultats et Bilan du Sprint 1}
 
 \begin{table}[H]
@@ -1274,11 +1287,11 @@ MRR@3 moy. & $> 60$~\% & 80{,}64~\% & \textcolor{oncfOrange}{\textbf{$\checkmark
 Bugs identifiés et corrigés en Sprint 1~:
 \begin{itemize}
 \item \textbf{Fuite d'identité~:} \texttt{CodeClient} utilisé comme feature
-    (violation CNDP) $\rightarrow$corrigé dans \texttt{train\_xgb\_multiclass}.
+    (violation CNDP) $\rightarrow$ corrigé dans \texttt{train\_xgb\_multiclass}.
 \item \textbf{Crash labels inédits~:} appel à \texttt{le.transform} sur des
-    classes absentes du train $\rightarrow$filtre ajouté avant l'évaluation.
+    classes absentes du train $\rightarrow$ filtre ajouté avant l'évaluation.
 \item \textbf{Architecture non appliquée~:} les candidats étaient générés
-    mais jamais utilisés pour filtrer le top-k $\rightarrow$correction dans
+    mais jamais utilisés pour filtrer le top-k $\rightarrow$ correction dans
     \texttt{recommender.py}.
 \end{itemize}
 
@@ -1303,7 +1316,7 @@ Le Sprint 2 a visé trois objectifs complémentaires~:
 
 \section{Nouvelle Variable~: \texttt{user\_top\_liaison\_share}}
 
-\imgplaceholder{Insérer graphique de distribution de user\_top\_liaison\_share}{Distribution de la variable user\_top\_liaison\_share}
+\img[0.97\textwidth]{dist_user_top_liaison_share.png}{Distribution de la variable user\_top\_liaison\_share}
 
 La variable \texttt{user\_top\_liaison\_share} est définie comme~:
 
@@ -1347,7 +1360,7 @@ historique suffisant pour alimenter le pipeline de features.
 
 \subsection{Solution~: Filtrage Collaboratif par Co-occurrence}
 
-\imgplaceholder{Insérer schéma du filtrage collaboratif cold start}{Module cold start~: co-occurrence entre liaisons}
+\img[0.97\textwidth]{cold_start_cf.png}{Module cold start~: co-occurrence entre liaisons}
 
 Le module \texttt{cold\_start.py} construit une \textbf{matrice de
 co-occurrence} entre liaisons~: deux liaisons sont co-associées si un
@@ -1362,12 +1375,13 @@ fréquemment co-réservées avec ses voyages connus.
 \hline
 \textbf{Historique} & \textbf{Mode} & \textbf{Réponse API} \\
 \hline
-0 voyage (inconnu) & Cold start & \texttt{\{mode: "cold\_start", recommendations: []\}} \\
+0 voyage (inconnu) & Popularité$^*$ & \texttt{\{mode: "popularity", recommendations: [...]\}} \\
 \hline
 1--2 voyages & Cold start CF & \texttt{\{mode: "cold\_start\_cf", recommendations: [...]\}} \\
 \hline
 $\geq 3$ voyages & Modèle XGBoost & \texttt{\{mode: "model", recommendations: [...]\}} \\
 \hline
+\multicolumn{3}{l}{\small $^*$~Repli sur \texttt{mode: "cold\_start"} (liste vide) si \texttt{popularity.joblib} absent.} \\
 \end{tabular}
 \end{table}
 
@@ -1375,7 +1389,7 @@ $\geq 3$ voyages & Modèle XGBoost & \texttt{\{mode: "model", recommendations: [
 
 \subsection{Architecture de l'API}
 
-\imgplaceholder{Insérer diagramme de l'architecture API}{Architecture de l'API FastAPI}
+\img[0.97\textwidth]{archi_api.png}{Architecture de l'API FastAPI}
 
 L'API est construite avec \textbf{FastAPI 0.115} et \textbf{Pydantic v2}.
 Elle utilise le mécanisme \texttt{lifespan} pour charger le modèle une seule
@@ -1407,8 +1421,8 @@ async def lifespan(app: FastAPI):
 \hline
 GET & \texttt{/health} & Healthcheck --- retourne \texttt{\{status: "ok"\}} \\
 \hline
-POST & \texttt{/recommend} & Recommandation de liaisons.
-    Corps~: \texttt{\{code\_client, k, include\_schedule, variant\}} \\
+POST & \texttt{/recommend?variant=a\textbar b} & Recommandation de liaisons.
+    Corps~: \texttt{\{code\_client, k, include\_schedule\}}. Paramètre \texttt{variant} en query string. \\
 \hline
 POST & \texttt{/feedback} & Log d'un clic utilisateur.
     Corps~: \texttt{\{request\_id, liaison\_id, clicked\}} \\
@@ -1420,11 +1434,16 @@ POST & \texttt{/feedback} & Log d'un clic utilisateur.
 
 \begin{lstlisting}[style=json, caption={Exemple de r\'eponse de l'endpoint /recommend}]
 {
-  "mode"          : "model",
-  "variant"       : "a",
-  "request_id"    : "550e8400-e29b-41d4-a716-446655440000",
-  "recommendations": ["1011", "2045", "3076"],
-  "schedules"     : {
+  "mode"            : "model",
+  "variant"         : "a",
+  "request_id"      : "550e8400-e29b-41d4-a716-446655440000",
+  "recommendations" : ["1011", "2045", "3076"],
+  "labels"          : {
+    "1011": "CASA VOYAGEURS -> RABAT AGDAL",
+    "2045": "KENITRA -> CASA PORT",
+    "3076": "RABAT VILLE -> AIN SEBAA"
+  },
+  "schedules"       : {
     "1011": [{"depart": "07:00", "arrive": "09:30", "train": "1234"}]
   }
 }
@@ -1451,38 +1470,42 @@ les événements de log (conformité Loi 09-08).
 
 \section{Suite de Tests Automatisés}
 
-\imgplaceholder{Insérer capture du rapport pytest}{Résultats de la suite de tests pytest}
+\img[0.97\textwidth]{pytest_output.png}{Résultats de la suite de tests pytest --- 115/115 PASSED}
 
 \begin{table}[H]
 \centering
-\caption{Répartition de la suite de 100 tests}
+\caption{Répartition de la suite de 115 tests}
 \begin{tabular}{|l|r|}
 \hline
 \textbf{Module testé} & \textbf{Tests} \\
 \hline
-\texttt{test\_candidates.py} & 11 \\
+\texttt{test\_candidates.py}      & 11 \\
 \hline
-\texttt{test\_features.py}   & 12 \\
+\texttt{test\_features.py}        & 12 \\
 \hline
-\texttt{test\_metrics.py}    & 4  \\
+\texttt{test\_metrics.py}         & 4  \\
 \hline
-\texttt{test\_recommender.py}& 5  \\
+\texttt{test\_recommender.py}     & 9  \\
 \hline
-\texttt{test\_training.py}   & 2  \\
+\texttt{test\_training.py}        & 2  \\
 \hline
-\texttt{test\_cleaning.py}   & 5  \\
+\texttt{test\_cleaning.py}        & 5  \\
 \hline
-\texttt{test\_api.py}        & 15 \\
+\texttt{test\_api.py}             & 18 \\
 \hline
-\texttt{test\_schedule.py}   & 14 \\
+\texttt{test\_schedule.py}        & 14 \\
 \hline
-\texttt{test\_cold\_start.py}& 9  \\
+\texttt{test\_cold\_start.py}     & 9  \\
 \hline
-\texttt{test\_onnx.py}       & 7  \\
+\texttt{test\_onnx.py}            & 7  \\
 \hline
-\texttt{test\_retrain.py}    & 16 \\
+\texttt{test\_retrain.py}         & 17 \\
 \hline
-\textbf{Total} & \textbf{100} \\
+\texttt{test\_popularity.py}      & 3  \\
+\hline
+\texttt{test\_health\_enriched.py}& 4  \\
+\hline
+\textbf{Total} & \textbf{115} \\
 \hline
 \end{tabular}
 \end{table}
@@ -1533,6 +1556,8 @@ L'amélioration monotone avec la profondeur d'historique valide que le
 modèle exploite effectivement l'historique individuel (et non des
 corrélations spurieuses).
 
+\img[0.95\textwidth]{metrics_segment.png}{Métriques par segment d'utilisateurs --- amélioration monotone avec la profondeur d'historique}
+
 % ================================================================
 % CHAPITRE 5 : PHASE 3 --- PRODUCTION ET OPTIMISATION
 % ================================================================
@@ -1543,7 +1568,7 @@ corrélations spurieuses).
 
 \subsection{Profiling Initial}
 
-\imgplaceholder{Insérer graphique de profiling de latence par étape}{Décomposition de la latence par étape du pipeline}
+\img[0.97\textwidth]{latence_profiling.png}{Décomposition de la latence par étape du pipeline}
 
 Un benchmarking précis de chaque étape du pipeline d'inférence a révélé
 la répartition suivante (médiane sur 100 appels)~:
@@ -1598,7 +1623,7 @@ Gain & --- & \textbf{4{,}2×} \\
 
 \subsection{FastPreprocessor~: Encodeur Vectorisé}
 
-\imgplaceholder{Insérer graphique de comparaison FastPreprocessor vs sklearn}{Comparaison de latence~: FastPreprocessor vs ColumnTransformer.transform}
+\img[0.97\textwidth]{fastpreprocessor_vs_sklearn.png}{Comparaison de latence~: FastPreprocessor vs ColumnTransformer.transform}
 
 La deuxième optimisation a été le remplacement de
 \texttt{ColumnTransformer.transform} (qui effectue des copies de DataFrame
@@ -1662,7 +1687,7 @@ réseau redondants.
 
 \subsection{Architecture du Pipeline}
 
-\imgplaceholder{Insérer diagramme du pipeline de réentraînement}{Pipeline de réentraînement automatique avec guardrail}
+\img[0.97\textwidth]{retrain_pipeline.png}{Pipeline de réentraînement automatique avec guardrail}
 
 Le script \texttt{scripts/07\_retrain.py} exécute le pipeline complet~:
 
@@ -1684,7 +1709,7 @@ Le script \texttt{scripts/07\_retrain.py} exécute le pipeline complet~:
 
 \subsection{Planification Windows (Task Scheduler)}
 
-\imgplaceholder{Insérer capture Windows Task Scheduler}{Tâche planifiée ONCF DailyRetrain dans le planificateur Windows}
+\img[0.97\textwidth]{task_scheduler.png}{Tâche planifiée ONCF DailyRetrain dans le planificateur Windows}
 
 Le fichier \texttt{tasks/oncf\_daily\_retrain.xml} définit une tâche
 quotidienne à 2h00 du matin. Paramètres clés~:
@@ -1706,7 +1731,7 @@ adaptée avec les identifiants et chemins de la machine cible avant déploiement
 
 \subsection{Architecture}
 
-\imgplaceholder{Insérer diagramme du framework A/B testing}{Architecture du framework A/B testing}
+\img[0.97\textwidth]{ab_testing.png}{Architecture du framework A/B testing}
 
 Le framework A/B testing permet de comparer deux modèles en production~:
 \begin{itemize}
@@ -1771,7 +1796,7 @@ remplacé par deux fichiers CSV fournis par l'ONCF~:
     côté serveur).
 \end{itemize}
 
-Pour absorber cette migration sans casser la suite de 113 tests existants,
+Pour absorber cette migration sans casser la suite de 115 tests existants,
 une \textbf{couche d'adaptation des sources de données} a été introduite
 (\texttt{src/rec\_oncf/data\_source.py}). Elle expose deux protocoles
 abstraits, \texttt{UserHistorySource} et \texttt{ScheduleSource}, avec une
@@ -1814,7 +1839,7 @@ ont été retirés.
 \midrule
 API REST Zero-Click (inférence ONNX) & Terminé \\
 Pipeline de ré-entraînement (guardrail KPI) & Terminé \\
-Suite de tests (113 tests) & Terminé \\
+Suite de tests (115 tests) & Terminé \\
 Migration vers CSV ONCF (data source pluggable) & Conçu, en attente CSV ONCF \\
 Guide de déploiement (Docker + venv) & Terminé, inclus en annexe \\
 Benchmark industriel enrichi & Terminé \\
@@ -1846,7 +1871,7 @@ Visual Studio Code & 1.9x & Éditeur principal \\
 \end{tabularx}
 \end{table}
 
-\imgplaceholder{Insérer captures IDE et outils de développement}{Environnement de développement~: VS Code et structure du projet}
+% [screenshot VS Code -- a inserer manuellement depuis l'environnement local]
 
 \section{Bibliothèques Machine Learning et Données}
 
@@ -1920,7 +1945,7 @@ ruff & Linting Python rapide \\
 \end{tabularx}
 \end{table}
 
-\imgplaceholder{Insérer capture du pipeline GitHub Actions CI}{Pipeline CI/CD~: exécution automatique des 100 tests}
+\img[0.97\textwidth]{github_actions_ci.png}{Pipeline CI/CD~: exécution automatique des 115 tests}
 
 \section{Structure du Projet}
 
@@ -1980,7 +2005,7 @@ Latence API (p50) & $< 50$~ms & \textbf{13{,}74 ms} \textcolor{oncfOrange}{$\che
 \hline
 Latence API (p99) & $< 100$~ms & \textbf{16{,}89 ms} \textcolor{oncfOrange}{$\checkmark$} \\
 \hline
-Tests automatisés & $\geq 80$ & \textbf{100 tests} \textcolor{oncfOrange}{$\checkmark$} \\
+Tests automatisés & $\geq 80$ & \textbf{115 tests} \textcolor{oncfOrange}{$\checkmark$} \\
 \hline
 Conformité Loi 09-08 & Totale & \textbf{Vérifiée par tests} \textcolor{oncfOrange}{$\checkmark$} \\
 \hline
@@ -2024,6 +2049,60 @@ Trois difficultés techniques majeures ont été surmontées pendant le projet~:
 \item Mettre en place un tableau de bord de suivi des métriques CTR (Grafana
     ou Power BI) sur la base des logs structurés.
 \end{itemize}
+
+\subsection{Moyen Terme~: Fenêtre Glissante et Scalabilité du Réentraînement}
+
+Le pipeline actuel réentraîne le modèle sur l'\textbf{intégralité de l'historique}
+depuis 2019 ($\sim$393\,000 lignes, $\sim$43~min sur CPU). À mesure que de nouvelles
+réservations s'accumulent, ce temps croît \textbf{linéairement} --- un risque
+opérationnel si le réentraînement doit tenir dans une fenêtre de 2 heures.
+
+La solution standard est la \textbf{fenêtre glissante (rolling window)}~: on
+n'entraîne que sur les $N$ derniers mois, maintenant ainsi une taille de
+dataset constante quel que soit le volume historique total.
+
+\begin{table}[H]
+\centering
+\caption{Impact estimé de la fenêtre glissante sur la durée d'entraînement}
+\label{tab:rolling-window}
+\begin{tabular}{|l|r|r|}
+\hline
+\textbf{Fenêtre} & \textbf{Lignes (train, estim.)} & \textbf{Durée (estim.)} \\
+\hline
+Historique complet (actuel) & 393\,000 & $\sim$43 min \\
+\hline
+36 mois & $\sim$250\,000 & $\sim$27 min \\
+\hline
+24 mois & $\sim$160\,000 & $\sim$18 min \\
+\hline
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Avantages complémentaires~:}
+\begin{itemize}
+\item Les données pré-Covid (2019--2021) sont probablement moins représentatives
+    des comportements actuels~; les exclure peut améliorer la pertinence du modèle.
+\item La consommation RAM reste stable et prévisible sur la machine ONCF.
+\end{itemize}
+
+\noindent\textbf{Mise en œuvre~:} le paramètre \texttt{--window-months} a été
+ajouté au script \texttt{07\_retrain.py} lors du pivot post-réunion. Un
+réentraînement sur 24 mois se lance via~:
+
+\begin{lstlisting}[style=bash]
+.venv\Scripts\python scripts/07_retrain.py --window-months 24
+\end{lstlisting}
+
+Sans ce paramètre, le comportement actuel (historique complet) est conservé,
+garantissant la rétro-compatibilité totale avec les 115~tests existants.
+
+Si la volumétrie continue de croître au-delà de ce que la fenêtre glissante
+peut absorber en une nuit, la voie d'optimisation complémentaire est le
+\textbf{warm-start XGBoost}~: plutôt que d'entraîner 200 arbres depuis zéro,
+on ajoute 20 nouveaux arbres sur les données récentes en repartant du modèle
+existant (paramètre \texttt{xgb\_model}). Ce gain d'un facteur $\sim$10 se
+fait au prix d'une moindre capacité à «~désapprendre~» les anciennes
+distributions --- c'est un compromis à évaluer en production.
 
 \subsection{Moyen Terme~: Enrichissement du Modèle}
 
@@ -2085,10 +2164,10 @@ entièrement~:
     invariant du code (\texttt{CodeClient} jamais en feature ni en log,
     \texttt{request\_id} pour la corrélation anonyme).
 \item \textbf{Méthodologie de production}~: tests automatisés (100 tests),
-    intégration continue, pipeline de réentraînement avec guardrail,
-    framework A/B testing --- l'écart entre un \textit{notebook qui marche}
-    et un \textit{système déployable} se mesure en milliers de lignes de
-    code de support.
+    intégration continue (114~tests automatisés), pipeline de réentraînement
+    avec guardrail, framework A/B testing --- l'écart entre un
+    \textit{notebook qui marche} et un \textit{système déployable} se mesure
+    en milliers de lignes de code de support.
 \end{itemize}
 
 \subsection*{Ouverture}
@@ -2108,36 +2187,81 @@ pour l'écosystème SI de l'ONCF.
 \chapter*{Bibliographie}
 \addcontentsline{toc}{chapter}{Bibliographie}
 
-\begin{enumerate}[label={[\arabic*]}]
+\begin{thebibliography}{99}
 
-\item Chen, T., \& Guestrin, C. (2016). \textit{XGBoost: A Scalable Tree
-    Boosting System}. Proceedings of the 22nd ACM SIGKDD International
-    Conference on Knowledge Discovery and Data Mining, 785--794.
+% ── Algorithmes et modèles ────────────────────────────────────────
+\bibitem{xgboost-paper}
+    Chen, T.\ \& Guestrin, C.\ (2016). \textit{XGBoost: A Scalable Tree
+    Boosting System}. Proceedings of the 22\textsuperscript{nd} ACM SIGKDD,
+    pp.\ 785--794.
 
-\item Grinsztajn, L., Oyallon, E., \& Varoquaux, G. (2022). \textit{Why
+\bibitem{tabular-trees}
+    Grinsztajn, L., Oyallon, E.\ \& Varoquaux, G.\ (2022). \textit{Why
     tree-based models still outperform deep learning on tabular data}.
     Advances in Neural Information Processing Systems (NeurIPS) 35.
 
-\item Shwartz-Ziv, R., \& Armon, A. (2021). \textit{Tabular data: Deep
-    learning is not all you need}. arXiv preprint arXiv:2106.03253.
+\bibitem{tabular-gbdt}
+    Shwartz-Ziv, R.\ \& Armon, A.\ (2022). \textit{Tabular Data: Deep
+    Learning is Not All You Need}. \textit{Information Fusion}.
 
-\item Yi, X. et al. (2019). \textit{Sampling-Bias-Corrected Neural Modeling
+\bibitem{yi-recsys}
+    Yi, X.\ et al.\ (2019). \textit{Sampling-Bias-Corrected Neural Modeling
     for Large Corpus Item Recommendations}. Proceedings of RecSys 2019.
 
-\item Documentation officielle FastAPI. \url{https://fastapi.tiangolo.com/}
+% ── Benchmark industriel ──────────────────────────────────────────
+\bibitem{sncf-connect}
+    SNCF Connect \& Tech, \textit{Rapport d'Innovation 2024},
+    publications publiques SNCF Connect Tech (2024).
+    \url{https://www.groupe-sncf.com/en/innovation/emerging-technologies/generative-ia}
 
-\item Documentation officielle XGBoost. \url{https://xgboost.readthedocs.io/}
+\bibitem{db-navigator}
+    Deutsche Bahn, "DB Navigator --- Personalization features",
+    DB Systel Tech Blog \& documentation officielle DB Navigator.
+    \url{https://int.bahn.de/en/booking-information/db-navigator}
 
-\item Documentation ONNX Runtime. \url{https://onnxruntime.ai/docs/}
+\bibitem{michelangelo}
+    Hermann, J.\ et al., "Meet Michelangelo: Uber's Machine Learning Platform",
+    Uber Engineering Blog, 2017.
+    \url{https://www.uber.com/blog/michelangelo-machine-learning-platform/}
 
-\item Loi n° 09-08 relative à la protection des personnes physiques à
-    l'égard du traitement des données à caractère personnel.
-    Bulletin Officiel du Maroc, n° 5711, 2009.
+\bibitem{spotify-ml}
+    Spotify Engineering, "How Spotify Uses Machine Learning Models",
+    Spotify Engineering Blog, 2019.
+    \url{https://engineering.atspotify.com/}
 
-\item Office National des Chemins de Fer (ONCF). Rapport d'activité annuel.
+\bibitem{booking-ml}
+    Bernardi, L.\ et al., "150 Successful Machine Learning Models:
+    6 Lessons Learned at Booking.com", \textit{KDD 2019}.
+    \url{https://www.kdd.org/kdd2019/accepted-papers/view/150-successful-machine-learning-models-6-lessons-learned-at-booking.com}
+
+\bibitem{amazon-latency}
+    Linden, G., "Make Data Useful", Amazon internal talk, 2006.
+    (cité dans~: \url{https://www.infoworld.com/article/4134015/the-200ms-latency-a-developers-guide-to-real-time-personalization.html})
+
+% ── Documentation technique ───────────────────────────────────────
+\bibitem{fastapi-docs}
+    Ramírez, S., Documentation officielle FastAPI.
+    \url{https://fastapi.tiangolo.com/}
+
+\bibitem{xgboost-docs}
+    Chen, T.\ et al., Documentation officielle XGBoost.
+    \url{https://xgboost.readthedocs.io/}
+
+\bibitem{onnx}
+    ONNX Runtime Documentation, Microsoft Open Source.
+    \url{https://onnxruntime.ai/docs/}
+
+% ── Cadre réglementaire ───────────────────────────────────────────
+\bibitem{loi09-08}
+    Loi n\textsuperscript{o}~09-08 relative à la protection des personnes
+    physiques à l'égard du traitement des données à caractère personnel.
+    \textit{Bulletin Officiel du Maroc}, n\textsuperscript{o}~5711, 2009.
+
+\bibitem{oncf-rapport}
+    Office National des Chemins de Fer (ONCF). Rapport d'activité annuel.
     \url{https://www.oncf.ma/}
 
-\end{enumerate}
+\end{thebibliography}
 
 % ─────────────────────── ANNEXES ────────────────────────────────
 \newpage
@@ -2184,26 +2308,24 @@ python -m venv .venv
 .venv\Scripts\python scripts/06_export_onnx.py
 
 # 4. Tests
-.venv\Scripts\python -m pytest tests/ -v            # 100 tests
+.venv\Scripts\python -m pytest tests/ -v            # 115 tests
 
 # 5. API
 .venv\Scripts\python -m uvicorn apps.api.main:app --reload
 \end{lstlisting}
 
-% ────────────────────────────
-
-─────────────────────────────────────
+% ─────────────────────────────────────────────────────────────────
 \chapter{Schéma de l'API}
 
 \section{Endpoint \texttt{POST /recommend}}
 
 \begin{lstlisting}[style=json, caption={Sch\'ema de requ\^ete /recommend}]
-// Request
+// Request  (POST /recommend?variant=a)
+//   variant est un query param, pas dans le body
 {
-  "code_client"      : "12345",       // Identifiant client
-  "k"                : 3,             // Nombre de recommandations (1-3)
-  "include_schedule" : false,         // Enrich with schedule
-  "variant"          : "a"            // Variant A/B ("a" ou "b")
+  "code_client"      : "12345",   // Identifiant client
+  "k"                : 3,         // Nombre de recommandations (1-3)
+  "include_schedule" : false      // Enrichir avec les horaires
 }
 
 // Response
@@ -2212,7 +2334,10 @@ python -m venv .venv
   "variant"         : "a",
   "request_id"      : "uuid4-...",
   "recommendations" : ["1011", "2045", "3076"],
-  "schedules"       : { ... }        // optionnel
+  "labels"          : {
+    "1011": "CASA VOYAGEURS -> RABAT AGDAL"
+  },
+  "schedules"       : { ... }     // optionnel (si include_schedule=true)
 }
 \end{lstlisting}
 
@@ -2265,78 +2390,347 @@ def recommend(self, code_client: str, k: int = 1) -> dict:
     return {"mode": "model", "recommendations": recs}
 \end{lstlisting}
 
-% ─────────────────────────────────────────────────────────────────
-\begin{thebibliography}{99}
-
-\bibitem{sncf-connect} SNCF Connect \& Tech, \textit{Rapport d'Innovation 2024},
-    publications publiques SNCF Connect Tech (2024).
-    \url{https://www.groupe-sncf.com/en/innovation/emerging-technologies/generative-ia}
-
-\bibitem{db-navigator} Deutsche Bahn, "DB Navigator --- Personalization features",
-    DB Systel Tech Blog \& documentation officielle DB Navigator.
-    \url{https://int.bahn.de/en/booking-information/db-navigator}
-
-\bibitem{michelangelo} Hermann, J.\ et al., "Meet Michelangelo: Uber's Machine
-    Learning Platform", Uber Engineering Blog, 2017.
-    \url{https://www.uber.com/blog/michelangelo-machine-learning-platform/}
-
-\bibitem{spotify-ml} Spotify Engineering, "How Spotify Uses Machine Learning Models",
-    Analytics Steps / Spotify Engineering blog, 2019.
-    \url{https://www.analyticssteps.com/blogs/how-spotify-uses-machine-learning-models}
-
-\bibitem{onnx} ONNX Runtime Documentation, Microsoft Open Source.
-    \url{https://onnxruntime.ai/docs/}
-
-\bibitem{booking-ml} Bernardi, L.\ et al., "150 Successful Machine Learning Models:
-    6 Lessons Learned at Booking.com", \textit{KDD 2019}.
-    \url{https://www.kdd.org/kdd2019/accepted-papers/view/150-successful-machine-learning-models-6-lessons-learned-at-booking.com}
-
-\bibitem{amazon-latency} Linden, G., "Make Data Useful", Amazon internal talk, 2006.
-    (cité dans~: \url{https://www.infoworld.com/article/4134015/the-200ms-latency-a-developers-guide-to-real-time-personalization.html})
-
-\bibitem{tabular-gbdt} Shwartz-Ziv, R.\ \& Armon, A., "Tabular Data: Deep
-    Learning is Not All You Need", \textit{Information Fusion}, 2022.
-
-\end{thebibliography}
-
-\appendix
-
-\chapter{Guide de Déploiement (à l'attention de l'équipe SI ONCF)}
+\chapter{Guide de Déploiement}
 \label{ann:guide-deploiement}
 
-Ce guide, livré séparément en tant que PDF autonome
-(\texttt{docs/guide\_deploiement.pdf}), est intégré ci-après en annexe
-à des fins d'archivage. Il décrit la procédure complète de déploiement
-de l'API \textit{Zero-Click Recommender} sur l'infrastructure ONCF,
-avec une voie nominale par Docker et un fallback par environnement
-virtuel Python.
+{\large\itshape À l'attention de l'équipe SI~ONCF --- Omar Chekroun, Mai~2026}
 
-% Décommenter la ligne ci-dessous après compilation de docs/guide_deploiement.pdf :
-% \includepdf[pages=-, scale=0.85, pagecommand={\thispagestyle{fancy}}]{docs/guide_deploiement.pdf}
+\bigskip
+
+Ce guide explique comment déployer le service de recommandation
+\textit{Zero-Click Search} sur l'infrastructure ONCF. Deux voies sont
+documentées~: \textbf{Docker} (recommandée) et \textbf{Python venv}
+(fallback si Docker n'est pas disponible).
+
+% ─────────────────────────────────────────────────────────────────
+\section{Pré-requis}
+
+\subsection{Hardware minimal}
+
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{Ressource} & \textbf{Recommandation} \\
+\midrule
+CPU & 4 cœurs minimum (8 recommandés pour trafic $>$ 100 req/s) \\
+RAM & 8 Go minimum (modèle XGBoost 281 Mo + lookup historique $\sim$250 Mo) \\
+Disque & 5 Go pour les artefacts modèles, logs et données traitées \\
+Réseau & accès sortant uniquement si scraping \texttt{oncf.ma} activé \\
+GPU & non requis (inférence sur CPU via ONNX Runtime) \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Système d'exploitation}
+
+Le service tourne sur~:
+\begin{itemize}
+\item \textbf{Linux} (Ubuntu 22.04 LTS, Debian 12, RHEL 9) --- voie nominale
+\item \textbf{Windows Server 2019/2022} --- supporté via Docker Desktop ou WSL2
+\end{itemize}
+
+\subsection{Logiciels requis}
+
+\textbf{Voie Docker (recommandée)~:}
+\begin{itemize}
+\item Docker Engine $\geq$ 24.0
+\item Docker Compose v2 (\texttt{docker compose}, plugin intégré)
+\end{itemize}
+
+\textbf{Voie venv (fallback)~:}
+\begin{itemize}
+\item Python 3.12.x (3.12.10 testé)
+\item \texttt{pip} $\geq$ 23.0
+\item Optionnellement Redis 7.x pour le cache des horaires
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────
+\section{Voie Nominale~: Déploiement par Docker}
+
+\subsection{Récupération du code}
+
+\begin{lstlisting}[style=bash]
+git clone <url-du-repo-ONCF> oncf-recommender
+cd oncf-recommender
+\end{lstlisting}
+
+\subsection{Configuration des variables d'environnement}
+
+\begin{lstlisting}[style=bash]
+cp deploy/.env.example deploy/.env
+nano deploy/.env    # editer les valeurs
+\end{lstlisting}
+
+\begin{table}[H]
+\centering
+\caption{Variables d'environnement du service}
+\begin{tabularx}{\linewidth}{|l|X|}
+\hline
+\textbf{Variable} & \textbf{Rôle} \\
+\hline
+\texttt{LOG\_LEVEL} & Niveau de log (DEBUG, INFO, WARNING, ERROR) \\
+\hline
+\texttt{MODEL\_DIR} & Chemin vers les artefacts modèles (défaut~: \texttt{/app/models}) \\
+\hline
+\texttt{DATA\_DIR} & Chemin vers les datasets traités (défaut~: \texttt{/app/data/processed}) \\
+\hline
+\texttt{REDIS\_URL} & URL Redis pour le cache horaires (ex.\ \texttt{redis://redis:6379/0}) \\
+\hline
+\texttt{API\_PORT} & Port d'écoute sur l'hôte (défaut~: 8000) \\
+\hline
+\texttt{API\_WORKERS} & Nombre de workers uvicorn (1 suffit pour la charge ONCF typique) \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Placement des artefacts modèles}
+
+Les modèles ne sont \textbf{pas} embarqués dans l'image Docker (pour
+faciliter les promotions sans rebuild). Ils sont montés en volume depuis
+l'hôte~:
+
+\begin{lstlisting}[style=bash]
+ls models/
+# xgb_ranker.json           (281 Mo)
+# xgb_ranker.onnx           (148 Mo)
+# label_encoder.joblib      (8.5 Ko)
+# cold_start.joblib         (31 Ko)
+# popularity.joblib         (~120 Ko)
+# xgb_ranker.meta.json      (~2 Ko)
+\end{lstlisting}
+
+\subsection{Build et démarrage}
+
+\begin{lstlisting}[style=bash]
+cd deploy
+docker compose build
+docker compose up -d
+\end{lstlisting}
+
+Vérification~:
+\begin{lstlisting}[style=bash]
+docker compose ps
+# api   ... healthy
+# redis ... healthy
+
+curl http://localhost:8000/health
+# {"status":"ok","model_loaded":true,"n_users_history":69449}
+\end{lstlisting}
+
+\subsection{Test fonctionnel}
+
+\begin{lstlisting}[style=bash]
+curl -X POST http://localhost:8000/recommend \
+     -H "Content-Type: application/json" \
+     -d '{"code_client":"12345","k":3}'
+\end{lstlisting}
+
+\subsection{Arrêt et logs}
+
+\begin{lstlisting}[style=bash]
+docker compose down              # arret propre
+docker compose logs -f api       # suivi en temps reel
+docker compose logs --tail=200   # 200 dernieres lignes
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────
+\section{Voie Alternative~: Python venv}
+
+\subsection{Création de l'environnement}
+
+\textbf{Linux~:}
+\begin{lstlisting}[style=bash]
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install fastapi==0.115.* "uvicorn[standard]==0.30.*" \
+    "pydantic>=2.0,<3.0" "pandas>=3.0,<4.0" \
+    xgboost==3.2.* "scikit-learn>=1.4,<2.0" \
+    "onnxruntime>=1.18,<2.0" "joblib>=1.4,<2.0" \
+    "requests>=2.31,<3.0" "beautifulsoup4>=4.12,<5.0" \
+    "loguru>=0.7,<1.0" "redis>=5.0,<6.0"
+\end{lstlisting}
+
+\textbf{Windows~:}
+\begin{lstlisting}[style=bash]
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install fastapi uvicorn pydantic pandas xgboost ^
+    scikit-learn onnxruntime joblib requests beautifulsoup4 loguru redis
+\end{lstlisting}
+
+\subsection{Lancement}
+
+\begin{lstlisting}[style=bash]
+# Linux
+uvicorn apps.api.main:app --host 0.0.0.0 --port 8000
+
+# Windows
+.venv\Scripts\python.exe -m uvicorn apps.api.main:app --host 0.0.0.0 --port 8000
+\end{lstlisting}
+
+\subsection{Lancement comme service système (Linux / systemd)}
+
+\begin{lstlisting}[style=bash]
+# /etc/systemd/system/oncf-recommender.service
+[Unit]
+Description=ONCF Recommender API
+After=network.target
+
+[Service]
+Type=simple
+User=oncf
+WorkingDirectory=/opt/oncf-recommender
+ExecStart=/opt/oncf-recommender/.venv/bin/uvicorn \
+    apps.api.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+\end{lstlisting}
+
+\begin{lstlisting}[style=bash]
+sudo systemctl daemon-reload
+sudo systemctl enable --now oncf-recommender
+sudo systemctl status oncf-recommender
+\end{lstlisting}
+
+\begin{tcolorbox}[infoBox, title=Différences avec Docker]
+La voie venv ne fournit pas l'isolation réseau, le redémarrage automatique
+sur crash applicatif, ni le healthcheck standard. Le monitoring s'appuie
+alors sur \texttt{systemctl status} (Linux) ou le journal des services Windows.
+\end{tcolorbox}
+
+% ─────────────────────────────────────────────────────────────────
+\section{Observabilité}
+
+\subsection{Logs structurés}
+
+L'API écrit des logs JSON dans \texttt{logs/api.log} (rotation~:
+10~Mo/fichier, rétention 7~jours). Champs journalisés à chaque appel
+\texttt{/recommend}~: \texttt{event}, \texttt{variant}, \texttt{request\_id},
+\texttt{mode}, \texttt{k}, \texttt{latency\_ms}, \texttt{n\_recommendations}.
+
+\begin{tcolorbox}[warnBox, title=Conformité Loi 09-08]
+Le \texttt{code\_client} n'apparaît \textbf{jamais} dans les logs ---
+uniquement l'UUID de requête. Vérifier en production~:
+\texttt{grep code\_client logs/api.log} doit ne rien retourner.
+\end{tcolorbox}
+
+\subsection{Healthcheck enrichi}
+
+\begin{table}[H]
+\centering
+\caption{Champs retournés par \texttt{GET /health}}
+\begin{tabularx}{\linewidth}{|l|X|}
+\hline
+\textbf{Champ} & \textbf{Signification} \\
+\hline
+\texttt{status} & \texttt{"ok"} si le modèle est chargé, \texttt{"degraded"} sinon \\
+\hline
+\texttt{model\_loaded} & Booléen --- session ONNX disponible \\
+\hline
+\texttt{popularity\_loaded} & Booléen --- liste de fallback chargée \\
+\hline
+\texttt{n\_users\_history} & Taille du lookup historique en mémoire (69\,449 en prod) \\
+\hline
+\end{tabularx}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────
+\section{Ré-entraînement Périodique}
+
+Le script \texttt{scripts/07\_retrain.py} inclut un \textbf{garde-fou KPI}~:
+un nouveau modèle n'est promu en production que si \texttt{HR@1} n'a pas
+baissé de plus de 5 points de pourcentage.
+
+\subsection{Lancement manuel}
+
+\begin{lstlisting}[style=bash]
+# Evaluation seule (sans promotion)
+.venv/bin/python scripts/07_retrain.py --dry-run
+
+# Evaluation + promotion si KPI OK
+.venv/bin/python scripts/07_retrain.py
+
+# Avec fenetre glissante de 24 mois (recommande en production)
+.venv/bin/python scripts/07_retrain.py --window-months 24
+\end{lstlisting}
+
+\subsection{Planification automatique}
+
+\textbf{Linux (cron)~:}
+\begin{lstlisting}[style=bash]
+0 2 * * * /opt/oncf-recommender/.venv/bin/python \
+  /opt/oncf-recommender/scripts/07_retrain.py \
+  >> /opt/oncf-recommender/logs/retrain.log 2>&1
+\end{lstlisting}
+
+\textbf{Windows~:} utiliser le fichier \texttt{tasks/oncf\_daily\_retrain.xml}
+fourni dans le dépôt~:
+\begin{lstlisting}[style=bash]
+schtasks /Create /XML tasks\oncf_daily_retrain.xml /TN "ONCF\DailyRetrain" /F
+\end{lstlisting}
+
+% ─────────────────────────────────────────────────────────────────
+\section{Troubleshooting}
+
+\textbf{1. \texttt{RuntimeError: Model not found}}
+
+Cause~: les fichiers \texttt{xgb\_ranker.json}, \texttt{label\_encoder.joblib}
+ou \texttt{xgb\_ranker.onnx} sont absents du volume monté.
+
+Solution~: vérifier la présence des fichiers et leur permission de lecture
+pour l'UID 1000 (utilisateur \texttt{oncf} dans le conteneur).
+
+\medskip
+\textbf{2. \texttt{Redis unavailable --- using in-memory schedule cache}}
+
+Cause~: Redis n'est pas joignable. Non bloquant --- le fallback en mémoire
+fonctionne. Pour restaurer Redis~: \texttt{docker compose ps redis} puis
+\texttt{redis-cli -h redis ping}.
+
+\medskip
+\textbf{3. Latence p99 anormalement élevée}
+
+Cause possible~: un seul worker uvicorn saturé. Solution~: augmenter
+\texttt{API\_WORKERS} dans \texttt{.env} (chaque worker charge un modèle
+en mémoire, prévoir +1~Go RAM par worker supplémentaire).
+
+\medskip
+\textbf{4. \texttt{ImportError: redis}}
+
+Solution~: \texttt{pip install redis} (optionnel --- le service fonctionne
+sans Redis, avec le fallback mémoire).
+
+% ─────────────────────────────────────────────────────────────────
+\section{Rollback}
+
+\subsection{Rollback modèle}
+
+Le pipeline de ré-entraînement sauvegarde toujours un challenger avant de
+promouvoir~:
+
+\begin{lstlisting}[style=bash]
+ls models/
+#  xgb_ranker.json              <-- prod actuel
+#  xgb_ranker_challenger.json   <-- dernier challenger evalue
+\end{lstlisting}
+
+Pour annuler la dernière promotion~:
+\begin{lstlisting}[style=bash]
+cd models/
+mv xgb_ranker.json xgb_ranker_bad.json
+cp xgb_ranker_challenger.json xgb_ranker.json
+# idem pour label_encoder et .onnx
+docker compose restart api
+\end{lstlisting}
+
+\subsection{Rollback code applicatif}
+
+\begin{lstlisting}[style=bash]
+git log --oneline -10
+git checkout <sha-stable>
+cd deploy && docker compose build api && docker compose up -d api
+\end{lstlisting}
 
 \end{document}
-
-
-
-
-
-
-
-
-\begin{tabular}{|l|l|}
-\hline
-\textbf{Réalisé par}        & Omar \textsc{Chekroun} \\
-\hline
-\textbf{Établissement}      & UM5 --- Faculté des Sciences de Rabat \\
-\hline
-\textbf{Filière}            & Informatique, Gouvernance et Transformation Digitaleqpp \\
-\hline
-\textbf{Organisme d'accueil}& ONCF --- Direction des Systèmes d'Information et Digital \\
-\hline
-\textbf{Durée du stage}        & 3 Mois \\
-\hline
-\textbf{Email}              & omarchekroun39@gmail.com \\
-\hline
-\textbf{Année universitaire}& 2025 -- 2026 \\
-\hline
-\end{tabular}
