@@ -1,11 +1,10 @@
 """Measure end-to-end API latency via TestClient (no network overhead)."""
 from __future__ import annotations
-import sys, time
+import sys
+import time
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1] / "src"))
 
-import numpy as np
-import pandas as pd
 from fastapi.testclient import TestClient
 
 from apps.api.main import app
