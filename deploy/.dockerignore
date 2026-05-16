@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Venv
+.venv/
+venv/
+env/
+
+# Data & models (mounted as volume, not baked in)
+data/
+models/
+logs/
+reports/
+
+# Git
+.git/
+.gitignore
+
+# Docs
+docs/
+*.tex
+*.pdf
+*.md
+!CLAUDE.md
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests (not needed in runtime image)
+tests/
+
+# Formatex artifacts
+.formatex/
