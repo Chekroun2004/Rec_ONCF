@@ -11,11 +11,11 @@
 | **Étudiant** | Omar Chekroun |
 | **Formation** | Master Informatique, Gouvernance et Transformation Digitale (IGT) — 1ère année (M1) |
 | **Établissement** | Université Mohammed V de Rabat — Faculté des Sciences de Rabat |
-| **Type de travail** | Stage de fin de première année de Master |
+| **Type de travail** | Stage PFA (Projet de Fin d'Année) — Master IGT M1 |
 | **Durée** | 3 mois — du 16 mars 2026 au 16 juin 2026 |
 | **Organisme** | ONCF — Direction des Systèmes d'Information et Digital (SI Voyageurs) |
 
-> **Règle de rédaction :** Toute rédaction (rapport, guide, commentaires) doit refléter ce contexte. Ce travail est un **stage de master M1**, pas un projet d'ingénieur ni un PFA. La filière est **Master IGT**, pas "Sciences de l'Ingénieur Informatique".
+> **Règle de rédaction :** Toute rédaction doit refléter ce contexte. Ce travail est un **stage PFA (Projet de Fin d'Année)** de master M1. Le libellé "Rapport de Projet de Fin d'Année" est correct et doit être conservé. La filière est **Master IGT**, pas "Sciences de l'Ingénieur Informatique".
 
 ---
 
