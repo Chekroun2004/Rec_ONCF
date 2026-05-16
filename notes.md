@@ -9,13 +9,22 @@
 | Champ | Valeur |
 |---|---|
 | **Étudiant** | Omar Chekroun |
-| **Formation** | Master Informatique, Gouvernance et Transformation Digitale (IGT) — 1ère année (M1) |
+| **Formation** | Master Informatique, Gouvernance et Transformation Digitale (IGOV) — 1ère année (M1) |
 | **Établissement** | Université Mohammed V de Rabat — Faculté des Sciences de Rabat |
-| **Type de travail** | Stage PFA (Projet de Fin d'Année) — Master IGT M1 |
+| **Type de travail** | Stage PFA (Projet de Fin d'Année) — Master IGOV M1 |
 | **Durée** | 3 mois — du 16 mars 2026 au 16 juin 2026 |
 | **Organisme** | ONCF — Direction des Systèmes d'Information et Digital (SI Voyageurs) |
 
-> **Règle de rédaction :** Toute rédaction doit refléter ce contexte. Ce travail est un **stage PFA (Projet de Fin d'Année)** de master M1. Le libellé "Rapport de Projet de Fin d'Année" est correct et doit être conservé. La filière est **Master IGT**, pas "Sciences de l'Ingénieur Informatique".
+> **Règle de rédaction :** Toute rédaction doit refléter ce contexte. Ce travail est un **stage PFA (Projet de Fin d'Année)** de master M1. Le libellé "Rapport de Projet de Fin d'Année" est correct et doit être conservé. La filière est **Master IGOV**, pas "Sciences de l'Ingénieur Informatique".
+
+### Règles rapport `rapport_pfa_v2.tex`
+
+- **Compilation** : Overleaf uniquement — ne pas lancer pdflatex en local
+- **Période des données** : 2018–2020
+- **Header** : gauche = `oncf.png` (hauteur 0.7cm), droite = "Système de Recommandation Proactif ONCF" — pas de nom d'auteur
+- **Jamais mentionner** : "Pivot Post-Réunion ONCF", justification CPU/GPU, manière dont on va tester
+- **Structure chapitres** : Contexte → Analyse & Conception → Technologies et Outils → Sprint 1 → Sprint 2 → Phase 3 → Conclusion
+- **Section Tests** : expliquer ce qu'on teste et pourquoi (pas juste lister les modules)
 
 ---
 
@@ -33,22 +42,46 @@
 | **Code — API REST** | ✅ Livré | FastAPI, `/recommend`, `/health`, `/schedule`, `/feedback`, A/B testing, logging JSON |
 | **Code — Déploiement** | ✅ Livré | `deploy/` : Dockerfile multi-stage, docker-compose, .env.example, .dockerignore |
 | **Code — Réentraînement** | ✅ Livré | `scripts/07_retrain.py` + `--window-months`, guardrail KPI, Task Scheduler XML |
-| **Rapport** | ✅ Livré | `rapport_pfa_v2.tex` — contexte PFA M1 IGT, guide déploiement intégré, biblio unifiée |
+| **Challenger + Promotion** | ✅ Livré | `scripts/09_train_challenger.py` + `scripts/10_promote_challenger.py` — challenger promu en prod |
+| **Rapport** | ✅ Livré | `rapport_pfa_v2.tex` — résultats A/B testing ajoutés (§ Expérience Challenger) |
 | **Figures** | ✅ Livrées | 23 PNG dans `pic/` — layouts formels, couleurs ONCF, sans chevauchement |
 | **Tests** | ✅ 115/115 | 13 modules de tests, dernière exécution : 47.83 s |
 | **Lint (ruff)** | ✅ Clean | `ruff check scripts/ src/` → 0 erreur |
-| **Contexte académique** | ✅ Ajouté | Stage PFA M1 IGT dans rapport + CLAUDE.md (16 mars–16 juin 2026) |
+| **Contexte académique** | ✅ Ajouté | Stage PFA M1 IGOV dans rapport + CLAUDE.md (16 mars–16 juin 2026) |
 | **Migration CSV** | 🔒 Deferred | En attente des vrais CSV ONCF (`users_history.csv`, `trains_schedule.csv`) |
 
-### Dernière session (2026-05-16)
+### Dernière session (2026-05-16) — A/B Testing + Promotion Challenger
 
-- **Figures régénérées** : réécriture complète de `scripts/generate_figures.py` (20 figures) + `generate_extra_figures.py` (3 figures). Layouts grille, flux directionnel G→D / haut→bas, palette ONCF, zéro chevauchement, zéro emoji.
-- **Lint ruff corrigé** : E401/E702/F401 dans `_bench_api.py`, `_profile_latency.py`, `generate_data_pdf.py`, `generate_extra_figures.py`.
-- **Contexte PFA M1 IGT ajouté** : page de garde (filière, type de travail, durée du stage), résumé, abstract, chapitre 1 intro — dans `rapport_pfa_v2.tex` et `CLAUDE.md`.
+- **Challenger entraîné** (`scripts/09_train_challenger.py`) : XGBoost max_depth=8, n_estimators=250, lr=0.06 — durée 63.6 min sur CPU.
+- **Métriques challenger** : HR@1=0.7691 (+0.63 pp), HR@3=0.9100 (+0.45 pp), MRR@3=0.8333 (+0.56 pp) vs prod. ONNX p50=20.9 ms.
+- **A/B test validé en live** : variant B produit des recommandations différentes du variant A (rang 3 diverge pour utilisateur fidèle 679 voyages).
+- **Challenger promu** (`scripts/10_promote_challenger.py`) : ancien prod archivé dans `models/archive/20260516T163128Z/`, fichiers challenger → prod.
+- **Rapport mis à jour** : nouvelle sous-section "Expérience Challenger — Résultats" dans le Chapitre 5 (§ A/B Testing) avec tableaux hyperparamètres, métriques et recommandations.
+
+### Session précédente (2026-05-16)
+
+- **Figures régénérées** : réécriture complète de `scripts/generate_figures.py` (20 figures) + `generate_extra_figures.py` (3 figures).
+- **Lint ruff corrigé** : E401/E702/F401 dans plusieurs scripts utilitaires.
+- **Contexte PFA M1 IGOV ajouté** : page de garde, résumé, abstract, chapitre 1 intro.
+
+### Session 2026-05-16 — Révisions rapport (cette session)
+
+- **Section 1.4** renommée : "Étude de l'Existant : Benchmark Industriel" → "Étude de l'Existant"
+- **Patterns Industriels** (1.4.3 + sous-sections) supprimés — "Choix d'Architecture Retenu" conservé
+- **Méthodologie** réécrite sur 3 mois (16/03–16/06/2026) avec 5 phases détaillées
+- **Table 2.3 Features** restructurée : groupée par catégorie (booktabs), note hors du `\end{table}`
+- **Période données** corrigée : 2018–2020 (était 2019–2024)
+- **Bilan nettoyage 3.2.2** complété : valeurs texte 946 155 → 491 680 lignes, 51,9% rétention
+- **Localisation** : note ajoutée — app ONCF n'accède pas à la localisation, feature inexploitable
+- **CPU/GPU** : justification supprimée partout (paragraphe, commentaire code, glossaire)
+- **Section Tests** : tableau détaillé — ce qu'on teste et pourquoi pour chaque module
+- **Pivot Post-Réunion ONCF** : section entière supprimée (contenu interne)
+- **Technologies et Outils** déplacé : maintenant ch. 3, entre Analyse & Conception et Sprint 1
+- **Header** : gauche = `oncf.png`, droite = "Système de Recommandation Proactif ONCF", nom retiré
 
 ### Prochaine action
 
-1. **Overleaf** : uploader `rapport_pfa_v2.tex` + dossier `pic/` mis à jour → recompiler (2 passes)
+1. **Overleaf** : uploader `rapport_pfa_v2.tex` + `oncf.png` → recompiler (2 passes pdfLaTeX)
 2. **Vérifier le PDF** final avant soutenance
 
 ### Fichiers clés créés / modifiés (toutes sessions)
@@ -60,9 +93,10 @@
 | `deploy/.env.example` | 7 variables documentées |
 | `deploy/.dockerignore` | Exclusions build context |
 | `docs/guide_deploiement.tex` | Source du guide (contenu intégré dans le rapport en annexe) |
-| `tests/test_health_enriched.py` | Tests `/health` enrichi |
 | `scripts/generate_figures.py` | Génération des 20 figures principales (réécriture complète) |
 | `scripts/generate_extra_figures.py` | 3 figures supplémentaires (pytest, CI, Task Scheduler) |
+| `scripts/09_train_challenger.py` | Entraîne un challenger (max_depth=8, 250 arbres), exporte ONNX, compare vs prod |
+| `scripts/10_promote_challenger.py` | Archive le prod, promeut le challenger, met à jour offline_metrics.json |
 
 ---
 
@@ -227,19 +261,19 @@ Rec_ONCF/
 
 **Why CPU (not CUDA):** RTX 3050 has 4 GB VRAM which OOMs at 1,011 classes × depth 8 × 300 estimators. CPU training is stable and completes in ~43 minutes.
 
-**XGBoost hyperparameters:**
+**XGBoost hyperparameters (prod actuel — challenger promu le 2026-05-16) :**
 ```python
 xgb.XGBClassifier(
     objective="multi:softprob",
     eval_metric="mlogloss",
     tree_method="hist",
     device="cpu",
-    n_estimators=200,
-    learning_rate=0.08,
-    max_depth=6,
-    subsample=0.9,
-    colsample_bytree=0.8,
-    reg_lambda=1.0,
+    n_estimators=250,    # was 200
+    learning_rate=0.06,  # was 0.08
+    max_depth=8,         # was 6
+    subsample=0.85,      # was 0.90
+    colsample_bytree=0.75, # was 0.80
+    reg_lambda=1.5,      # was 1.0
     n_jobs=-1,
     random_state=42,
 )
@@ -252,18 +286,20 @@ xgb.XGBClassifier(
 
 ---
 
-## Offline Metrics (Sprint 2 retrain — 2026-05-04)
+## Offline Metrics — Historique complet
 
-|        Metric| Sprint 1  | **Sprint 2** | Δ          | Threshold   | Pass   
-|---           |---        |---           |---         |---          |---     
-| `hit_rate@1` | 0.7395    | **0.7628**   | +2.33 pp   | > 0.30      | ✅     
-| `hit_rate@3` | 0.8877    | **0.9055**   | +1.78 pp   | > 0.50      | ✅    
-| `mrr@3`      | 0.8064    | **0.8277**   | +2.13 pp   | > 0.35      | ✅     
+|        Metric| Sprint 1  | Sprint 2   | **Challenger (prod actuel)** | Threshold   | Pass   
+|---           |---        |---         |---                           |---          |---     
+| `hit_rate@1` | 0.7395    | 0.7628     | **0.7691**                   | > 0.30      | ✅     
+| `hit_rate@3` | 0.8877    | 0.9055     | **0.9100**                   | > 0.50      | ✅    
+| `mrr@3`      | 0.8064    | 0.8277     | **0.8333**                   | > 0.35      | ✅     
 
-Improvement driven by the new `user_top_liaison_share` feature.
+- Sprint 1 → Sprint 2 : feature `user_top_liaison_share` (+2.33 pp HR@1)
+- Sprint 2 → Challenger : hyperparamètres plus expressifs (max_depth=8, 250 arbres) (+0.63 pp HR@1)
+- **Challenger promu en prod le 2026-05-16** — ancien prod archivé dans `models/archive/20260516T163128Z/`
 
 - Train rows: 393,344 — Test rows: 98,261 (75 dropped — labels unseen in train)
-- Classes: 1,011 — Training time: ~43 min on CPU
+- Classes: 1,011 — Training time: ~63.6 min sur CPU (challenger)
 - random_state: 42 (reproducible)
 - dataset_fingerprint: `4d0dfd12e0b60341`
 
@@ -285,9 +321,10 @@ Monotonic improvement with history depth — exactly the expected pattern.
 | `global_top` (popularity only) | 0.0399 | 0.1125 | 0.0707 |
 | `prev_liaison` (last seen) | 0.2620 | 0.3204 | 0.2881 |
 | `most_frequent` (user freq + recency) | 0.2751 | 0.5128 | 0.3865 |
-| **xgboost_multiclass (Sprint 2)** | **0.7628** | **0.9055** | **0.8277** |
+| **xgboost_multiclass (Sprint 2)** | 0.7628 | 0.9055 | 0.8277 |
+| **xgboost_multiclass (Challenger — prod actuel)** | **0.7691** | **0.9100** | **0.8333** |
 
-XGBoost is **2.77× better** than the best baseline (`most_frequent`) on HR@1.
+XGBoost (challenger) is **2.80× better** than the best baseline (`most_frequent`) on HR@1.
 
 ---
 
@@ -295,11 +332,17 @@ XGBoost is **2.77× better** than the best baseline (`most_frequent`) on HR@1.
 
 ```python
 models_dir             = <project_root>/models/
-xgb_model_path         = models_dir / "xgb_ranker.json"     # saved with joblib
+xgb_model_path         = models_dir / "xgb_ranker.json"                 # challenger promu — 448 MB
 label_encoder_path     = models_dir / "label_encoder.joblib"
 cold_start_path        = models_dir / "cold_start.joblib"
-onnx_model_path        = models_dir / "xgb_ranker.onnx"     # 148 MB, produced by script 06
-popularity_path        = models_dir / "popularity.joblib"    # ~120 KB, produced by script 08
+onnx_model_path        = models_dir / "xgb_ranker.onnx"                 # challenger ONNX — 286 MB
+popularity_path        = models_dir / "popularity.joblib"                # ~120 KB, script 08
+# Challenger (A/B testing)
+challenger_model       = models_dir / "xgb_ranker_challenger.json"       # copie challenger post-promo
+challenger_le          = models_dir / "label_encoder_challenger.joblib"
+challenger_onnx        = models_dir / "xgb_ranker_challenger.onnx"
+# Archive (rollback)
+archive_dir            = models_dir / "archive" / "20260516T163128Z"     # prod précédent (Sprint 2)
 features_parquet       = data/processed/features.parquet
 processed_dataset_parquet = data/processed/oncf_clean.parquet
 ```
