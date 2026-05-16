@@ -252,6 +252,26 @@ def test_retrain_pipeline_blocked_by_guardrail(tmp_path):
     assert (paths.models_dir / "xgb_ranker_challenger.onnx").exists()
 
 
+def test_retrain_pipeline_rolling_window(tmp_path):
+    """Rolling window parameter is forwarded and reported correctly."""
+    paths = _make_test_paths(tmp_path)
+    # Dataset spanning 24 months so the 12-month window actually filters rows.
+    n = 400
+    df = _make_mini_features(n=n)
+    df["DateHeureDepartVoyageSegment"] = pd.date_range("2023-01-01", periods=n, freq="2D")
+    report = retrain_pipeline(
+        paths,
+        window_months=12,
+        features_df=df,
+        clean_df=_make_mini_clean(),
+    )
+    assert report["window_months"] == 12
+    assert report["guardrail_passes"] is True
+    assert report["promoted"] is True
+    # windowed dataset must be strictly smaller than the full dataset
+    assert report["train_rows"] < n
+
+
 def test_write_challenger_artifacts(tmp_path):
     staging = tmp_path / "staging"
     staging.mkdir()

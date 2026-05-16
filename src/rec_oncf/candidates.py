@@ -21,14 +21,14 @@ def generate_candidates(
         return []
 
     user_hist = user_hist.sort_values("DateHeureDepartVoyageSegment").tail(lookback)
-
+    # by frequency
     freq = (
         user_hist.groupby("LiaisonId")
         .size()
         .sort_values(ascending=False)
     )
 
-    # Tie-break by recency
+    # by recency
     last_ts = user_hist.groupby("LiaisonId")["DateHeureDepartVoyageSegment"].max()
     score = pd.DataFrame({"freq": freq, "last": last_ts}).fillna(0)
     score = score.sort_values(["freq", "last"], ascending=[False, False])

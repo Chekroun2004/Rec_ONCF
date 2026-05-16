@@ -1,0 +1,462 @@
+% ================================================================
+%  Guide de Déploiement — ONCF Zero-Click Recommender
+%  Auteur : Omar Chekroun (stagiaire)
+%  Compilateur : pdfLaTeX
+% ================================================================
+
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage[top=2.2cm, bottom=2.2cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+\usepackage[dvipsnames, table]{xcolor}
+\definecolor{oncfOrange}{RGB}{230, 83, 0}
+\definecolor{oncfBlue}{RGB}{0, 75, 141}
+\definecolor{lightGray}{RGB}{245, 245, 245}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{oncfBlue}{Guide de Déploiement -- ONCF Zero-Click}}
+\fancyhead[R]{\small\textcolor{oncfBlue}{O. Chekroun}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\usepackage{titlesec}
+\titleformat{\section}{\Large\bfseries\color{oncfBlue}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\large\bfseries\color{oncfBlue}}{\thesubsection}{0.7em}{}
+
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{lightGray},
+  frame=single,
+  rulecolor=\color{black!20},
+  breaklines=true,
+  showstringspaces=false,
+  columns=flexible,
+  keywordstyle=\color{oncfBlue}\bfseries,
+}
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\setlist[itemize]{leftmargin=*, itemsep=2pt, topsep=3pt}
+\usepackage[most]{tcolorbox}
+\tcbset{
+  warnBox/.style={
+    colback=red!5, colframe=red!50!black, boxrule=0.6pt,
+    arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+    fonttitle=\bfseries
+  },
+  infoBox/.style={
+    colback=lightGray, colframe=oncfBlue, boxrule=0.4pt,
+    arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+    fonttitle=\bfseries\color{oncfBlue}
+  }
+}
+\usepackage[hidelinks]{hyperref}
+
+\begin{document}
+
+\begin{center}
+  {\Large\bfseries\color{oncfBlue}
+   Guide de Déploiement\par}
+  \vspace{2pt}
+  {\large\color{oncfOrange}\textit{ONCF Zero-Click Search Recommender}\par}
+  \vspace{8pt}
+  {\large À l'attention de l'équipe SI ONCF\par}
+  \vspace{4pt}
+  {\small Omar Chekroun -- Mai 2026}
+\end{center}
+
+\vspace{4pt}
+\hrule
+\vspace{15pt}
+
+\tableofcontents
+\vspace{15pt}
+\hrule
+\vspace{15pt}
+
+\section*{Objet du document}
+
+Ce guide explique comment déployer le service de recommandation
+\textit{Zero-Click Search} sur l'infrastructure ONCF. Deux voies sont
+documentées~: \textbf{Docker} (recommandée) et \textbf{Python venv}
+(fallback si Docker n'est pas disponible).
+
+% --- contenu inséré par les tâches suivantes ---
+
+\section{Pré-requis}
+
+\subsection{Hardware minimal}
+
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{Ressource} & \textbf{Recommandation} \\
+\midrule
+CPU & 4 cœurs minimum (8 recommandés pour traffic > 100 req/s) \\
+RAM & 8 Go minimum (le modèle XGBoost charge 281 Mo, le lookup historique ~250 Mo) \\
+Disque & 5 Go pour les artefacts modèles, logs et données traitées \\
+Réseau & accès sortant uniquement si scraper \texttt{oncf.ma} activé \\
+GPU & non requis (l'inférence se fait sur CPU via ONNX Runtime) \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Système d'exploitation}
+
+Le service tourne sur~:
+\begin{itemize}
+\item \textbf{Linux} (Ubuntu 22.04 LTS, Debian 12, RHEL 9) --- voie nominale
+\item \textbf{Windows Server 2019/2022} --- supporté via Docker Desktop ou WSL2
+\end{itemize}
+
+\subsection{Logiciels requis}
+
+\textbf{Pour la voie Docker (recommandée) }:
+\begin{itemize}
+\item Docker Engine $\geq$ 24.0
+\item Docker Compose v2 (\texttt{docker compose}, plugin intégré)
+\end{itemize}
+
+\textbf{Pour la voie venv (fallback) }:
+\begin{itemize}
+\item Python 3.12.x (3.12.10 testé)
+\item \texttt{pip} $\geq$ 23.0
+\item Optionnellement Redis 7.x pour le cache des horaires
+\end{itemize}
+
+\section{Voie nominale~: déploiement par Docker}
+
+\subsection{Récupération du code}
+
+\begin{lstlisting}[language=bash]
+git clone <url-du-repo-ONCF> oncf-recommender
+cd oncf-recommender
+\end{lstlisting}
+
+\subsection{Configuration des variables d'environnement}
+
+Copier le fichier d'exemple et l'adapter~:
+
+\begin{lstlisting}[language=bash]
+cp deploy/.env.example deploy/.env
+nano deploy/.env  # ou vi/notepad
+\end{lstlisting}
+
+Variables documentées~:
+
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{Variable} & \textbf{Rôle} \\
+\midrule
+\texttt{LOG\_LEVEL} & Niveau de log (DEBUG, INFO, WARNING, ERROR) \\
+\texttt{MODEL\_DIR} & Chemin vers les artefacts modèles (par défaut \texttt{/app/models}) \\
+\texttt{DATA\_DIR} & Chemin vers les datasets traités (par défaut \texttt{/app/data/processed}) \\
+\texttt{REDIS\_URL} & URL Redis pour le cache horaires (ex.\ \texttt{redis://redis:6379/0}) \\
+\texttt{API\_PORT} & Port d'écoute sur l'hôte (par défaut 8000) \\
+\texttt{API\_WORKERS} & Nombre de workers uvicorn (1 suffit pour la charge ONCF typique) \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Placement des artefacts modèles}
+
+Les modèles ne sont \textbf{pas} embarqués dans l'image Docker pour
+faciliter les promotions sans rebuild. Ils sont montés en volume depuis
+l'hôte~:
+
+\begin{lstlisting}[language=bash]
+# Depuis la racine du projet
+ls models/
+# Attendu:
+#   xgb_ranker.json            (281 Mo)
+#   xgb_ranker.onnx            (148 Mo)
+#   label_encoder.joblib       (8.5 Ko)
+#   cold_start.joblib          (31 Ko)
+#   popularity.joblib          (~120 Ko)
+#   xgb_ranker.meta.json       (~2 Ko)
+\end{lstlisting}
+
+Si \texttt{models/} est absent ou incomplet, transférer les artefacts
+depuis l'environnement de pré-production. Lancer le pipeline complet de
+ré-entraînement (\texttt{scripts/03\_train\_ranker.py},
+\texttt{05\_build\_cold\_start.py}, \texttt{06\_export\_onnx.py},
+\texttt{08\_build\_popularity.py}) prend environ 50 minutes sur CPU.
+
+\subsection{Build et démarrage}
+
+\begin{lstlisting}[language=bash]
+cd deploy
+docker compose build
+docker compose up -d
+\end{lstlisting}
+
+Vérification du healthcheck~:
+
+\begin{lstlisting}[language=bash]
+docker compose ps
+# api  ... healthy
+# redis ... healthy
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash]
+curl http://localhost:8000/health
+# {"status":"ok","model_loaded":true,"popularity_loaded":true,"n_users_history":69449}
+\end{lstlisting}
+
+\subsection{Test fonctionnel}
+
+\begin{lstlisting}[language=bash]
+curl -X POST http://localhost:8000/recommend \
+     -H "Content-Type: application/json" \
+     -d '{"code_client":"12345","k":3}'
+\end{lstlisting}
+
+Réponse attendue (exemple)~:
+\begin{lstlisting}
+{
+  "mode": "model",
+  "variant": "a",
+  "request_id": "...",
+  "recommendations": ["LIAISON_1","LIAISON_2","LIAISON_3"],
+  "labels": {"LIAISON_1":"CASA -> RABAT", ...}
+}
+\end{lstlisting}
+
+\subsection{Arrêt et logs}
+
+\begin{lstlisting}[language=bash]
+docker compose down              # arrêt propre
+docker compose logs -f api       # suivi des logs
+docker compose logs --tail=200   # 200 dernières lignes
+\end{lstlisting}
+
+\section{Voie alternative~: Python venv}
+
+À utiliser si Docker n'est pas disponible sur l'infrastructure ONCF.
+
+\subsection{Création de l'environnement}
+
+\textbf{Linux~:}
+\begin{lstlisting}[language=bash]
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install fastapi==0.115.* "uvicorn[standard]==0.30.*" \
+    "pydantic>=2.0,<3.0" "pandas>=3.0,<4.0" \
+    xgboost==3.2.* "scikit-learn>=1.4,<2.0" \
+    "onnxruntime>=1.18,<2.0" "joblib>=1.4,<2.0" \
+    "requests>=2.31,<3.0" "beautifulsoup4>=4.12,<5.0" \
+    "loguru>=0.7,<1.0" "redis>=5.0,<6.0"
+\end{lstlisting}
+
+\textbf{Windows~:}
+\begin{lstlisting}[language=powershell]
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install --upgrade pip
+pip install fastapi==0.115.* uvicorn[standard]==0.30.* `
+    pydantic pandas xgboost scikit-learn onnxruntime `
+    joblib requests beautifulsoup4 loguru redis
+\end{lstlisting}
+
+\subsection{Lancement direct (test)}
+
+\begin{lstlisting}[language=bash]
+# Linux
+uvicorn apps.api.main:app --host 0.0.0.0 --port 8000
+
+# Windows
+.venv\Scripts\python.exe -m uvicorn apps.api.main:app --host 0.0.0.0 --port 8000
+\end{lstlisting}
+
+\subsection{Lancement comme service système}
+
+\textbf{Linux (systemd)~:} créer \texttt{/etc/systemd/system/oncf-recommender.service}~:
+
+\begin{lstlisting}
+[Unit]
+Description=ONCF Recommender API
+After=network.target
+
+[Service]
+Type=simple
+User=oncf
+WorkingDirectory=/opt/oncf-recommender
+Environment="PYTHONPATH=/opt/oncf-recommender/src"
+ExecStart=/opt/oncf-recommender/.venv/bin/uvicorn apps.api.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+\end{lstlisting}
+
+Activation~:
+\begin{lstlisting}[language=bash]
+sudo systemctl daemon-reload
+sudo systemctl enable oncf-recommender
+sudo systemctl start oncf-recommender
+sudo systemctl status oncf-recommender
+\end{lstlisting}
+
+\textbf{Windows Server (NSSM)~:}
+\begin{lstlisting}[language=powershell]
+# Installer NSSM (Non-Sucking Service Manager) au préalable
+nssm install ONCFRecommender ^
+  "C:\path\to\.venv\Scripts\python.exe" ^
+  "-m" "uvicorn" "apps.api.main:app" "--host" "0.0.0.0" "--port" "8000"
+nssm set ONCFRecommender AppDirectory "C:\path\to\oncf-recommender"
+nssm start ONCFRecommender
+\end{lstlisting}
+
+\begin{tcolorbox}[infoBox, title=Différences avec Docker]
+La voie venv ne fournit pas l'isolation réseau, le redémarrage automatique
+sur crash applicatif, ni le healthcheck standard. Le monitoring devra
+s'appuyer sur \texttt{systemctl status} (Linux) ou le journal des services
+Windows.
+\end{tcolorbox}
+
+\section{Observabilité}
+
+\subsection{Logs}
+
+L'API écrit des logs structurés (JSON) dans \texttt{/app/logs/api.log}
+(Docker) ou \texttt{logs/api.log} (venv), avec rotation automatique
+(10 Mo / fichier, rétention 7 jours).
+
+Champs journalisés à chaque appel \texttt{/recommend}~:
+\texttt{event}, \texttt{variant}, \texttt{request\_id}, \texttt{mode},
+\texttt{k}, \texttt{latency\_ms}, \texttt{n\_recommendations}.
+
+\begin{tcolorbox}[warnBox, title=Conformité Loi 09-08]
+Le \texttt{code\_client} n'apparaît jamais dans les logs --- uniquement
+l'UUID de requête. Vérifier en production~: \texttt{grep code\_client
+logs/api.log} doit ne rien retourner.
+\end{tcolorbox}
+
+\subsection{Healthcheck enrichi}
+
+\begin{lstlisting}[language=bash]
+curl http://localhost:8000/health
+\end{lstlisting}
+
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+\textbf{Champ} & \textbf{Signification} \\
+\midrule
+\texttt{status} & "ok" si le modèle est chargé, "degraded" sinon \\
+\texttt{model\_loaded} & Booléen --- session ONNX disponible \\
+\texttt{popularity\_loaded} & Booléen --- liste de fallback chargée \\
+\texttt{n\_users\_history} & Taille du lookup historique en mémoire \\
+\bottomrule
+\end{tabularx}
+
+\section{Ré-entraînement périodique}
+
+Le pipeline de ré-entraînement (\texttt{scripts/07\_retrain.py}) inclut un
+\textbf{garde-fou KPI}~: un nouveau modèle n'est promu en production que
+si \texttt{HR@1} n'a pas baissé de plus de 5 points.
+
+\subsection{Lancement manuel (test)}
+
+\begin{lstlisting}[language=bash]
+# Évaluation seule (sans promotion)
+.venv/bin/python scripts/07_retrain.py --dry-run
+
+# Évaluation + promotion si KPI OK
+.venv/bin/python scripts/07_retrain.py
+\end{lstlisting}
+
+\subsection{Planification}
+
+\textbf{Linux (cron)~:}
+\begin{lstlisting}
+0 2 * * * /opt/oncf-recommender/.venv/bin/python /opt/oncf-recommender/scripts/07_retrain.py >> /opt/oncf-recommender/logs/retrain.log 2>&1
+\end{lstlisting}
+
+\textbf{Windows~:} utiliser le fichier \texttt{tasks/oncf\_daily\_retrain.xml}
+fourni dans le repo~:
+\begin{lstlisting}[language=powershell]
+schtasks /Create /XML tasks\oncf_daily_retrain.xml /TN "ONCF\DailyRetrain" /F
+\end{lstlisting}
+
+\section{Troubleshooting}
+
+\subsection{Erreurs fréquentes}
+
+\textbf{1. \texttt{RuntimeError: Model not found}}
+
+Cause~: les fichiers \texttt{models/xgb\_ranker.json},
+\texttt{label\_encoder.joblib} ou \texttt{xgb\_ranker.onnx} sont absents
+du volume monté.
+
+Solution~: vérifier la présence des fichiers et leur permission de
+lecture pour l'UID 1000 (utilisateur \texttt{oncf} dans le conteneur).
+
+\textbf{2. \texttt{Redis unavailable --- using in-memory schedule cache}}
+
+Cause~: Redis n'est pas joignable.
+
+Solution~: non bloquant --- le fallback en mémoire fonctionne. Pour
+restaurer Redis, vérifier \texttt{docker compose ps redis} et
+\texttt{redis-cli -h redis ping}.
+
+\textbf{3. Latence p99 anormalement élevée}
+
+Cause possible~: un seul worker uvicorn saturé.
+
+Solution~: augmenter \texttt{API\_WORKERS} dans \texttt{.env} (chaque
+worker charge un modèle en mémoire, prévoir +1 Go RAM par worker).
+
+\textbf{4. \texttt{ImportError: redis}}
+
+Cause~: la voie venv ne l'a pas installé.
+
+Solution~: \texttt{pip install redis} (optionnel --- le code fonctionne
+sans).
+
+\textbf{5. PDF du rapport ne compile pas}
+
+Hors scope déploiement --- contacter le développeur (non critique pour
+le service).
+
+\section{Rollback}
+
+\subsection{Modèle (cas le plus fréquent)}
+
+Le pipeline de ré-entraînement écrit toujours un \textbf{challenger}
+avant de promouvoir~:
+
+\begin{lstlisting}[language=bash]
+ls models/
+#   xgb_ranker.json                    <-- prod
+#   xgb_ranker_challenger.json         <-- dernier challenger évalué
+#   xgb_ranker_previous.json           <-- ancien prod (si promotion récente)
+\end{lstlisting}
+
+Pour annuler la dernière promotion~:
+
+\begin{lstlisting}[language=bash]
+cd models/
+mv xgb_ranker.json xgb_ranker_bad.json
+mv xgb_ranker_previous.json xgb_ranker.json
+# idem pour label_encoder et .onnx
+docker compose restart api
+\end{lstlisting}
+
+\subsection{Code applicatif}
+
+\begin{lstlisting}[language=bash]
+git log --oneline -10
+git checkout <sha-stable>
+cd deploy && docker compose build api && docker compose up -d api
+\end{lstlisting}
+
+\end{document}

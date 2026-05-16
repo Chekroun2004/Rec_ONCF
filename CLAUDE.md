@@ -4,27 +4,57 @@
 
 ---
 
-## 🚧 RESUME HERE — next session (paused 2026-05-13)
+## ✅ PIVOT POST-RÉUNION — Chantiers tous terminés (2026-05-15)
 
-**Branch state:** work is on branch **`feat/popularity-fallback-demo-ui`**, **NOT merged to `main`**. 113/113 tests pass. All three bugs from the previous session are now fixed. **Decision still pending**: merge to `main` / open PR / keep as-is.
+**Branch state:** `feat/post-meeting-pivot` — **115/115 tests passent.**
 
-> A uvicorn dev server may still be running from the last session — kill stray `python.exe` if so.
+**Deadline livraison : lundi 2026-05-18 matin.** Tout le code et le rapport sont prêts.
 
-### Bugs fixed this session (2026-05-13)
+> Voir plan complet : `docs/superpowers/plans/2026-05-15-post-meeting-pivot.md`
 
-**Bug C ✅ — `mode: "model"` returned fewer than `k` recommendations when user had < k distinct routes.**
-- Fix: `recommender.py:_recommend_core()` now pads with `self.popularity` after model ranking if `len(recs) < k`.
-- Test added: `test_model_pads_to_k_with_popularity` in `test_recommender.py`.
+### État des chantiers
 
-**Bug A ✅ (architectural) — schedules from oncf.ma always empty.**
-- Root cause confirmed by live probe: GET `/fr/Horaires` returns 111KB HTML with **no `<table>`** — schedule is rendered entirely by `main.js` client-side via `Oncf.Horraires.init(data-apilink)`. The scraper was never going to work.
-- Fix chosen: decouple schedules from `/recommend` entirely. The UI now lazy-loads schedules per card via `GET /schedule/{liaison_id}`. The scraper is kept as-is (best-effort — empty means the site is down or JS-only). The `include_schedule` flag in `/recommend` still works for non-UI API clients but is no longer used by the demo page.
+| Chantier | Statut | Notes |
+|---|---|---|
+| **1 — MAJ rapport** | ✅ Terminé | Mockup retiré, section pivot + tableau état du projet |
+| **2 — IDA** | ✅ Terminé | IDA fusionnée sous Exploration/Nettoyage, familles 1–4 |
+| **3 — API deploy-ready** | ✅ Terminé | `deploy/` (Dockerfile, compose, .env.example, .dockerignore), `/health` enrichi |
+| **4 — Guide déploiement** | ✅ Terminé (intégré au rapport) | Contenu complet intégré directement dans `rapport_pfa_v2.tex` comme annexe (plus de `\includepdf`). |
+| **5 — Benchmark PDF** | ✅ Terminé | Chap. 2 enrichi : SNCF/DB/Trenitalia + 4 patterns ML mobile + synthèse + biblio |
+| **6 — Migration CSV** | 🔒 Deferred | En attente des CSV ONCF (`users_history.csv` + `trains_schedule.csv`) |
+| **7 — Finalisation** | ✅ Terminé | CLAUDE.md mis à jour, 115 tests verts |
 
-**Bug B ✅ — latency 6–8 s when schedule toggle was on.**
-- Fix 1 (main.py): `include_schedule` path in `/recommend` now uses `ThreadPoolExecutor(max_workers=3)` — all 3 scrapes in parallel instead of sequential.
-- Fix 2 (app.js + main.py): Demo UI no longer sends `include_schedule: true`. After `/recommend` returns (always fast, ~12–20 ms), cards render immediately, then `GET /schedule/{liaison_id}` fires per card. Each card's schedule section shows "Chargement…" while loading.
-- New endpoint: `GET /schedule/{liaison_id}` → `{liaison_id, schedule: [...]}`.
-- 2 new tests added in `test_api.py`.
+### Travail effectué — session 2026-05-15 (après pivot)
+
+#### Rapport `rapport_pfa_v2.tex` (2732 lignes)
+- **12+ corrections** : comptage tests (100→115 partout), `variant` body→query param, `cold_start`→`popularity` pour 0 voyage, `labels` ajouté aux exemples JSON, typos (`periodicité`, flèches sans espace), orphan text supprimé
+- **Bibliographie unifiée** : double bibliographie (enumerate + thebibliography) fusionnée en un seul bloc `\begin{thebibliography}{99}` avec 15 bibitems et `\cite{}` corrects — 0 citation brisée
+- **Double `\appendix` supprimé**, code orphelin après `\end{document}` supprimé
+- **Guide déploiement intégré** : contenu de `docs/guide_deploiement.tex` intégré directement comme `\chapter{Guide de Déploiement}` (8 sections : pré-requis, Docker, venv, observabilité, ré-entraînement, troubleshooting, rollback). Styles `warnBox`/`infoBox` ajoutés au préambule. Plus besoin de `\includepdf`.
+- **Nouvelle sous-section Perspectives** : "Fenêtre Glissante et Scalabilité du Réentraînement" documentant `--window-months`
+
+#### Rolling window dans le pipeline de réentraînement
+- `src/rec_oncf/retrain.py` : paramètre `window_months: int | None` dans `retrain_pipeline()`, filtre sur `DateOffset`, `window_months` et `train_rows` dans le rapport
+- `scripts/07_retrain.py` : argument CLI `--window-months N`, affichage dans le rapport
+- `tests/test_retrain.py` : `test_retrain_pipeline_rolling_window()` — 17 tests (était 16)
+- `CLAUDE.md` : mis à jour (114→115 tests, test_retrain 16→17)
+
+### Prochaine action (avant livraison)
+
+1. **Uploader sur Overleaf** : `rapport_pfa_v2.tex` + dossier `pic/`
+2. **Compiler** (2 passes) et vérifier le PDF
+3. **Merger** `feat/post-meeting-pivot` → `main` quand rapport PDF validé
+
+### Nouveaux fichiers créés (session 2026-05-15)
+
+| Fichier | Description |
+|---|---|
+| `deploy/Dockerfile` | Multi-stage, python:3.12-slim, user non-root `oncf` |
+| `deploy/docker-compose.yml` | Services api + redis:7-alpine, volumes bind-mount |
+| `deploy/.env.example` | 7 variables documentées (LOG_LEVEL, MODEL_DIR, DATA_DIR…) |
+| `deploy/.dockerignore` | Exclusions build context (venv, data, models, tests) |
+| `docs/guide_deploiement.tex` | Guide déploiement source (contenu intégré dans le rapport) |
+| `tests/test_health_enriched.py` | Test du `/health` enrichi |
 
 ---
 
@@ -104,7 +134,7 @@ Rec_ONCF/
 │   ├── test_schedule.py    # 14 tests  ✅ passing  (station codes, HTML parser, HTTP mock, caching)
 │   ├── test_cold_start.py  # 9 tests   ✅ passing  (co-occurrence, recommend, save/load)
 │   ├── test_onnx.py        # 7 tests   ✅ passing  (export, proba parity, output shape, FastPreprocessor)
-│   ├── test_retrain.py     # 16 tests  ✅ passing  (load_metrics, guardrail, evaluate, promote, pipeline, write_challenger)
+│   ├── test_retrain.py     # 17 tests  ✅ passing  (load_metrics, guardrail, evaluate, promote, pipeline, write_challenger, rolling_window)
 │   ├── test_popularity.py  # 3 tests   ✅ passing  (build, save/load, order by frequency)
 │   └── __init__.py
 │
