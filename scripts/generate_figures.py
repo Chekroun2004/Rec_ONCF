@@ -17,10 +17,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import matplotlib.patches as FancyPatch
-from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, FancyArrow
-from matplotlib.gridspec import GridSpec
-import matplotlib.patheffects as pe
+from matplotlib.patches import FancyBboxPatch
 
 ROOT = Path(__file__).parent.parent
 PIC  = ROOT / "pic"
@@ -58,7 +55,9 @@ def save(name):
 # ══════════════════════════════════════════════════════════════════════════════
 def fig_zero_click():
     fig, ax = plt.subplots(figsize=(12, 4))
-    ax.set_xlim(0, 12); ax.set_ylim(0, 4); ax.axis("off")
+    ax.set_xlim(0, 12)
+    ax.set_ylim(0, 4)
+    ax.axis("off")
 
     def box(x, y, w, h, color, text, fontsize=9, text_color="white"):
         rect = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.1",
@@ -130,7 +129,8 @@ def fig_gantt():
     ]
 
     fig, ax = plt.subplots(figsize=(12, 4.5))
-    ax.set_xlim(0, 10); ax.set_ylim(-0.5, len(phases))
+    ax.set_xlim(0, 10)
+    ax.set_ylim(-0.5, len(phases))
     ax.set_xlabel("Semaine du stage", fontsize=10)
     ax.set_xticks(range(1, 10))
     ax.set_xticklabels([f"S{i}" for i in range(1, 10)])
@@ -158,7 +158,9 @@ def fig_gantt():
 # ══════════════════════════════════════════════════════════════════════════════
 def fig_archi_globale():
     fig, ax = plt.subplots(figsize=(11, 7))
-    ax.set_xlim(0, 11); ax.set_ylim(0, 8); ax.axis("off")
+    ax.set_xlim(0, 11)
+    ax.set_ylim(0, 8)
+    ax.axis("off")
 
     layers = [
         (0.5, 6.5, 10, 1.2, BLUE,   "4 — Couche API",
@@ -201,7 +203,9 @@ def fig_archi_globale():
 # ══════════════════════════════════════════════════════════════════════════════
 def fig_uml_composants():
     fig, ax = plt.subplots(figsize=(13, 8))
-    ax.set_xlim(0, 13); ax.set_ylim(0, 9); ax.axis("off")
+    ax.set_xlim(0, 13)
+    ax.set_ylim(0, 9)
+    ax.axis("off")
     ax.set_title("Diagramme de Composants UML", fontsize=12,
                  fontweight="bold", color=BLUE)
 
@@ -281,7 +285,9 @@ def fig_uml_composants():
 # ══════════════════════════════════════════════════════════════════════════════
 def fig_archi_deux_etapes():
     fig, ax = plt.subplots(figsize=(13, 5))
-    ax.set_xlim(0, 13); ax.set_ylim(0, 5); ax.axis("off")
+    ax.set_xlim(0, 13)
+    ax.set_ylim(0, 5)
+    ax.axis("off")
     ax.set_title("Architecture Deux Étapes : Candidate Generation + Ranking",
                  fontsize=12, fontweight="bold", color=BLUE)
 
@@ -333,7 +339,9 @@ def fig_archi_deux_etapes():
 # ══════════════════════════════════════════════════════════════════════════════
 def fig_uml_usecase():
     fig, ax = plt.subplots(figsize=(12, 8))
-    ax.set_xlim(0, 12); ax.set_ylim(0, 9); ax.axis("off")
+    ax.set_xlim(0, 12)
+    ax.set_ylim(0, 9)
+    ax.axis("off")
     ax.set_title("Diagramme de Cas d'Utilisation — Système Zero-Click Search",
                  fontsize=12, fontweight="bold", color=BLUE)
 
@@ -403,7 +411,9 @@ def fig_uml_usecase():
 # ══════════════════════════════════════════════════════════════════════════════
 def fig_sequence():
     fig, ax = plt.subplots(figsize=(14, 9))
-    ax.set_xlim(0, 14); ax.set_ylim(0, 9); ax.axis("off")
+    ax.set_xlim(0, 14)
+    ax.set_ylim(0, 9)
+    ax.axis("off")
     ax.set_title("Diagramme de Séquence — POST /recommend",
                  fontsize=12, fontweight="bold", color=BLUE)
 
@@ -446,7 +456,7 @@ def fig_sequence():
     ]
 
     for i, (x1, x2, y, label, color) in enumerate(msgs):
-        dx = x2 - x1
+        x2 - x1
         ax.annotate("", xy=(x2, y), xytext=(x1, y),
                     arrowprops=dict(arrowstyle="-|>", color=color,
                                    lw=1.3, mutation_scale=12))
@@ -476,7 +486,9 @@ def fig_sequence():
 # ══════════════════════════════════════════════════════════════════════════════
 def fig_classes():
     fig, ax = plt.subplots(figsize=(14, 8))
-    ax.set_xlim(0, 14); ax.set_ylim(0, 9); ax.axis("off")
+    ax.set_xlim(0, 14)
+    ax.set_ylim(0, 9)
+    ax.axis("off")
     ax.set_title("Diagramme de Classes Simplifié", fontsize=12,
                  fontweight="bold", color=BLUE)
 
@@ -653,7 +665,7 @@ def fig_rapport_nettoyage():
     for i, (label, val, color) in enumerate(steps):
         width = val / max_h
         left  = (1 - width) / 2
-        bar = ax.barh(i, width, left=left, height=0.6, color=color,
+        ax.barh(i, width, left=left, height=0.6, color=color,
                       edgecolor="white", linewidth=1.5)
         ax.text(0.5, i, f"{val:,}\n({val/946155*100:.1f}%)",
                 ha="center", va="center", fontsize=8.5,
@@ -661,8 +673,10 @@ def fig_rapport_nettoyage():
         ax.text(left - 0.02, i, label, ha="right", va="center",
                 fontsize=8.5, color="#333")
 
-    ax.set_xlim(0, 1); ax.set_ylim(-0.5, len(steps))
-    ax.axis("off"); ax.invert_yaxis()
+    ax.set_xlim(0, 1)
+    ax.set_ylim(-0.5, len(steps))
+    ax.axis("off")
+    ax.invert_yaxis()
     ax.set_title("Funnel de nettoyage", fontsize=10,
                  fontweight="bold", color=BLUE)
 
@@ -687,8 +701,9 @@ def fig_rapport_nettoyage():
     for t in texts:
         t.set_fontsize(8)
     for at in autotexts:
-        at.set_fontsize(8); at.set_fontweight("bold")
-    ax2.set_title(f"Répartition des lignes retirées\n(946 155 → 491 680 lignes)",
+        at.set_fontsize(8)
+        at.set_fontweight("bold")
+    ax2.set_title("Répartition des lignes retirées\n(946 155 → 491 680 lignes)",
                   fontsize=10, fontweight="bold", color=BLUE)
 
     plt.suptitle("Bilan du nettoyage — Entrées et Sorties",
@@ -723,7 +738,8 @@ def fig_encodage_cyclique():
         for v in vals:
             angle = 2 * np.pi * v / period
             ax_ins.plot(np.cos(angle), np.sin(angle), ".", color=TEAL, ms=4)
-        ax_ins.set_aspect("equal"); ax_ins.axis("off")
+        ax_ins.set_aspect("equal")
+        ax_ins.axis("off")
         ax_ins.set_title("Cercle\nunité", fontsize=6)
 
         ax.set_xlabel(col.replace("_", " "), fontsize=9)
@@ -808,7 +824,9 @@ def fig_user_top_liaison_share():
 # ══════════════════════════════════════════════════════════════════════════════
 def fig_cold_start():
     fig, ax = plt.subplots(figsize=(12, 6))
-    ax.set_xlim(0, 12); ax.set_ylim(0, 6); ax.axis("off")
+    ax.set_xlim(0, 12)
+    ax.set_ylim(0, 6)
+    ax.axis("off")
     ax.set_title("Module Cold Start — Filtrage Collaboratif par Co-occurrence",
                  fontsize=12, fontweight="bold", color=BLUE)
 
@@ -882,7 +900,9 @@ def fig_cold_start():
 # ══════════════════════════════════════════════════════════════════════════════
 def fig_archi_api():
     fig, ax = plt.subplots(figsize=(13, 7))
-    ax.set_xlim(0, 13); ax.set_ylim(0, 8); ax.axis("off")
+    ax.set_xlim(0, 13)
+    ax.set_ylim(0, 8)
+    ax.axis("off")
     ax.set_title("Architecture de l'API FastAPI — ONCF Recommender",
                  fontsize=12, fontweight="bold", color=BLUE)
 
@@ -1049,7 +1069,9 @@ def fig_fastpreprocessor():
 # ══════════════════════════════════════════════════════════════════════════════
 def fig_retrain_pipeline():
     fig, ax = plt.subplots(figsize=(13, 7))
-    ax.set_xlim(0, 13); ax.set_ylim(0, 8); ax.axis("off")
+    ax.set_xlim(0, 13)
+    ax.set_ylim(0, 8)
+    ax.axis("off")
     ax.set_title("Pipeline de Réentraînement Automatique avec Guardrail KPI",
                  fontsize=12, fontweight="bold", color=BLUE)
 
@@ -1136,7 +1158,9 @@ def fig_retrain_pipeline():
 # ══════════════════════════════════════════════════════════════════════════════
 def fig_ab_testing():
     fig, ax = plt.subplots(figsize=(13, 7))
-    ax.set_xlim(0, 13); ax.set_ylim(0, 8); ax.axis("off")
+    ax.set_xlim(0, 13)
+    ax.set_ylim(0, 8)
+    ax.axis("off")
     ax.set_title("Framework A/B Testing — Architecture et Flux",
                  fontsize=12, fontweight="bold", color=BLUE)
 
@@ -1236,7 +1260,8 @@ def fig_metrics_segment():
     ax.bar_label(b2, fmt="%.1f%%", fontsize=7.5, padding=2)
     ax.bar_label(b3, fmt="%.1f%%", fontsize=7.5, padding=2)
 
-    ax.set_xticks(x); ax.set_xticklabels(segments, fontsize=9)
+    ax.set_xticks(x)
+    ax.set_xticklabels(segments, fontsize=9)
     ax.set_ylabel("Métrique (%)", fontsize=10)
     ax.set_ylim(50, 100)
     ax.set_title("Métriques par Segment d'Utilisateurs (Sprint 2)",
@@ -1263,7 +1288,8 @@ def fig_metrics_comparison():
     hr3  = [11.25, 32.04, 51.28, 88.77, 90.55]
     mrr3 = [7.07,  28.81, 38.65, 80.64, 82.77]
 
-    x = np.arange(len(models)); width = 0.25
+    x = np.arange(len(models))
+    width = 0.25
     fig, ax = plt.subplots(figsize=(13, 6))
 
     b1 = ax.bar(x - width, hr1,  width, label="HR@1",  color=BLUE,   edgecolor="white", lw=1.2)
@@ -1273,8 +1299,10 @@ def fig_metrics_comparison():
     ax.bar_label(b2, fmt="%.1f%%", fontsize=7, padding=2, rotation=0)
     ax.bar_label(b3, fmt="%.1f%%", fontsize=7, padding=2, rotation=0)
 
-    ax.set_xticks(x); ax.set_xticklabels(models, fontsize=9)
-    ax.set_ylabel("Métrique (%)", fontsize=10); ax.set_ylim(0, 105)
+    ax.set_xticks(x)
+    ax.set_xticklabels(models, fontsize=9)
+    ax.set_ylabel("Métrique (%)", fontsize=10)
+    ax.set_ylim(0, 105)
     ax.set_title("Comparaison XGBoost vs Baselines (Sprint 1 & Sprint 2)",
                  fontsize=12, fontweight="bold", color=BLUE)
     ax.legend(fontsize=9)
@@ -1353,7 +1381,7 @@ def main():
     ok = total - len(errors)
     print(f"  {ok}/{total} figures générées avec succès.")
     if errors:
-        print(f"\n  Erreurs :")
+        print("\n  Erreurs :")
         for name, err in errors:
             print(f"    • {name} : {err}")
     print(f"{'='*60}\n")

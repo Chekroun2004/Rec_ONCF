@@ -1,6 +1,7 @@
 """Microbenchmark: profile each step of the hot recommendation path."""
 from __future__ import annotations
-import sys, time
+import sys
+import time
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1] / "src"))
 
 import numpy as np

@@ -9,11 +9,9 @@ from pathlib import Path
 import warnings
 warnings.filterwarnings("ignore")
 
-import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from matplotlib.patches import FancyBboxPatch
 
 ROOT = Path(__file__).parent.parent
@@ -64,7 +62,8 @@ def fig_pytest():
     total = sum(n for _, n, _ in test_modules)
 
     fig, ax = plt.subplots(figsize=(13, 7))
-    ax.set_xlim(0, 13); ax.set_ylim(0, len(test_modules) + 3)
+    ax.set_xlim(0, 13)
+    ax.set_ylim(0, len(test_modules) + 3)
     ax.axis("off")
     ax.set_facecolor("#1E1E1E")
     fig.patch.set_facecolor("#1E1E1E")
@@ -128,7 +127,9 @@ def fig_pytest():
 # ==============================================================================
 def fig_github_actions():
     fig, ax = plt.subplots(figsize=(13, 6.5))
-    ax.set_xlim(0, 13); ax.set_ylim(0, 7); ax.axis("off")
+    ax.set_xlim(0, 13)
+    ax.set_ylim(0, 7)
+    ax.axis("off")
     ax.set_title("Pipeline CI/CD GitHub Actions -- tests.yml",
                  fontsize=12, fontweight="bold", color=BLUE)
 
@@ -204,7 +205,9 @@ def fig_github_actions():
 # ==============================================================================
 def fig_task_scheduler():
     fig, ax = plt.subplots(figsize=(13, 6))
-    ax.set_xlim(0, 13); ax.set_ylim(0, 7); ax.axis("off")
+    ax.set_xlim(0, 13)
+    ax.set_ylim(0, 7)
+    ax.axis("off")
     ax.set_title("Tache Planifiee Windows -- ONCF DailyRetrain",
                  fontsize=12, fontweight="bold", color=BLUE)
 
@@ -320,7 +323,8 @@ def main():
             fn()
         except Exception as e:
             print(f"  ERREUR : {e}")
-            import traceback; traceback.print_exc()
+            import traceback
+            traceback.print_exc()
             errors.append((name, str(e)))
 
     print(f"\n  {len(tasks)-len(errors)}/{len(tasks)} OK")
