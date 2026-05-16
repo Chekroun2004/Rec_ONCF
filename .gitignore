@@ -58,6 +58,9 @@ coverage.xml
 
 # Documentation source (not published to repo)
 rapport_pfa.tex
+rapport_pfa_v2.tex
+*.pdf
+docs/guide_deploiement.tex
 
 # Runtime logs
 logs/
