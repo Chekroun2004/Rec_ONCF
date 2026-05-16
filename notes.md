@@ -19,57 +19,50 @@
 
 ---
 
-## ✅ PIVOT POST-RÉUNION — Chantiers tous terminés (2026-05-15)
+## ✅ ÉTAT ACTUEL — Tout livré (2026-05-16)
 
-**Branch state:** `feat/post-meeting-pivot` — **115/115 tests passent.**
+**Branch:** `main` — **115/115 tests passent.** — Working tree propre.
 
-**Deadline livraison : lundi 2026-05-18 matin.** Tout le code et le rapport sont prêts.
+**Deadline livraison : lundi 2026-05-18 matin.**
 
-> Voir plan complet : `docs/superpowers/plans/2026-05-15-post-meeting-pivot.md`
+### Résumé des livraisons complètes
 
-### État des chantiers
-
-| Chantier | Statut | Notes |
+| Chantier | Statut | Détail |
 |---|---|---|
-| **1 — MAJ rapport** | ✅ Terminé | Mockup retiré, section pivot + tableau état du projet |
-| **2 — IDA** | ✅ Terminé | IDA fusionnée sous Exploration/Nettoyage, familles 1–4 |
-| **3 — API deploy-ready** | ✅ Terminé | `deploy/` (Dockerfile, compose, .env.example, .dockerignore), `/health` enrichi |
-| **4 — Guide déploiement** | ✅ Terminé (intégré au rapport) | Contenu complet intégré directement dans `rapport_pfa_v2.tex` comme annexe (plus de `\includepdf`). |
-| **5 — Benchmark PDF** | ✅ Terminé | Chap. 2 enrichi : SNCF/DB/Trenitalia + 4 patterns ML mobile + synthèse + biblio |
-| **6 — Migration CSV** | 🔒 Deferred | En attente des CSV ONCF (`users_history.csv` + `trains_schedule.csv`) |
-| **7 — Finalisation** | ✅ Terminé | CLAUDE.md mis à jour, 115 tests verts |
+| **Code — Pipeline ML** | ✅ Livré | Nettoyage, features, XGBoost, ONNX, cold-start CF, popularity fallback |
+| **Code — API REST** | ✅ Livré | FastAPI, `/recommend`, `/health`, `/schedule`, `/feedback`, A/B testing, logging JSON |
+| **Code — Déploiement** | ✅ Livré | `deploy/` : Dockerfile multi-stage, docker-compose, .env.example, .dockerignore |
+| **Code — Réentraînement** | ✅ Livré | `scripts/07_retrain.py` + `--window-months`, guardrail KPI, Task Scheduler XML |
+| **Rapport** | ✅ Livré | `rapport_pfa_v2.tex` — contexte PFA M1 IGT, guide déploiement intégré, biblio unifiée |
+| **Figures** | ✅ Livrées | 23 PNG dans `pic/` — layouts formels, couleurs ONCF, sans chevauchement |
+| **Tests** | ✅ 115/115 | 13 modules de tests, dernière exécution : 47.83 s |
+| **Lint (ruff)** | ✅ Clean | `ruff check scripts/ src/` → 0 erreur |
+| **Contexte académique** | ✅ Ajouté | Stage PFA M1 IGT dans rapport + CLAUDE.md (16 mars–16 juin 2026) |
+| **Migration CSV** | 🔒 Deferred | En attente des vrais CSV ONCF (`users_history.csv`, `trains_schedule.csv`) |
 
-### Travail effectué — session 2026-05-15 (après pivot)
+### Dernière session (2026-05-16)
 
-#### Rapport `rapport_pfa_v2.tex` (2732 lignes)
-- **12+ corrections** : comptage tests (100→115 partout), `variant` body→query param, `cold_start`→`popularity` pour 0 voyage, `labels` ajouté aux exemples JSON, typos (`periodicité`, flèches sans espace), orphan text supprimé
-- **Bibliographie unifiée** : double bibliographie (enumerate + thebibliography) fusionnée en un seul bloc `\begin{thebibliography}{99}` avec 15 bibitems et `\cite{}` corrects — 0 citation brisée
-- **Double `\appendix` supprimé**, code orphelin après `\end{document}` supprimé
-- **Guide déploiement intégré** : contenu de `docs/guide_deploiement.tex` intégré directement comme `\chapter{Guide de Déploiement}` (8 sections : pré-requis, Docker, venv, observabilité, ré-entraînement, troubleshooting, rollback). Styles `warnBox`/`infoBox` ajoutés au préambule. Plus besoin de `\includepdf`.
-- **Nouvelle sous-section Perspectives** : "Fenêtre Glissante et Scalabilité du Réentraînement" documentant `--window-months`
+- **Figures régénérées** : réécriture complète de `scripts/generate_figures.py` (20 figures) + `generate_extra_figures.py` (3 figures). Layouts grille, flux directionnel G→D / haut→bas, palette ONCF, zéro chevauchement, zéro emoji.
+- **Lint ruff corrigé** : E401/E702/F401 dans `_bench_api.py`, `_profile_latency.py`, `generate_data_pdf.py`, `generate_extra_figures.py`.
+- **Contexte PFA M1 IGT ajouté** : page de garde (filière, type de travail, durée du stage), résumé, abstract, chapitre 1 intro — dans `rapport_pfa_v2.tex` et `CLAUDE.md`.
 
-#### Rolling window dans le pipeline de réentraînement
-- `src/rec_oncf/retrain.py` : paramètre `window_months: int | None` dans `retrain_pipeline()`, filtre sur `DateOffset`, `window_months` et `train_rows` dans le rapport
-- `scripts/07_retrain.py` : argument CLI `--window-months N`, affichage dans le rapport
-- `tests/test_retrain.py` : `test_retrain_pipeline_rolling_window()` — 17 tests (était 16)
-- `CLAUDE.md` : mis à jour (114→115 tests, test_retrain 16→17)
+### Prochaine action
 
-### Prochaine action (avant livraison)
+1. **Overleaf** : uploader `rapport_pfa_v2.tex` + dossier `pic/` mis à jour → recompiler (2 passes)
+2. **Vérifier le PDF** final avant soutenance
 
-1. **Uploader sur Overleaf** : `rapport_pfa_v2.tex` + dossier `pic/`
-2. **Compiler** (2 passes) et vérifier le PDF
-3. **Merger** `feat/post-meeting-pivot` → `main` quand rapport PDF validé
-
-### Nouveaux fichiers créés (session 2026-05-15)
+### Fichiers clés créés / modifiés (toutes sessions)
 
 | Fichier | Description |
 |---|---|
 | `deploy/Dockerfile` | Multi-stage, python:3.12-slim, user non-root `oncf` |
-| `deploy/docker-compose.yml` | Services api + redis:7-alpine, volumes bind-mount |
-| `deploy/.env.example` | 7 variables documentées (LOG_LEVEL, MODEL_DIR, DATA_DIR…) |
-| `deploy/.dockerignore` | Exclusions build context (venv, data, models, tests) |
-| `docs/guide_deploiement.tex` | Guide déploiement source (contenu intégré dans le rapport) |
-| `tests/test_health_enriched.py` | Test du `/health` enrichi |
+| `deploy/docker-compose.yml` | Services api + redis:7-alpine |
+| `deploy/.env.example` | 7 variables documentées |
+| `deploy/.dockerignore` | Exclusions build context |
+| `docs/guide_deploiement.tex` | Source du guide (contenu intégré dans le rapport en annexe) |
+| `tests/test_health_enriched.py` | Tests `/health` enrichi |
+| `scripts/generate_figures.py` | Génération des 20 figures principales (réécriture complète) |
+| `scripts/generate_extra_figures.py` | 3 figures supplémentaires (pytest, CI, Task Scheduler) |
 
 ---
 
