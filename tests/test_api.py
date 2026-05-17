@@ -111,7 +111,14 @@ def client():
 def test_health_endpoint(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json()["status"] in {"ok", "degraded"}
+    data = response.json()
+    assert data["status"] in {"ok", "degraded"}
+    assert "model_loaded" in data
+    assert "popularity_loaded" in data
+    assert "n_users_history" in data
+    assert isinstance(data["model_loaded"], bool)
+    assert isinstance(data["popularity_loaded"], bool)
+    assert isinstance(data["n_users_history"], int)
 
 
 def test_recommend_returns_model_mode_for_known_user(client):
