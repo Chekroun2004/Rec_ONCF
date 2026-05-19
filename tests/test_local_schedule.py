@@ -167,6 +167,24 @@ def test_get_local_schedule_no_now_returns_all(od_index):
     assert len(result) >= 1
 
 
+def test_get_local_schedule_caps_at_limit():
+    # Build a fake index with 10 upcoming trips, verify only 3 are returned
+    od = {("A", "B"): [{"depart": f"{h:02d}:00", "arrive": f"{h+1:02d}:00"} for h in range(8, 18)]}
+    lm = {"R": ("A", "B")}
+    now = datetime(2026, 5, 19, 6, 0, tzinfo=ZoneInfo("Africa/Casablanca"))
+    result = get_local_schedule("R", lm, od, now=now)
+    assert len(result) == 3
+    assert [t["depart"] for t in result] == ["08:00", "09:00", "10:00"]
+
+
+def test_get_local_schedule_custom_limit():
+    od = {("A", "B"): [{"depart": f"{h:02d}:00", "arrive": f"{h+1:02d}:00"} for h in range(8, 18)]}
+    lm = {"R": ("A", "B")}
+    now = datetime(2026, 5, 19, 6, 0, tzinfo=ZoneInfo("Africa/Casablanca"))
+    result = get_local_schedule("R", lm, od, now=now, limit=5)
+    assert len(result) == 5
+
+
 # ── save / load roundtrip ──────────────────────────────────────────────────
 
 def test_save_load_roundtrip(od_index, tmp_path):

@@ -154,7 +154,7 @@ function formatRouteLabel(raw) {
  */
 function renderScheduleItems(items) {
   if (!items || items.length === 0) {
-    return `<p class="schedule-unavailable">Horaires indisponibles</p>`;
+    return `<p class="schedule-unavailable">Horaire non disponible (trajet LGV ou avec correspondance)</p>`;
   }
 
   const rows = items.map((item) => {

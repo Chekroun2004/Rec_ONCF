@@ -71,12 +71,15 @@ def get_local_schedule(
     liaison_map: dict[str, tuple[str, str]],
     od_index: dict[tuple[str, str], list[dict[str, str]]],
     now: datetime | None = None,
+    *,
+    limit: int = 3,
 ) -> list[dict[str, str]]:
     """Returns upcoming departures for a LiaisonId.
 
     If now is given, filters out past departures. now must be timezone-aware
     and is normalized to Africa/Casablanca before comparison.
-    If all trains have passed, returns first 3 (next-day cycle).
+    Returns at most `limit` trips (default 3). If all trains have passed,
+    returns the first `limit` of the day (next-day cycle).
     """
     stations = liaison_map.get(str(liaison_id))
     if not stations:
@@ -97,7 +100,7 @@ def get_local_schedule(
         )
     current_hhmm = now.astimezone(_TZ_CASABLANCA).strftime("%H:%M")
     upcoming = [t for t in trips if t["depart"] >= current_hhmm]
-    return upcoming if upcoming else trips[:3]
+    return (upcoming or trips)[:limit]
 
 
 def save_schedule_index(
