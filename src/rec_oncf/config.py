@@ -44,7 +44,7 @@ def default_paths() -> Paths:
     cold_start_path = models_dir / "cold_start.joblib"
     onnx_model_path = models_dir / "xgb_ranker.onnx"
     popularity_path = models_dir / "popularity.joblib"
-    horaire_csv_path    = desktop / "horaire.csv"
+    horaire_csv_path = desktop / "horaire.csv"
     schedule_index_path = models_dir / "schedule_index.joblib"
 
     return Paths(
