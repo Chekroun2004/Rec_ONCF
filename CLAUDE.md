@@ -30,7 +30,7 @@
 
 ## ✅ ÉTAT ACTUEL — Tout livré (2026-05-16)
 
-**Branch:** `main` — **115/115 tests passent.** — Working tree propre.
+**Branch:** `main` — **133/133 tests passent.** — Working tree propre.
 
 **Deadline livraison : lundi 2026-05-18 matin.**
 
@@ -45,7 +45,7 @@
 | **Challenger + Promotion** | ✅ Livré | `scripts/09_train_challenger.py` + `scripts/10_promote_challenger.py` — challenger promu en prod |
 | **Rapport** | ✅ Livré | `rapport_pfa_v2.tex` — résultats A/B testing ajoutés (§ Expérience Challenger) |
 | **Figures** | ✅ Livrées | 23 PNG dans `pic/` — layouts formels, couleurs ONCF, sans chevauchement |
-| **Tests** | ✅ 115/115 | 13 modules de tests, dernière exécution : 47.83 s |
+| **Tests** | ✅ 133/133 | 14 modules de tests |
 | **Lint (ruff)** | ✅ Clean | `ruff check scripts/ src/` → 0 erreur |
 | **Contexte académique** | ✅ Ajouté | Stage PFA M1 IGOV dans rapport + CLAUDE.md (16 mars–16 juin 2026) |
 | **Migration CSV** | 🔒 Deferred | En attente des vrais CSV ONCF (`users_history.csv`, `trains_schedule.csv`) |
@@ -140,6 +140,8 @@ Rec_ONCF/
 │   ├── recommender.py      # Recommender dataclass — from_paths / from_data / recommend()
 │   ├── schedule.py         # ONCF live schedule scraping — STATION_CODES, build_liaison_station_map,
 │   │                       #   fetch_departures, get_schedule (Redis/memory cache, HTML parsing)
+│   ├── local_schedule.py   # offline schedule index — parse_horaire_csv, build_od_index,
+│   │                       #   get_local_schedule, save/load_schedule_index
 │   ├── popularity.py       # build_popularity_list() — LiaisonIds ordered by global frequency;
 │   │                       #   save_popularity / load_popularity
 │   └── __init__.py
@@ -163,6 +165,7 @@ Rec_ONCF/
 │   ├── 06_export_onnx.py   # xgb_ranker.json → models/xgb_ranker.onnx + benchmark  ✅ done
 │   ├── 07_retrain.py       # full retrain + KPI guardrail → promote models/  ✅ done
 │   ├── 08_build_popularity.py # oncf_clean → models/popularity.joblib  ✅ done
+│   ├── 11_build_schedule_index.py  # horaire.csv → models/schedule_index.joblib  ✅ done
 │   └── _doc_gen.py         # utility — prints dataset stats to stdout (not part of pipeline)
 │
 ├── tests/
@@ -174,6 +177,7 @@ Rec_ONCF/
 │   ├── test_cleaning.py    # 5 tests   ✅ passing  (cancellation propagation, cold start, join, etc.)
 │   ├── test_api.py         # 18 tests  ✅ passing  (FastAPI TestClient — /health, /recommend, validation, schedule enrichment, variant routing, /feedback, labels, popularity fallback, demo page)
 │   ├── test_schedule.py    # 14 tests  ✅ passing  (station codes, HTML parser, HTTP mock, caching)
+│   ├── test_local_schedule.py # 19 tests ✅ passing (parse, O/D index, time filter, save/load)
 │   ├── test_cold_start.py  # 9 tests   ✅ passing  (co-occurrence, recommend, save/load)
 │   ├── test_onnx.py        # 7 tests   ✅ passing  (export, proba parity, output shape, FastPreprocessor)
 │   ├── test_retrain.py     # 17 tests  ✅ passing  (load_metrics, guardrail, evaluate, promote, pipeline, write_challenger, rolling_window)
@@ -213,6 +217,7 @@ Rec_ONCF/
 |---|---|---|
 | `Desktop/oncf_data.csv` | raw | Raw ONCF bookings CSV (on user's Desktop) |
 | `Desktop/Liaison.csv` | raw | Route lookup table (on user's Desktop) |
+| `Desktop/horaire.csv` | raw | Train timetable — 2683 stops, 395 trains, 122 stations (UTF-8 BOM, comma-separated) |
 | `data/processed/oncf_clean.parquet` | 491,680 | Cleaned bookings with all original fields |
 | `data/processed/features.parquet` | 491,680 | Model-ready feature table (26 cols, see below) |
 
@@ -337,6 +342,8 @@ label_encoder_path     = models_dir / "label_encoder.joblib"
 cold_start_path        = models_dir / "cold_start.joblib"
 onnx_model_path        = models_dir / "xgb_ranker.onnx"                 # challenger ONNX — 286 MB
 popularity_path        = models_dir / "popularity.joblib"                # ~120 KB, script 08
+horaire_csv_path       = desktop / "horaire.csv"                          # horaire CSV (2683 stops, 395 trains)
+schedule_index_path    = models_dir / "schedule_index.joblib"             # 1461 O/D pairs, ~200 KB
 # Challenger (A/B testing)
 challenger_model       = models_dir / "xgb_ranker_challenger.json"       # copie challenger post-promo
 challenger_le          = models_dir / "label_encoder_challenger.joblib"
@@ -359,7 +366,7 @@ FastAPI app — **written, model available, ready to start.**
 - `GET /` → ONCF-styled demo web page (self-contained HTML/CSS/JS; POSTs to `/recommend` and renders top-k routes). Static assets served at `GET /static/*` from `apps/api/static/`. `code_client` is only ever sent in the POST body — never in the URL or browser storage (Loi 09-08).
 - `GET /health` → `{"status": "ok"}`
 - `POST /recommend?variant=a|b` → `{"mode": "model"|"cold_start_cf"|"popularity"|"cold_start", "recommendations": [...], "labels": {"LiaisonId": "GARE DEPART → GARE ARRIVEE", ...}, "variant": "a"|"b", "request_id": "<uuid>"}`
-- `GET /schedule/{liaison_id}` → `{"liaison_id": "...", "schedule": [{"depart": "HH:MM", "arrive": "HH:MM", "train": "..."}]}` — best-effort live scrape; returns `[]` when station is unmapped or oncf.ma is unreachable. Used by the demo UI for lazy per-card schedule loading.
+- `GET /schedule/{liaison_id}` → `{"liaison_id": "...", "schedule": [{"depart": "HH:MM", "arrive": "HH:MM", "train": "..."}]}` — serves from local index (`schedule_index.joblib`) first; returns `[]` for LiaisonIds not covered. Used by the demo UI for lazy per-card schedule loading.
 - `POST /feedback` → `{"status": "ok"}` — log click event for CTR measurement
 
 **Request body (`/recommend`):**
@@ -368,7 +375,7 @@ FastAPI app — **written, model available, ready to start.**
 ```
 `k` is clamped to [1, 3] by Pydantic validation.
 `variant` query param (default `"a"`): `"b"` routes to challenger model; unknown values fall back to `"a"`.
-`include_schedule` (bool, default false): when true, each recommended LiaisonId is enriched with next departures scraped from oncf.ma (cached 1hr per (origin, dest, date)). Stations without a known ONCF code return `[]` silently. Adds a `schedules` dict to the response.
+`include_schedule` (bool, default false): when true, each recommended LiaisonId is enriched with next departures from the local schedule index (`schedule_index.joblib`). LiaisonIds not in the index return `[]` silently. Adds a `schedules` dict to the response.
 
 **Request body (`/feedback`):**
 ```json
@@ -435,9 +442,10 @@ recommender.recommend(code_client, k=1)  # returns dict
 | API latency p50 (ONNX + FastPreprocessor) | ✅ ~13.74 ms | FastPreprocessor replaced ColumnTransformer.transform (11.31ms → ~0.01ms); p99 ~16.89ms |
 | Retraining pipeline (script 07) | ✅ Done | `scripts/07_retrain.py --dry-run`; guardrail blocks if HR@1 drops >5pp |
 | Structured logging (`apps/api/main.py`) | ✅ Done | JSON logs → `logs/api.log`; per-request `mode`, `latency_ms`, `k`, `n_recommendations`; `code_client` never logged |
-| ONCF schedule scraping (`schedule.py`) | ✅ Done | 24 stations, Redis+memory cache, `include_schedule` flag in API |
+| ONCF schedule scraping (`schedule.py`) | ✅ Done | 24 stations codées, Redis cache conservé; `local_schedule.py` est désormais la source principale pour `/schedule` |
 | A/B testing framework (`apps/api/main.py`) | ✅ Done | `?variant=a|b`, `/feedback`, `request_id` correlation |
 | Popularity fallback + demo UI | ✅ Done | `mode: "popularity"` replaces empty cold_start; `"labels"` key in every `/recommend` response; ONCF-styled demo page at `GET /` |
+| Local schedule index (`local_schedule.py`) | ✅ Done | `models/schedule_index.joblib` — 1461 O/D pairs, 606/1067 LiaisonIds couverts, remplace scraper oncf.ma |
 
 ---
 
