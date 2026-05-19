@@ -104,6 +104,7 @@ def client():
     app.state.recommender_a = rec
     app.state.recommender_b = rec   # same rec — no challenger in tests
     app.state.liaison_map = {}
+    app.state.schedule_index = {}   # ← add this line
     app.state.redis = None
     return TestClient(app)
 
@@ -159,8 +160,8 @@ def test_recommend_no_schedules_field_by_default(client):
 
 
 def test_recommend_include_schedule_adds_schedules_field(client):
-    mock_sched = [{"depart": "07:00", "arrive": "09:30", "train": "1234"}]
-    with patch("apps.api.main.get_schedule", return_value=mock_sched):
+    mock_sched = [{"depart": "07:00", "arrive": "09:30"}]
+    with patch("apps.api.main.get_local_schedule", return_value=mock_sched):
         resp = client.post(
             "/recommend",
             json={"code_client": "1001", "k": 1, "include_schedule": True},
@@ -279,8 +280,8 @@ def test_schedule_endpoint_returns_liaison_and_empty_list_for_unmapped(client):
 
 
 def test_schedule_endpoint_mocked_returns_data(client):
-    mock_deps = [{"depart": "08:00", "arrive": "10:30", "train": "705"}]
-    with patch("apps.api.main.get_schedule", return_value=mock_deps):
+    mock_deps = [{"depart": "08:00", "arrive": "10:30"}]
+    with patch("apps.api.main.get_local_schedule", return_value=mock_deps):
         resp = client.get("/schedule/A")
     assert resp.status_code == 200
     body = resp.json()
