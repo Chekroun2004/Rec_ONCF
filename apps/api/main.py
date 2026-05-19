@@ -25,7 +25,8 @@ if str(SRC_DIR) not in sys.path:
 from rec_oncf.config import default_paths
 from rec_oncf.io import read_parquet
 from rec_oncf.recommender import Recommender
-from rec_oncf.schedule import build_liaison_station_map, get_schedule
+from rec_oncf.local_schedule import get_local_schedule, load_schedule_index
+from rec_oncf.schedule import build_liaison_station_map
 
 
 @asynccontextmanager
@@ -64,6 +65,15 @@ async def lifespan(app: FastAPI):
 
     clean = read_parquet(paths.processed_dataset_parquet)
     app.state.liaison_map = build_liaison_station_map(clean)
+    app.state.schedule_index = load_schedule_index(paths.schedule_index_path)
+    if app.state.schedule_index:
+        logger.info(
+            f"Schedule index loaded: {len(app.state.schedule_index)} O/D pairs"
+        )
+    else:
+        logger.warning(
+            "schedule_index.joblib not found — run scripts/11_build_schedule_index.py"
+        )
     try:
         import redis as redis_lib
         r = redis_lib.Redis(host="localhost", port=6379, decode_responses=True)
@@ -144,7 +154,9 @@ def recommend(req: RecommendRequest, variant: str = "a"):
     if req.include_schedule and result["recommendations"]:
         now = datetime.now(tz=ZoneInfo("Africa/Casablanca"))
         def _fetch(lid: str) -> tuple[str, list]:
-            return lid, get_schedule(lid, app.state.liaison_map, now, redis_client=app.state.redis)
+            return lid, get_local_schedule(
+                lid, app.state.liaison_map, app.state.schedule_index, now
+            )
         with ThreadPoolExecutor(max_workers=3) as pool:
             result["schedules"] = dict(pool.map(_fetch, result["recommendations"]))
 
@@ -169,7 +181,9 @@ class ScheduleResponse(BaseModel):
 @app.get("/schedule/{liaison_id}", response_model=ScheduleResponse)
 def schedule_endpoint(liaison_id: str):
     now = datetime.now(tz=ZoneInfo("Africa/Casablanca"))
-    deps = get_schedule(liaison_id, app.state.liaison_map, now, redis_client=app.state.redis)
+    deps = get_local_schedule(
+        liaison_id, app.state.liaison_map, app.state.schedule_index, now
+    )
     return {"liaison_id": liaison_id, "schedule": deps}
 
 
