@@ -22,6 +22,7 @@ RUN pip install --upgrade pip \
         "uvicorn[standard]==0.30.*" \
         "pydantic>=2.0,<3.0" \
         "pandas>=3.0,<4.0" \
+        "pyarrow>=16.0,<20.0" \
         "xgboost==3.2.*" \
         "scikit-learn>=1.4,<2.0" \
         "onnxruntime>=1.18,<2.0" \
@@ -39,7 +40,7 @@ FROM python:3.12-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/install/bin:$PATH" \
-    PYTHONPATH="/app/src"
+    PYTHONPATH="/app/src:/install/lib/python3.12/site-packages"
 
 RUN groupadd --gid 1000 oncf \
     && useradd --uid 1000 --gid oncf --shell /bin/bash --create-home oncf
