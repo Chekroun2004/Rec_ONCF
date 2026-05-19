@@ -57,6 +57,9 @@ def build_od_index(
     return index
 
 
+_TZ_CASABLANCA = __import__("zoneinfo").ZoneInfo("Africa/Casablanca")
+
+
 def get_local_schedule(
     liaison_id: str,
     liaison_map: dict[str, tuple[str, str]],
@@ -65,7 +68,8 @@ def get_local_schedule(
 ) -> list[dict[str, str]]:
     """Returns upcoming departures for a LiaisonId.
 
-    If now is given, filters out past departures.
+    If now is given, filters out past departures. now must be timezone-aware
+    and is normalized to Africa/Casablanca before comparison.
     If all trains have passed, returns first 3 (next-day cycle).
     """
     stations = liaison_map.get(str(liaison_id))
@@ -81,6 +85,8 @@ def get_local_schedule(
     if now is None:
         return trips
 
+    if now.tzinfo is not None:
+        now = now.astimezone(_TZ_CASABLANCA)
     current_hhmm = now.strftime("%H:%M")
     upcoming = [t for t in trips if t["depart"] >= current_hhmm]
     return upcoming if upcoming else trips[:3]
