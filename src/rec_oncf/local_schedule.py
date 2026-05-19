@@ -12,13 +12,19 @@ _TZ_CASABLANCA = ZoneInfo("Africa/Casablanca")
 
 
 def parse_horaire_csv(path: Path) -> pd.DataFrame:
-    """Reads horaire.csv (no header, semicolon-separated) and normalizes station names."""
+    """Reads horaire.csv (no header, auto-detected separator) and normalizes station names.
+
+    Supports both comma-separated and semicolon-separated variants.
+    UTF-8 BOM is handled transparently via the utf-8-sig encoding.
+    """
     df = pd.read_csv(
         path,
-        sep=";",
+        sep=None,
+        engine="python",
         header=None,
         names=["gare", "arrivee", "depart", "ordre", "num_commercial"],
         dtype=str,
+        encoding="utf-8-sig",
     )
     df["gare"] = df["gare"].str.strip().str.upper()
     df["ordre"] = df["ordre"].astype(int)
