@@ -3,9 +3,12 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import joblib
 import pandas as pd
+
+_TZ_CASABLANCA = ZoneInfo("Africa/Casablanca")
 
 
 def parse_horaire_csv(path: Path) -> pd.DataFrame:
@@ -57,9 +60,6 @@ def build_od_index(
     return index
 
 
-_TZ_CASABLANCA = __import__("zoneinfo").ZoneInfo("Africa/Casablanca")
-
-
 def get_local_schedule(
     liaison_id: str,
     liaison_map: dict[str, tuple[str, str]],
@@ -85,9 +85,11 @@ def get_local_schedule(
     if now is None:
         return trips
 
-    if now.tzinfo is not None:
-        now = now.astimezone(_TZ_CASABLANCA)
-    current_hhmm = now.strftime("%H:%M")
+    if now.tzinfo is None:
+        raise ValueError(
+            "now must be timezone-aware; pass e.g. datetime.now(tz=ZoneInfo('Africa/Casablanca'))"
+        )
+    current_hhmm = now.astimezone(_TZ_CASABLANCA).strftime("%H:%M")
     upcoming = [t for t in trips if t["depart"] >= current_hhmm]
     return upcoming if upcoming else trips[:3]
 
