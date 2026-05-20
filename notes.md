@@ -28,9 +28,9 @@
 
 ---
 
-## ✅ ÉTAT ACTUEL — Intégration horaire.csv (2026-05-19)
+## ✅ ÉTAT ACTUEL — Session 2026-05-20 (test1.csv + horaire enrichi)
 
-**Branch:** `main` — **135/135 tests passent.** — Working tree propre.
+**Branch:** `main` — **140/140 tests passent.** — Working tree propre.
 
 **Deadline livraison initiale : lundi 2026-05-18 matin (passée).**
 
@@ -45,11 +45,50 @@
 | **Challenger + Promotion** | ✅ Livré | `scripts/09_train_challenger.py` + `scripts/10_promote_challenger.py` — challenger promu en prod |
 | **Rapport** | ✅ Livré | `rapport_pfa_v2.tex` — résultats A/B testing ajoutés (§ Expérience Challenger) |
 | **Figures** | ✅ Livrées | 23 PNG dans `pic/` — layouts formels, couleurs ONCF, sans chevauchement |
-| **Tests** | ✅ 135/135 | 14 modules de tests |
-| **Intégration horaire.csv** | ✅ Livré | `local_schedule.py`, script 11, index O/D offline (1461 paires), cap top 3 dans l'UI |
+| **Tests** | ✅ 140/140 | 16 modules de tests (+5 extract_days) |
+| **Horaire enrichi (LGV+Marrakech)** | ✅ Livré | `parse_horaire_csv` mis à jour (nouveau format header + H:MM:SS) — couverture **57% → 96.5% (1030/1067)** |
+| **Module extract_days** | ✅ Livré | `src/rec_oncf/extract_days.py` + `tests/test_extract_days.py` (5 tests TDD) |
+| **Script 12a** | ✅ Livré | `scripts/12a_extract_test1_days.py` — prêt, bloqué par format test1.csv (voir ci-dessous) |
 | **Lint (ruff)** | ✅ Clean | `ruff check scripts/ src/` → 0 erreur |
 | **Contexte académique** | ✅ Ajouté | Stage PFA M1 IGOV dans rapport + CLAUDE.md (16 mars–16 juin 2026) |
-| **Migration CSV** | 🔒 Deferred | En attente des vrais CSV ONCF (`users_history.csv`, `trains_schedule.csv`) |
+| **Migration CSV** | 🔴 Bloqué | `test1.csv` reçu mais format `DateHeureDepartVoyageSegment` incompatible (voir ci-dessous) |
+
+### Session 2026-05-20 — horaire.csv enrichi + modules simulation (en cours)
+
+#### Ce qui a été livré
+
+- **`src/rec_oncf/local_schedule.py`** : `parse_horaire_csv` mis à jour pour supporter le nouveau format du `horaire.csv` enrichi :
+  - Ancien format : pas de header, séparateur `;`, heures `HH:MM:SS`
+  - Nouveau format : header (`Gare,HeureArrivee,HeureDepart,Order,NumeroCommercial`), séparateur `,`, heures `H:MM:SS` (sans zéro initial)
+  - Ajout de `_normalize_time()` pour normaliser `H:MM:SS` → `HH:MM:SS`
+  - Auto-détection : si header reconnu → colonnes mappées ; sinon fallback `header=None` (rétrocompatible)
+- **`models/schedule_index.joblib`** : reconstruit avec `horaire.csv` enrichi — **couverture 57% → 96.5% (1030/1067 LiaisonIds)**. Données : 2759 arrêts, 309 trains, 122 gares, 2750 paires O/D.
+- **`src/rec_oncf/extract_days.py`** (nouveau) : `extract_last_n_days(df, n=7, date_col=...)` — split en `base` + dict des n derniers jours calendaires
+- **`tests/test_extract_days.py`** (nouveau) : 5 tests TDD (extract 7j, clés dates, conservation lignes, dates base, cohérence par jour)
+- **`scripts/12a_extract_test1_days.py`** (nouveau) : CLI d'extraction — prêt mais bloqué par le format de `test1.csv`
+- **Spec design** : `docs/superpowers/specs/2026-05-20-test1-daily-retrain-design.md` — design complet validé (4 phases)
+- **Plan d'implémentation** : `docs/superpowers/plans/2026-05-20-test1-daily-retrain.md` — 11 tasks détaillées
+
+#### Blocage identifié — format test1.csv
+
+`test1.csv` (1 000 000 lignes, reçu le 2026-05-20) a un format **différent** de `oncf_data.csv` :
+
+| Colonne | `oncf_data.csv` | `test1.csv` |
+|---|---|---|
+| `DateHeureDepartVoyageSegment` | `8/6/2019 19:00` (date + heure complète) | `21:00.0` (heure seulement, sans date) |
+| `DatePaiement` | date seule | `11/3/2021` (date seule, format mixte D/M/Y ou M/D/Y) |
+
+~546k/1M lignes ont des valeurs `>= 50:00.0` (impossibles comme heures) — probablement un artefact Excel.
+
+**Question à résoudre avant de continuer Phase 3** : obtenir une version de `test1.csv` avec `DateHeureDepartVoyageSegment` contenant le datetime complet (comme `oncf_data.csv`), ou décider d'une stratégie de reconstruction (ex: combiner `DatePaiement` + heure extraite de la valeur actuelle, en ignorant les ~546k lignes invalides).
+
+#### Prochaine action
+
+1. **Résoudre le format test1.csv** — demander à l'ONCF le fichier avec datetime complet, ou décider comment reconstruire les dates manquantes
+2. Une fois résolu, reprendre le plan depuis **Task 3** (`scripts/12a_extract_test1_days.py`) — tout le reste est prêt (Tasks 4–8 peuvent être implémentées)
+3. Le plan complet est dans `docs/superpowers/plans/2026-05-20-test1-daily-retrain.md`
+
+---
 
 ### Session 2026-05-19/20 — Intégration horaire.csv + Fix Docker
 
@@ -111,12 +150,10 @@
 
 ### Prochaine action
 
-1. **Recevoir test1.csv et test2.csv** (voyages 2021 et 2023) — pipeline retrain déjà prête, il suffira de :
-   - Placer les fichiers sur le Desktop
-   - Adapter `scripts/01_make_dataset.py` pour ingérer les nouveaux CSV (même structure que `oncf_data.csv`)
-   - Lancer `scripts/07_retrain.py --window-months 6` (60 jours sera filtré dans le retrain)
-2. **(Optionnel) Compléter horaire.csv** avec les trajets LGV Al Boraq pour passer de 606/1067 à >800 LiaisonId couverts
-3. **Rapport** : ajouter un paragraphe court mentionnant l'intégration horaire.csv offline (remplacement scraper) dans le chapitre Sprint 2 ou Phase 3
+1. **Résoudre le format test1.csv** : obtenir le fichier avec `DateHeureDepartVoyageSegment` complet (date + heure) comme dans `oncf_data.csv` — ou décider d'une reconstruction
+2. **Reprendre Task 3** du plan `docs/superpowers/plans/2026-05-20-test1-daily-retrain.md` une fois le CSV corrigé
+3. Les Tasks 4–8 (baseline, hyperparams, simulation) sont entièrement rédigées et prêtes à exécuter
+4. **Rapport** : section "Intégration 2021 + simulation quotidienne" à rédiger après avoir les chiffres réels
 4. **Overleaf** : recompiler `rapport_pfa_v2.tex` → vérifier le PDF avant soutenance
 
 ### Fichiers clés créés / modifiés (toutes sessions)
@@ -132,9 +169,14 @@
 | `scripts/generate_extra_figures.py` | 3 figures supplémentaires (pytest, CI, Task Scheduler) |
 | `scripts/09_train_challenger.py` | Entraîne un challenger (max_depth=8, 250 arbres), exporte ONNX, compare vs prod |
 | `scripts/10_promote_challenger.py` | Archive le prod, promeut le challenger, met à jour offline_metrics.json |
-| `src/rec_oncf/local_schedule.py` | Index O/D local — parse_horaire_csv, build_od_index, get_local_schedule(limit=3) |
-| `scripts/11_build_schedule_index.py` | horaire.csv → models/schedule_index.joblib (1461 paires O/D) |
+| `src/rec_oncf/local_schedule.py` | Index O/D local — parse_horaire_csv (supporte nouveau format header + H:MM:SS), build_od_index, get_local_schedule(limit=3) |
+| `scripts/11_build_schedule_index.py` | horaire.csv → models/schedule_index.joblib (2750 paires O/D, couverture 96.5%) |
 | `tests/test_local_schedule.py` | 21 tests TDD — parsing, index, filtre temporel, cap top 3, save/load |
+| `src/rec_oncf/extract_days.py` | extract_last_n_days() — split df en base + dict des n derniers jours calendaires |
+| `tests/test_extract_days.py` | 5 tests TDD — extraction 7j, clés dates, conservation lignes, cohérence |
+| `scripts/12a_extract_test1_days.py` | CLI : test1.csv → data/raw/test1_base.csv + 7 CSVs jour (bloqué format test1) |
+| `docs/superpowers/specs/2026-05-20-test1-daily-retrain-design.md` | Spec design validé — 4 phases, décisions architecture |
+| `docs/superpowers/plans/2026-05-20-test1-daily-retrain.md` | Plan implémentation — 11 tasks TDD, code complet |
 
 ---
 
