@@ -11,22 +11,58 @@ import pandas as pd
 _TZ_CASABLANCA = ZoneInfo("Africa/Casablanca")
 
 
-def parse_horaire_csv(path: Path) -> pd.DataFrame:
-    """Reads horaire.csv (no header, auto-detected separator) and normalizes station names.
+def _normalize_time(t: str) -> str:
+    """Normalize H:MM:SS or HH:MM:SS to zero-padded HH:MM:SS."""
+    if not isinstance(t, str) or not t.strip():
+        return t
+    parts = t.strip().split(":")
+    if len(parts) == 3:
+        return f"{int(parts[0]):02d}:{int(parts[1]):02d}:{int(parts[2]):02d}"
+    return t
 
-    Supports both comma-separated and semicolon-separated variants.
-    UTF-8 BOM is handled transparently via the utf-8-sig encoding.
+
+def parse_horaire_csv(path: Path) -> pd.DataFrame:
+    """Reads horaire.csv and normalizes station names and times.
+
+    Supports two formats:
+    - New format (with header): Gare,HeureArrivee,HeureDepart,Order,NumeroCommercial
+    - Old format (no header): gare;arrivee;depart;ordre;num_commercial
+    Separator is auto-detected. UTF-8 BOM handled via utf-8-sig encoding.
+    Times are normalized to HH:MM:SS with leading zeros.
     """
+    _COL_MAP = {
+        "Gare": "gare",
+        "HeureArrivee": "arrivee",
+        "HeureDepart": "depart",
+        "Order": "ordre",
+        "NumeroCommercial": "num_commercial",
+    }
+    _REQUIRED = {"gare", "arrivee", "depart", "ordre", "num_commercial"}
+
     df = pd.read_csv(
         path,
         sep=None,
         engine="python",
-        header=None,
-        names=["gare", "arrivee", "depart", "ordre", "num_commercial"],
         dtype=str,
         encoding="utf-8-sig",
     )
+    renamed = df.rename(columns=_COL_MAP)
+    if _REQUIRED <= set(renamed.columns):
+        df = renamed[list(_REQUIRED)]
+    else:
+        df = pd.read_csv(
+            path,
+            sep=None,
+            engine="python",
+            header=None,
+            names=["gare", "arrivee", "depart", "ordre", "num_commercial"],
+            dtype=str,
+            encoding="utf-8-sig",
+        )
+
     df["gare"] = df["gare"].str.strip().str.upper()
+    for col in ("arrivee", "depart"):
+        df[col] = df[col].str.strip().apply(_normalize_time)
     df["ordre"] = df["ordre"].astype(int)
     return df
 
