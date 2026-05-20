@@ -28,11 +28,11 @@
 
 ---
 
-## ✅ ÉTAT ACTUEL — Tout livré (2026-05-16)
+## ✅ ÉTAT ACTUEL — Intégration horaire.csv (2026-05-19)
 
-**Branch:** `main` — **133/133 tests passent.** — Working tree propre.
+**Branch:** `main` — **135/135 tests passent.** — Working tree propre.
 
-**Deadline livraison : lundi 2026-05-18 matin.**
+**Deadline livraison initiale : lundi 2026-05-18 matin (passée).**
 
 ### Résumé des livraisons complètes
 
@@ -45,10 +45,40 @@
 | **Challenger + Promotion** | ✅ Livré | `scripts/09_train_challenger.py` + `scripts/10_promote_challenger.py` — challenger promu en prod |
 | **Rapport** | ✅ Livré | `rapport_pfa_v2.tex` — résultats A/B testing ajoutés (§ Expérience Challenger) |
 | **Figures** | ✅ Livrées | 23 PNG dans `pic/` — layouts formels, couleurs ONCF, sans chevauchement |
-| **Tests** | ✅ 133/133 | 14 modules de tests |
+| **Tests** | ✅ 135/135 | 14 modules de tests |
+| **Intégration horaire.csv** | ✅ Livré | `local_schedule.py`, script 11, index O/D offline (1461 paires), cap top 3 dans l'UI |
 | **Lint (ruff)** | ✅ Clean | `ruff check scripts/ src/` → 0 erreur |
 | **Contexte académique** | ✅ Ajouté | Stage PFA M1 IGOV dans rapport + CLAUDE.md (16 mars–16 juin 2026) |
 | **Migration CSV** | 🔒 Deferred | En attente des vrais CSV ONCF (`users_history.csv`, `trains_schedule.csv`) |
+
+### Session 2026-05-19/20 — Intégration horaire.csv + Fix Docker
+
+**Objectif :** Remplacer le scraper oncf.ma par un index local depuis `horaire.csv` (offline, on-premise) + corriger des bugs Docker découverts au rebuild.
+
+#### Ce qui a été livré
+- **`src/rec_oncf/local_schedule.py`** (nouveau) : `parse_horaire_csv`, `build_od_index`, `get_local_schedule(limit=3)`, `save/load_schedule_index`
+- **`scripts/11_build_schedule_index.py`** (nouveau) : parse horaire.csv → `models/schedule_index.joblib`
+- **`apps/api/main.py`** : import local_schedule, charge l'index au startup, `schedule_endpoint` + bloc `include_schedule` utilisent `get_local_schedule` à la place de `get_schedule` (scraper oncf.ma plus jamais appelé)
+- **`apps/api/static/app.js`** : message UI clarifié — "Horaire non disponible (trajet LGV ou avec correspondance)" quand schedule vide
+- **`deploy/Dockerfile`** : 2 fixes critiques — ajout de `pyarrow>=16.0,<20.0` (sinon `pd.read_parquet` crash) + `PYTHONPATH` étendu à `/install/lib/python3.12/site-packages` (sinon `ModuleNotFoundError: uvicorn`)
+- **`tests/test_local_schedule.py`** (nouveau) : 21 tests TDD couvrant parsing, génération O/D, filtre temporel, cap à 3, save/load
+- **`tests/test_api.py`** : mocks mis à jour (`get_schedule` → `get_local_schedule`), fixture client a maintenant `app.state.schedule_index = {}`
+
+#### Découvertes importantes sur les données
+- **horaire.csv** est en réalité **CSV virgule avec BOM UTF-8** (pas point-virgule comme attendu) — `parse_horaire_csv` utilise désormais `sep=None, engine="python", encoding="utf-8-sig"` (auto-détection)
+- **2683 arrêts, 395 trains, 122 gares distinctes** dans horaire.csv
+- **1461 paires O/D générées**, mais **couverture seulement 606/1067 LiaisonIds (57 %)**
+- **461 LiaisonIds manquants** — surtout les trajets LGV Al Boraq (Tanger↔Casa, Tanger↔Rabat, Tanger↔Kenitra) et certains retours Marrakech : aucun train direct dans horaire.csv ne fait ces trajets. Limitation de la source, pas du code.
+
+#### Décisions UX
+- **Routes non couvertes** : `/schedule` retourne `[]`, l'UI affiche un badge "Horaire non disponible (trajet LGV ou avec correspondance)"
+- **Routes couvertes** : top 3 prochains trains après l'heure actuelle (Casablanca TZ), pas la liste complète — respecte la philo zero-click
+- **TZ-aware obligatoire** : `get_local_schedule(now=...)` lève `ValueError` si `now` est naïf (évite des bugs silencieux en CET/UTC)
+
+#### Test des pipelines retrain (test1.csv / test2.csv) — déferré
+- L'utilisateur recevra plus tard `test1.csv` (voyages 2021) et `test2.csv` (voyages 2023), même structure que `oncf_data.csv` (18 colonnes, header, virgule)
+- Méthodologie convenue : prélever les **60 jours les plus récents** de chaque fichier nettoyé pour simuler le retrain quotidien
+- **Fenêtre d'entraînement recommandée : 6 mois glissants** (~80k lignes, ~7 min CPU, capture une saison entière) — utilise `scripts/07_retrain.py --window-months 6`
 
 ### Dernière session (2026-05-16) — A/B Testing + Promotion Challenger
 
@@ -81,8 +111,13 @@
 
 ### Prochaine action
 
-1. **Overleaf** : uploader `rapport_pfa_v2.tex` + `oncf.png` → recompiler (2 passes pdfLaTeX)
-2. **Vérifier le PDF** final avant soutenance
+1. **Recevoir test1.csv et test2.csv** (voyages 2021 et 2023) — pipeline retrain déjà prête, il suffira de :
+   - Placer les fichiers sur le Desktop
+   - Adapter `scripts/01_make_dataset.py` pour ingérer les nouveaux CSV (même structure que `oncf_data.csv`)
+   - Lancer `scripts/07_retrain.py --window-months 6` (60 jours sera filtré dans le retrain)
+2. **(Optionnel) Compléter horaire.csv** avec les trajets LGV Al Boraq pour passer de 606/1067 à >800 LiaisonId couverts
+3. **Rapport** : ajouter un paragraphe court mentionnant l'intégration horaire.csv offline (remplacement scraper) dans le chapitre Sprint 2 ou Phase 3
+4. **Overleaf** : recompiler `rapport_pfa_v2.tex` → vérifier le PDF avant soutenance
 
 ### Fichiers clés créés / modifiés (toutes sessions)
 
@@ -97,6 +132,9 @@
 | `scripts/generate_extra_figures.py` | 3 figures supplémentaires (pytest, CI, Task Scheduler) |
 | `scripts/09_train_challenger.py` | Entraîne un challenger (max_depth=8, 250 arbres), exporte ONNX, compare vs prod |
 | `scripts/10_promote_challenger.py` | Archive le prod, promeut le challenger, met à jour offline_metrics.json |
+| `src/rec_oncf/local_schedule.py` | Index O/D local — parse_horaire_csv, build_od_index, get_local_schedule(limit=3) |
+| `scripts/11_build_schedule_index.py` | horaire.csv → models/schedule_index.joblib (1461 paires O/D) |
+| `tests/test_local_schedule.py` | 21 tests TDD — parsing, index, filtre temporel, cap top 3, save/load |
 
 ---
 
@@ -177,7 +215,7 @@ Rec_ONCF/
 │   ├── test_cleaning.py    # 5 tests   ✅ passing  (cancellation propagation, cold start, join, etc.)
 │   ├── test_api.py         # 18 tests  ✅ passing  (FastAPI TestClient — /health, /recommend, validation, schedule enrichment, variant routing, /feedback, labels, popularity fallback, demo page)
 │   ├── test_schedule.py    # 14 tests  ✅ passing  (station codes, HTML parser, HTTP mock, caching)
-│   ├── test_local_schedule.py # 19 tests ✅ passing (parse, O/D index, time filter, save/load)
+│   ├── test_local_schedule.py # 21 tests ✅ passing (parse, O/D index, time filter, cap top 3, save/load)
 │   ├── test_cold_start.py  # 9 tests   ✅ passing  (co-occurrence, recommend, save/load)
 │   ├── test_onnx.py        # 7 tests   ✅ passing  (export, proba parity, output shape, FastPreprocessor)
 │   ├── test_retrain.py     # 17 tests  ✅ passing  (load_metrics, guardrail, evaluate, promote, pipeline, write_challenger, rolling_window)
