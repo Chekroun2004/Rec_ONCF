@@ -74,7 +74,7 @@ Toute donnée de retrain (`test1.csv`, futurs fichiers) doit produire des featur
 - **Phase B quotidien** : `--day N` (N∈[1,7]) → fenêtre glissante **365j** finissant au jour N, éval **honnête sur J+1** (historique tronqué ≤ D, `Recommender.from_data`), guardrail informatif, log `reports/simulation_daily.json`, modèles isolés `models/sim/`.
 - **7 jours sim** = 7 derniers jours **denses** (`last_n_dates(min_count=200)`, car queue 2022 creuse 1 résa/j) → **2021-12-21, 23, 24, 25, 26, 27, 31** (J+1 = 204–292 résa). Hyperparams = challenger (depth 8, 250 arbres).
 
-**⚠️ Coût** : chaque fenêtre 365j ≈ **816k lignes** (tout 2021) → entraînement **lourd** (~1.5–2 h/jour estimé). Baseline test1 uniquement = bien plus rapide. À lancer en dernier.
+**⚠️ Coût Phase B** : chaque fenêtre 365j ≈ **816k lignes** (653k train, 1,247 classes). Estimation affinée depuis durée baseline réelle (7,690s × 1.13) → **~2h25/jour, ~17h pour les 7 jours**. À lancer séquentiellement (ou overnight).
 
 ### Résultats baseline (Phase A — entraîné 2026-05-22)
 
@@ -86,6 +86,7 @@ Toute donnée de retrain (`test1.csv`, futurs fichiers) doit produire des featur
 
 - Train: 641,307 lignes | Test: 159,977 | Classes: 1,121
 - Hyperparams: identiques au challenger prod (depth=8, n_estimators=250, lr=0.06)
+- Durée réelle : **7,690 s (2h08)**
 - `models/sim/baseline/` (536 MB, fingerprint=`db00fbc47ef0fb01`)
 
 ### Prochaine action
