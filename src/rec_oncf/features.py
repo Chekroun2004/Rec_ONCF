@@ -75,8 +75,8 @@ def build_training_rows(clean_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     df["is_self_purchase"] = (
-        df["AchteurId"].astype(str) == df["CodeClient"].astype(str)
-    ).astype(int)
+        pd.to_numeric(df["AchteurId"], errors="coerce") == df["CodeClient"]
+    ).fillna(False).astype(int)
 
     cat_cols = [
         "TypeParcoursId",

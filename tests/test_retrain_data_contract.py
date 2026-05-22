@@ -121,6 +121,27 @@ def test_feature_dtypes_are_stable_without_nan():
     assert str(feats["DateHeureDepartVoyageSegment"].dtype) == "datetime64[ns]"
 
 
+def test_is_self_purchase_correct_when_achteurid_is_float64():
+    """When AchteurId is float64 (dtype promotion in the combined oncf+test1 clean),
+    is_self_purchase must be 1 where AchteurId numerically equals CodeClient.
+    Bug: astype(str) converts 104078.0 -> '104078.0' which != '104078' -> silent 0."""
+    oncf = _sample_oncf_frame()
+    # Force AchteurId to float64 to simulate pandas dtype promotion in concat
+    oncf = oncf.copy()
+    oncf["AchteurId"] = oncf["AchteurId"].astype(float)
+    liaison = _liaison_lookup([10, 20, 30])
+
+    clean, _, _ = make_clean_dataset(oncf, liaison)
+    feats = build_training_rows(clean)
+
+    # Client 1: all rows have AchteurId == CodeClient == 1 (self-purchases)
+    self_rows = feats[feats["CodeClient"] == 1]["is_self_purchase"]
+    assert (self_rows == 1).all(), (
+        f"is_self_purchase should be 1 for self-purchasers when AchteurId is float64, "
+        f"got {self_rows.value_counts().to_dict()}"
+    )
+
+
 def test_dmy_dates_are_parsed_day_first():
     """test1 dates are D/M/Y. Cleaning must parse them day-first so depart_hour
     and depart_month match the real schedule (not month/day swapped)."""

@@ -1,12 +1,13 @@
 # scripts/12_simulate_daily_retrain.py
-"""Daily-retrain simulation on the combined oncf+test1 universe.
+"""Daily-retrain simulation with two datasets.
 
-Two phases, both reading data/processed/oncf_full_features.parquet (built once
-by 01 --extra-csv + 02). NOTHING here touches the prod model served by the API;
-all artifacts go to models/sim/.
+Phase A (baseline) trains on test1 only (data/processed/test1_features.parquet).
+Phase B (daily) trains on the combined oncf+test1 universe
+(data/processed/oncf_full_features.parquet). NOTHING here touches the prod model
+served by the API; all artifacts go to models/sim/.
 
-  --baseline   train on 2018->2022 minus the 7 simulation days  (Phase A)
-  --day N      365-day sliding window ending at sim-day N, eval on day N+1 (Phase B)
+    --baseline   train on test1 minus the 7 simulation days  (Phase A)
+    --day N      365-day sliding window ending at sim-day N, eval on day N+1 (Phase B)
 
 The actual XGBoost training is the heavy step; run these last.
 """
@@ -63,6 +64,8 @@ CHALLENGER = dict(
     reg_lambda=1.5,
 )
 
+TEST1_CLEAN = PROJECT_ROOT / "data" / "processed" / "test1_clean.parquet"
+TEST1_FEATURES = PROJECT_ROOT / "data" / "processed" / "test1_features.parquet"
 FULL_CLEAN = PROJECT_ROOT / "data" / "processed" / "oncf_full_clean.parquet"
 FULL_FEATURES = PROJECT_ROOT / "data" / "processed" / "oncf_full_features.parquet"
 LOG_PATH = PROJECT_ROOT / "reports" / "simulation_daily.json"
@@ -70,10 +73,20 @@ SIM_ROOT = PROJECT_ROOT / "models" / "sim"
 BASELINE_META = SIM_ROOT / "baseline" / "xgb_ranker.meta.json"
 
 
-def _require_universe() -> None:
-    if not FULL_FEATURES.exists():
+def _require_baseline_universe() -> None:
+    if not TEST1_FEATURES.exists():
         raise FileNotFoundError(
-            f"{FULL_FEATURES} missing. Build the universe first:\n"
+            f"{TEST1_FEATURES} missing. Build test1 features first:\n"
+            f"  python scripts/01_make_dataset.py --input <test1.csv> --output {TEST1_CLEAN}\n"
+            f"  python scripts/02_build_features.py --input {TEST1_CLEAN} --output {TEST1_FEATURES}"
+        )
+
+
+def _require_full_universe() -> None:
+    if not FULL_FEATURES.exists() or not FULL_CLEAN.exists():
+        raise FileNotFoundError(
+            f"Missing full-universe data. Expected:\n  {FULL_CLEAN}\n  {FULL_FEATURES}\n"
+            "Build the universe first:\n"
             "  python scripts/01_make_dataset.py --input <oncf_data.csv> "
             "--extra-csv <test1.csv> --output data/processed/oncf_full_clean.parquet\n"
             "  python scripts/02_build_features.py --input data/processed/oncf_full_clean.parquet "
@@ -108,12 +121,12 @@ def _save(arts, df_train, metrics, train_window, out_dir: Path) -> None:
 
 
 def run_baseline() -> None:
-    _require_universe()
-    features = read_parquet(FULL_FEATURES)
+    _require_baseline_universe()
+    features = read_parquet(TEST1_FEATURES)
     sim_dates = last_n_dates(features, n=N_SIM_DAYS, min_count=MIN_DAY_BOOKINGS)
     train_window = baseline_frame(features, sim_dates=sim_dates)
 
-    print("=== BASELINE (Phase A) — 2018->2022 minus 7 jours ===")
+    print("=== BASELINE (Phase A) — test1 minus 7 jours ===")
     print(f"  Jours de simulation exclus : {sim_dates[0]} .. {sim_dates[-1]}")
     print(f"  Lignes d'entraînement : {len(train_window):,}")
     t0 = time.time()
@@ -126,7 +139,7 @@ def run_baseline() -> None:
 
 
 def run_day(n: int) -> None:
-    _require_universe()
+    _require_full_universe()
     if n < 1 or n > N_SIM_DAYS:
         raise ValueError(f"--day must be in [1, {N_SIM_DAYS}], got {n}")
 
