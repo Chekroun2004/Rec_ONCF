@@ -46,8 +46,8 @@
 | **Ingestion retrain (test1)** | ✅ | `test1.csv` corrigé + débloqué : alias colonnes dans `cleaning.py`, scripts 01/02 paramétrés `--input/--output`, dtypes features figés. Features test1 **identiques** à oncf_data (5 tests contrat dont `is_self_purchase` float64) |
 | **Bug `is_self_purchase`** | ✅ corrigé | `features.py:77` — `astype(str)` convertissait `104078.0` → `"104078.0"` ≠ `"104078"` → 0 pour les lignes test1 dans combined. Fix : comparaison numérique `pd.to_numeric`. oncf_full_features **reconstruit** (0.617 mean is_self_purchase : 0 pour oncf 2018-2020, 1 pour test1 2021-2022) |
 | **Simulation retrain — Phase A** | ✅ **ENTRAÎNÉ** | Baseline sur `test1_features.parquet` (minus 7j) — 641k train / 160k test / 1121 classes — **HR@1=0.7200, HR@3=0.8602, MRR@3=0.7837** — `models/sim/baseline/` (536 MB) |
-| **Simulation retrain — Phase B** | 🔴 à lancer | `--day 1..7` sur `oncf_full_features.parquet` (fenêtre 365j, ~816k lignes/jour) |
-| **Rapport + 23 figures** | ✅ | `rapport_pfa_v2.tex` à jour, layouts ONCF |
+| **Simulation retrain — Phase B** | ✅ **JOUR 1 SEUL** | `--day 1` exécuté (2026-05-22) — fenêtre 365j = 815 997 lignes (652 797 train, 1121 classes). **Split HR@1=0.7119 / HR@3=0.8557 / MRR@3=0.7770**, éval J+1 (2021-12-23)=0.2990/0.5539/0.4118 (n=204), guardrail OK (drop 0.0081), durée 7954s (2h12), `models/sim/day_1/` (570 MB). **Jours 2-7 ANNULÉS** sur décision d'Omar (seul J1 voulu pour démontrer le mécanisme — la série 7 jours a été lancée puis arrêtée). |
+| **Rapport + 24 figures** | ✅ | `rapport_pfa_v2.tex` à jour, layouts ONCF. Section **« Validation du Mécanisme de Réentraînement »** ajoutée (baseline + jour 1, tableaux, pas de figure). ⚠️ `rapport_pfa_v2.tex` est **gitignoré** (« not published to repo ») → sync manuel vers Overleaf |
 | **Lint (ruff)** | ✅ | `ruff check scripts/ src/ tests/` → 0 erreur (**163 tests**) |
 
 ### Données retrain — contrat « même pipeline que oncf_data »
@@ -72,9 +72,10 @@ Toute donnée de retrain (`test1.csv`, futurs fichiers) doit produire des featur
 - **Bug corrigé** : oncf=M/D/Y, test1=D/M/Y ⇒ concaténer en brut puis parser détruisait les dates oncf (−320k lignes). Fix = `load_and_concat._prepare` parse les dates **par fichier** (sa propre convention) avant concat.
 - **Phase A baseline** : `12_simulate_daily_retrain.py --baseline` → train **test1** moins 7 jours (`baseline_frame`). **Pas de fenêtre.**
 - **Phase B quotidien** : `--day N` (N∈[1,7]) → fenêtre glissante **365j** finissant au jour N, éval **honnête sur J+1** (historique tronqué ≤ D, `Recommender.from_data`), guardrail informatif, log `reports/simulation_daily.json`, modèles isolés `models/sim/`.
-- **7 jours sim** = 7 derniers jours **denses** (`last_n_dates(min_count=200)`, car queue 2022 creuse 1 résa/j) → **2021-12-21, 23, 24, 25, 26, 27, 31** (J+1 = 204–292 résa). Hyperparams = challenger (depth 8, 250 arbres).
+- **Jours sim candidats** = 7 derniers jours **denses** (`last_n_dates(min_count=200)`, car queue 2022 creuse 1 résa/j) → **2021-12-21, 23, 24, 25, 26, 27, 31** (J+1 = 204–292 résa). Hyperparams = challenger (depth 8, 250 arbres).
+- **⚠️ Décision 2026-05-22 — SEUL LE JOUR 1 a été exécuté.** Omar ne voulait qu'une démonstration du mécanisme (1 jour), pas la série complète. La chaîne `--day 2..7` a été lancée en arrière-plan puis **arrêtée** (process tree tué proprement, aucun résidu `day_2`). `models/sim/` ne contient que `baseline/` + `day_1/`.
 
-**⚠️ Coût Phase B** : chaque fenêtre 365j ≈ **816k lignes** (653k train, 1,247 classes). Estimation affinée depuis durée baseline réelle (7,690s × 1.13) → **~2h25/jour, ~17h pour les 7 jours**. À lancer séquentiellement (ou overnight).
+**Coût Phase B (mesuré sur jour 1)** : fenêtre 365j = **815 997 lignes** (652 797 train, 1 121 classes), **~2h12/jour** (jour 1 réel : 7954 s). Si la série complète devait être relancée : ~13h pour les 6 jours restants, à lancer séquentiellement.
 
 ### Résultats baseline (Phase A — entraîné 2026-05-22)
 
@@ -89,32 +90,31 @@ Toute donnée de retrain (`test1.csv`, futurs fichiers) doit produire des featur
 - Durée réelle : **7,690 s (2h08)**
 - `models/sim/baseline/` (536 MB, fingerprint=`db00fbc47ef0fb01`)
 
+### Résultats Phase B (jour 1 — exécuté 2026-05-22)
+
+| Métrique | Split interne | Éval J+1 (lendemain réel) | Baseline (réf.) |
+|---|---|---|---|
+| HR@1 | **0.7119** | 0.2990 | 0.7200 |
+| HR@3 | **0.8557** | 0.5539 | 0.8602 |
+| MRR@3 | **0.7770** | 0.4118 | 0.7837 |
+
+- Jour D = 2021-12-21, fenêtre [D−364 ; D] = **815 997 lignes** (652 797 train, 1 121 classes)
+- Éval J+1 = 2021-12-23 (n_eval=204, journée de faible volume)
+- **Guardrail OK** : drop HR@1 = 0.0081 < 0.05 (promotion autorisée)
+- Durée réelle : **7954 s (2h12)** — `models/sim/day_1/` (570 MB)
+- Lecture : split interne ≈ baseline (qualité **stable**) ; J+1 bien plus bas = vraie prédiction prospective sur petit échantillon (rétrodiction vs prédiction). Stabilité **dans la durée** non démontrée (1 seul jour).
+
 ### Prochaine action
 
-#### 1. Phase B — 7 entraînements quotidiens ⬅️ PREMIÈRE ACTION DE LA PROCHAINE SESSION
+> **Phase B close à la demande d'Omar (jour 1 seul).** La série 7 jours n'est plus à l'ordre du jour.
 
-> **Lancer immédiatement en début de session, avant toute autre chose.**
-> Durée estimée : **~2h25/jour, ~17h total**. Laisser tourner en arrière-plan ou overnight.
+#### 1. Rapport — finaliser sur Overleaf
+- Section **« Validation du Mécanisme de Réentraînement »** = **déjà écrite** dans `rapport_pfa_v2.tex` (baseline + jour 1, 3 tableaux, pas de figure). Perspective « Fenêtre glissante » réconciliée (renvoi vers la section + mention « sur CPU » retirée).
+- Corrections déjà appliquées au rapport : compteur tests **115 → 163** (+ tableau de couverture reconstruit sur les 17 fichiers réels), phrase interdite « pivot post-réunion » supprimée, annexe métriques alignée sur le prod actuel (**0.7691/0.9100/0.8333**), décompte figures **23 → 24**.
+- ⚠️ `rapport_pfa_v2.tex` est **gitignoré** → **copier le fichier local vers Overleaf** puis **recompiler** (seul moyen de valider la compilation + le rendu des 24 figures).
 
-```powershell
-# Jour 1 — lancer en premier, vérifier la durée réelle, puis enchaîner 2..7
-.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 1
-.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 2
-.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 3
-.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 4
-.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 5
-.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 6
-.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 7
-```
-
-Résultats dans `reports/simulation_daily.json`, modèles dans `models/sim/day_N/`.
-Après `--day 1` : noter la durée réelle pour affiner l'estimation des jours restants.
-
-#### 2. Rapport (après chiffres Phase B)
-
-- Section "Intégration 2021 + simulation quotidienne" : architecture, résultats baseline (HR@1=0.72) + stabilité jour par jour
-- Figure : courbe HR@1 sur les 7 jours de simulation
-- Recompiler `rapport_pfa_v2.tex` sur Overleaf
+#### 2. (Optionnel) Si la stabilité dans la durée est demandée plus tard
+- Relancer `scripts/12_simulate_daily_retrain.py --day 2..7` (~2h12/jour, ~13h) → `reports/simulation_daily.json` s'accumule, puis ajouter une courbe HR@1 (→ 25 figures) au rapport.
 
 ---
 
@@ -229,6 +229,7 @@ Rec_ONCF/
 | `data/processed/features.parquet` | 491,680 | Features prod oncf_data seul (26 cols) |
 | `data/processed/test1_clean.parquet` | 805,093 | Cleaned test1 seul — 62,423 users, 1,238 liaisons |
 | `data/processed/test1_features.parquet` | 805,093 | Features test1 seul — 26 cols, dtypes identiques à features.parquet |
+| `data/processed/test1_features.csv` | 805,093 | Export CSV de `test1_features.parquet` (175.7 MB, 26 cols, `index=False`) — créé 2026-05-22 (gitignoré ; contient `CodeClient` → pseudonymiser avant tout partage externe, Loi 09-08) |
 | `data/processed/oncf_full_clean.parquet` | 1,326,559 | Combiné oncf+test1 (2018-2022) — 129,459 users, 1,379 liaisons |
 | `data/processed/oncf_full_features.parquet` | 1,326,559 | Features combinées — 26 cols, is_self_purchase=0 (oncf) / 1 (test1) |
 
@@ -474,27 +475,22 @@ recommender.recommend(code_client, k=1)  # returns dict
 
 > **Règle** : Overleaf uniquement. Période des données = **2018–2020** (ne pas mentionner test1 comme "données 2021" dans le corps du rapport — c'est un outil de validation interne). Section Tests = expliquer POURQUOI on teste, pas juste lister.
 
-### Section à ajouter : Validation du mécanisme de réentraînement (Phase 3 / Sprint 3)
+### Section « Validation du Mécanisme de Réentraînement » (Phase 3) — ✅ ÉCRITE (2026-05-22)
 
-**Contexte à expliquer :**
-- L'ONCF a fourni un jeu de données additionnel (`test1.csv`, 2021-2022) pour valider que le pipeline de réentraînement fonctionne correctement et que les métriques restent stables au fil du temps.
-- Objectif : **ne pas** augmenter les données d'entraînement prod, mais **observer le comportement** du modèle jour après jour.
+Présente dans `rapport_pfa_v2.tex` (chapitre Phase 3, juste avant « Framework A/B Testing »). Structure retenue :
+- **Réentraînement Exceptionnel — Référence** : grosse passe sur le corpus additionnel → tableau KPI (HR@1=0.7200 / HR@3=0.8602 / MRR@3=0.7837 ; 641 307 train / 159 977 test / 1 121 classes).
+- **Réentraînement Quotidien à Fenêtre Glissante** : retrain sur les 365 derniers jours + éval honnête J+1. Tableau comparatif split vs référence (HR@1 −0,81 pp, guardrail OK) + tableau J+1 (0.2990) + explication rétrodiction vs prédiction.
+- **Notebox** : stabilité dans la durée « encore à démontrer » (1 seul jour exécuté).
+- Cadrage respecté : dates calendaires abstraites (J / J+1), pas de « test1 »/« 2021 » dans le corps, pas de CPU/GPU, **pas de figure** (tableaux uniquement → décompte reste à **24**).
 
-**Architecture à décrire :**
-- **Phase A (baseline)** : entraînement sur test1 complet minus 7 jours — donne la référence de performance sans retrain quotidien.
-- **Phase B (simulation quotidienne)** : pour chaque jour D parmi les 7 derniers jours denses (≥200 réservations), entraîner sur la fenêtre glissante [D−364, D] (365 jours de l'univers combiné oncf+test1), puis évaluer sur J+1 sans fuite du futur (`history_through(D)`).
-- **Guardrail** : chaque modèle quotidien est comparé au baseline ; un écart > 5% sur HR@1 déclenche un flag (informatif, pas bloquant).
-
-**Chiffres baseline Phase A (à mettre dans le rapport) :**
-| Métrique | Baseline (test1) | Prod (oncf) | Seuil |
+**Chiffres utilisés (déjà dans le rapport) :**
+| Métrique | Référence (baseline) | Quotidien J1 (split) | J+1 (lendemain) |
 |---|---|---|---|
-| HR@1 | 0.7200 | 0.7691 | > 0.50 |
-| HR@3 | 0.8602 | 0.9100 | > 0.60 |
-| MRR@3 | 0.7837 | 0.8333 | > 0.60 |
+| HR@1 | 0.7200 | 0.7119 | 0.2990 |
+| HR@3 | 0.8602 | 0.8557 | 0.5539 |
+| MRR@3 | 0.7837 | 0.7770 | 0.4118 |
 
-**Chiffres Phase B** : à remplir après `--day 1..7` depuis `reports/simulation_daily.json`.
-
-**Figure à créer** : courbe HR@1 par jour (axe X = jour 1→7, axe Y = HR@1). Montre la stabilité (ou l'amélioration) du modèle retraîné quotidiennement vs le baseline.
+> **Plus de courbe HR@1 sur 7 jours** : un seul jour a été exécuté (décision Omar). Si la série complète est relancée plus tard, ajouter la figure courbe (→ 25 figures).
 
 **Ce qu'il NE FAUT PAS écrire :**
 - Pas de mention "Pivot Post-Réunion ONCF"
