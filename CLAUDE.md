@@ -30,7 +30,7 @@
 
 ## État actuel
 
-**Branch:** `main` — **162/162 tests passent** — pipeline complet vérifié 2026-05-22.
+**Branch:** `main` — **163/163 tests passent** — pipeline complet vérifié 2026-05-22.
 
 ### Résumé des livraisons
 
@@ -48,7 +48,7 @@
 | **Simulation retrain — Phase A** | ✅ **ENTRAÎNÉ** | Baseline sur `test1_features.parquet` (minus 7j) — 641k train / 160k test / 1121 classes — **HR@1=0.7200, HR@3=0.8602, MRR@3=0.7837** — `models/sim/baseline/` (536 MB) |
 | **Simulation retrain — Phase B** | 🔴 à lancer | `--day 1..7` sur `oncf_full_features.parquet` (fenêtre 365j, ~816k lignes/jour) |
 | **Rapport + 23 figures** | ✅ | `rapport_pfa_v2.tex` à jour, layouts ONCF |
-| **Lint (ruff)** | ✅ | `ruff check scripts/ src/ tests/` → 0 erreur (**162 tests**) |
+| **Lint (ruff)** | ✅ | `ruff check scripts/ src/ tests/` → 0 erreur (**163 tests**) |
 
 ### Données retrain — contrat « même pipeline que oncf_data »
 
@@ -90,9 +90,22 @@ Toute donnée de retrain (`test1.csv`, futurs fichiers) doit produire des featur
 
 ### Prochaine action
 
-1. **Phase B** : `12_simulate_daily_retrain.py --day 1..7` (à lancer séquentiellement, ~1.5–2 h/jour sur `oncf_full_features.parquet`).
-2. Rapport : section "Intégration 2021 + simulation quotidienne" + figure stabilité HR@1 après chiffres réels.
-3. Recompiler `rapport_pfa_v2.tex` sur Overleaf.
+#### 1. Phase B — 7 entraînements quotidiens (dernière étape code)
+
+Lancer séquentiellement sur `oncf_full_features.parquet` (fenêtre 365j, ~816k lignes, ~1.5–2 h/run) :
+
+```powershell
+.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 1
+# puis --day 2 .. --day 7
+```
+
+Résultats dans `reports/simulation_daily.json`, modèles dans `models/sim/day_N/`.
+
+#### 2. Rapport (après chiffres Phase B)
+
+- Section "Intégration 2021 + simulation quotidienne" : architecture, résultats baseline (HR@1=0.72) + stabilité jour par jour
+- Figure : courbe HR@1 sur les 7 jours de simulation
+- Recompiler `rapport_pfa_v2.tex` sur Overleaf
 
 ---
 
