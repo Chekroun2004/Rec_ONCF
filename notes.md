@@ -91,16 +91,24 @@ Toute donnée de retrain (`test1.csv`, futurs fichiers) doit produire des featur
 
 ### Prochaine action
 
-#### 1. Phase B — 7 entraînements quotidiens (dernière étape code)
+#### 1. Phase B — 7 entraînements quotidiens ⬅️ PREMIÈRE ACTION DE LA PROCHAINE SESSION
 
-Lancer séquentiellement sur `oncf_full_features.parquet` (fenêtre 365j, ~816k lignes, ~1.5–2 h/run) :
+> **Lancer immédiatement en début de session, avant toute autre chose.**
+> Durée estimée : **~2h25/jour, ~17h total**. Laisser tourner en arrière-plan ou overnight.
 
 ```powershell
+# Jour 1 — lancer en premier, vérifier la durée réelle, puis enchaîner 2..7
 .venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 1
-# puis --day 2 .. --day 7
+.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 2
+.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 3
+.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 4
+.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 5
+.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 6
+.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 7
 ```
 
 Résultats dans `reports/simulation_daily.json`, modèles dans `models/sim/day_N/`.
+Après `--day 1` : noter la durée réelle pour affiner l'estimation des jours restants.
 
 #### 2. Rapport (après chiffres Phase B)
 
