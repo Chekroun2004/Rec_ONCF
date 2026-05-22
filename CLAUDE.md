@@ -141,14 +141,15 @@ Rec_ONCF/
 │   ├── cleaning.py         # make_clean_dataset() — raw CSV → oncf_clean.parquet ; COLUMN_ALIASES (Acheteurid→AchteurId), _to_datetime day-first robuste
 │   ├── config.py           # default_paths() → Paths dataclass
 │   ├── io.py               # read_csv / read_parquet / write_parquet / write_csv
-│   ├── features.py         # build_training_rows() + compute_inference_row() — 26 cols ; _OUTPUT_DTYPES (dtypes figés)
+│   ├── features.py         # build_training_rows() + compute_inference_row() — 26 cols ; _OUTPUT_DTYPES (dtypes figés) ; is_self_purchase via pd.to_numeric (pas astype str)
 │   ├── metrics.py          # hit_rate_at_k(), mrr_at_k()
-│   ├── training.py         # temporal_split, train_xgb_multiclass, predict_proba, save/load_artifacts, top_k_labels
+│   ├── training.py         # temporal_split, train_xgb_multiclass(**kwargs), predict_proba, save/load_artifacts, top_k_labels
 │   ├── candidates.py       # generate_candidates() — user history → candidate LiaisonIds
 │   ├── recommender.py      # Recommender dataclass — from_paths / from_data / recommend()
 │   ├── schedule.py         # ONCF live scraping (legacy fallback) — STATION_CODES, fetch_departures, get_schedule
 │   ├── local_schedule.py   # offline schedule index — parse_horaire_csv, build_od_index, get_local_schedule(limit=3)
 │   ├── extract_days.py     # extract_last_n_days() — split df en base + dict des n derniers jours
+│   ├── simulation.py       # fenêtrage date pour simulation retrain : last_n_dates, baseline_frame, filter_sliding_window, day_frame, history_through, eval_on_next_day, log_simulation_entry
 │   └── popularity.py       # build_popularity_list() + save/load_popularity
 │
 ├── apps/api/
@@ -156,7 +157,7 @@ Rec_ONCF/
 │   └── static/             # ONCF-styled single-page demo (index.html, styles.css, app.js)
 │
 ├── scripts/
-│   ├── 01_make_dataset.py       # raw CSVs → cleaned parquet (--input/--output ; défaut oncf_data → oncf_clean.parquet)
+│   ├── 01_make_dataset.py       # raw CSVs → cleaned parquet (--input/--output/--extra-csv ; défaut oncf_data → oncf_clean.parquet)
 │   ├── 02_build_features.py     # cleaned parquet → features parquet (--input/--output ; défaut oncf_clean → features.parquet)
 │   ├── 03_train_ranker.py       # features → models/ + reports/offline_metrics.json
 │   ├── 04_baselines.py          # baselines → reports/baseline_metrics.json
@@ -167,31 +168,40 @@ Rec_ONCF/
 │   ├── 09_train_challenger.py   # entraîne challenger (max_depth=8, 250 arbres), exporte ONNX, compare vs prod
 │   ├── 10_promote_challenger.py # archive prod, promeut challenger
 │   ├── 11_build_schedule_index.py # horaire.csv → models/schedule_index.joblib
-│   ├── 12a_extract_test1_days.py # test1.csv → base + 7 CSVs jour (caduc : pipeline standard 01/02 utilisé)
+│   ├── 12_simulate_daily_retrain.py # simulation retrain : --baseline (Phase A, test1) ou --day N (Phase B, oncf_full, fenêtre 365j)
 │   └── _doc_gen.py              # utility — prints dataset stats
 │
-├── tests/                   # 144 tests — pytest
+├── tests/                   # 163 tests — pytest
 │   └── test_*.py            # cleaning, features, metrics, training, candidates, recommender,
 │                            #   api, schedule, local_schedule, cold_start, onnx, retrain, popularity, extract_days,
-│                            #   retrain_data_contract (features test1 == oncf_data)
+│                            #   simulation (10 tests), dataset_extra_csv (5 tests),
+│                            #   retrain_data_contract (6 tests dont float64 dtype promotion)
 │
 ├── data/processed/
-│   ├── oncf_clean.parquet  # 491,680 rows
-│   └── features.parquet    # 491,680 × 26 cols
+│   ├── oncf_clean.parquet        # 491,680 rows — prod (oncf_data seul)
+│   ├── features.parquet          # 491,680 × 26 cols — prod
+│   ├── test1_clean.parquet       # 805,093 rows — test1 seul (2021-01-01 → 2022-03-13)
+│   ├── test1_features.parquet    # 805,093 × 26 cols — 62,423 users, 1,238 liaisons
+│   ├── oncf_full_clean.parquet   # 1,326,559 rows — oncf+test1 combinés (2018-2022)
+│   └── oncf_full_features.parquet # 1,326,559 × 26 cols — 129,459 users, 1,379 liaisons
 │
 ├── models/
-│   ├── xgb_ranker.json      # ~448 MB — challenger promu (saved with joblib despite .json ext)
+│   ├── xgb_ranker.json      # ~428 MB — challenger promu (saved with joblib despite .json ext)
 │   ├── label_encoder.joblib
 │   ├── cold_start.joblib    # co-occurrence lookup
-│   ├── xgb_ranker.onnx      # ~286 MB — ONNX export
+│   ├── xgb_ranker.onnx      # ~273 MB — ONNX export
 │   ├── popularity.joblib    # ~120 KB — global popularity fallback
-│   ├── schedule_index.joblib # ~200 KB — 2750 paires O/D
+│   ├── schedule_index.joblib # ~370 KB — 2750 paires O/D
 │   ├── xgb_ranker_challenger.{json,onnx} + label_encoder_challenger.joblib  # variant B (A/B testing)
+│   ├── sim/baseline/        # Phase A — entraîné 2026-05-22 sur test1 (536 MB, HR@1=0.72)
 │   └── archive/20260516T163128Z/ # prod précédent (rollback)
 │
 ├── reports/
-│   ├── cleaning_report.json, cleaning_provenance.parquet
-│   └── offline_metrics.json, baseline_metrics.json
+│   ├── cleaning_report.json, cleaning_provenance.parquet          # oncf_data seul
+│   ├── test1_clean_cleaning_report.json, test1_clean_cleaning_provenance.parquet
+│   ├── oncf_full_clean_cleaning_report.json, oncf_full_clean_cleaning_provenance.parquet
+│   ├── offline_metrics.json, baseline_metrics.json
+│   └── simulation_daily.json   # créé après --day 1..7
 │
 └── pyproject.toml          # pythonpath = ["src"] for pytest
 ```
@@ -202,13 +212,20 @@ Rec_ONCF/
 
 | File | Rows | Description |
 |---|---|---|
-| `Desktop/oncf_data.csv` | raw | Raw ONCF bookings CSV (on user's Desktop) |
-| `Desktop/Liaison.csv` | raw | Route lookup table (on user's Desktop) |
-| `Desktop/horaire.csv` | raw | Train timetable — 2759 stops, 309 trains, 122 stations (UTF-8 BOM, comma-separated; nouveau format header + H:MM:SS) |
-| `data/processed/oncf_clean.parquet` | 491,680 | Cleaned bookings with all original fields |
-| `data/processed/features.parquet` | 491,680 | Model-ready feature table (26 cols) |
+| `Desktop/oncf_data.csv` | raw | Raw ONCF bookings CSV (M/D/Y dates) |
+| `Desktop/Liaison.csv` | raw | Route lookup table |
+| `Desktop/horaire.csv` | raw | Train timetable — 2759 stops, 309 trains, 122 stations (UTF-8 BOM, header + H:MM:SS) |
+| `Desktop/test1.csv` | raw | Données retrain ONCF — 2021-01-01 → 2022-03-13, D/M/Y, colonne `Acheteurid` (alias) |
+| `data/processed/oncf_clean.parquet` | 491,680 | Cleaned bookings oncf_data seul |
+| `data/processed/features.parquet` | 491,680 | Features prod oncf_data seul (26 cols) |
+| `data/processed/test1_clean.parquet` | 805,093 | Cleaned test1 seul — 62,423 users, 1,238 liaisons |
+| `data/processed/test1_features.parquet` | 805,093 | Features test1 seul — 26 cols, dtypes identiques à features.parquet |
+| `data/processed/oncf_full_clean.parquet` | 1,326,559 | Combiné oncf+test1 (2018-2022) — 129,459 users, 1,379 liaisons |
+| `data/processed/oncf_full_features.parquet` | 1,326,559 | Features combinées — 26 cols, is_self_purchase=0 (oncf) / 1 (test1) |
 
-**Key stats:** 69,449 active users, 1,011 unique `LiaisonId` classes (after temporal split filtering).
+**Key stats oncf prod :** 69,449 active users, 1,011 unique `LiaisonId` classes (après temporal split filtering).
+**Key stats test1 :** heure réaliste — pics 7h (14%), 17h (12%), 8h (12%), 18h (10%) — distribution navette ONCF.
+**is_self_purchase :** dans oncf_data, AchteurId est un ID agence (plage 83–2.5M) différent du CodeClient → toujours 0. Dans test1, AchteurId == CodeClient → toujours 1. Dans le combined, 0.617 de mean (0 pour lignes 2018-2020, 1 pour 2021-2022).
 
 ---
 
@@ -421,7 +438,7 @@ recommender.recommend(code_client, k=1)  # returns dict
 # 8. Build local schedule index from horaire.csv (~5 s)
 .venv\Scripts\python.exe scripts/11_build_schedule_index.py
 
-# 9. Run tests (~10 s, 140 tests)
+# 9. Run tests (~10 s, 163 tests)
 .venv\Scripts\python.exe -m pytest tests/ -v
 
 # 10. Retrain with guardrail (optional — ~43 min on CPU)
@@ -431,6 +448,49 @@ recommender.recommend(code_client, k=1)  # returns dict
 # 11. Start API
 .venv\Scripts\python.exe -m uvicorn apps.api.main:app --reload
 ```
+
+### Simulation retrain (Phase B)
+
+```powershell
+# Lancer séquentiellement — chaque run ~1.5-2h sur oncf_full_features.parquet
+.venv\Scripts\python.exe scripts/12_simulate_daily_retrain.py --day 1
+# puis --day 2 .. --day 7
+# Résultats : reports/simulation_daily.json
+# Modèles   : models/sim/day_N/
+```
+
+---
+
+## Rapport — Contenu à rédiger dans `rapport_pfa_v2.tex`
+
+> **Règle** : Overleaf uniquement. Période des données = **2018–2020** (ne pas mentionner test1 comme "données 2021" dans le corps du rapport — c'est un outil de validation interne). Section Tests = expliquer POURQUOI on teste, pas juste lister.
+
+### Section à ajouter : Validation du mécanisme de réentraînement (Phase 3 / Sprint 3)
+
+**Contexte à expliquer :**
+- L'ONCF a fourni un jeu de données additionnel (`test1.csv`, 2021-2022) pour valider que le pipeline de réentraînement fonctionne correctement et que les métriques restent stables au fil du temps.
+- Objectif : **ne pas** augmenter les données d'entraînement prod, mais **observer le comportement** du modèle jour après jour.
+
+**Architecture à décrire :**
+- **Phase A (baseline)** : entraînement sur test1 complet minus 7 jours — donne la référence de performance sans retrain quotidien.
+- **Phase B (simulation quotidienne)** : pour chaque jour D parmi les 7 derniers jours denses (≥200 réservations), entraîner sur la fenêtre glissante [D−364, D] (365 jours de l'univers combiné oncf+test1), puis évaluer sur J+1 sans fuite du futur (`history_through(D)`).
+- **Guardrail** : chaque modèle quotidien est comparé au baseline ; un écart > 5% sur HR@1 déclenche un flag (informatif, pas bloquant).
+
+**Chiffres baseline Phase A (à mettre dans le rapport) :**
+| Métrique | Baseline (test1) | Prod (oncf) | Seuil |
+|---|---|---|---|
+| HR@1 | 0.7200 | 0.7691 | > 0.50 |
+| HR@3 | 0.8602 | 0.9100 | > 0.60 |
+| MRR@3 | 0.7837 | 0.8333 | > 0.60 |
+
+**Chiffres Phase B** : à remplir après `--day 1..7` depuis `reports/simulation_daily.json`.
+
+**Figure à créer** : courbe HR@1 par jour (axe X = jour 1→7, axe Y = HR@1). Montre la stabilité (ou l'amélioration) du modèle retraîné quotidiennement vs le baseline.
+
+**Ce qu'il NE FAUT PAS écrire :**
+- Pas de mention "Pivot Post-Réunion ONCF"
+- Pas de justification CPU/GPU
+- Pas de mention de comment on va tester (expliquer ce qu'on a testé et ce que ça démontre)
 
 ### Retrain quotidien (ONCF)
 
