@@ -44,8 +44,9 @@
 | **Horaire enrichi** | ✅ | `parse_horaire_csv` supporte nouveau format header + H:MM:SS — couverture **96.53% (1030/1067)** (revérifié 2026-05-22) |
 | **Module extract_days** | ✅ | `src/rec_oncf/extract_days.py` + 5 tests TDD |
 | **Ingestion retrain (test1)** | ✅ | `test1.csv` corrigé + débloqué : alias colonnes dans `cleaning.py`, scripts 01/02 paramétrés `--input/--output`, dtypes features figés. Features test1 **identiques** à oncf_data (4 tests contrat) |
+| **Code simulation retrain** | ✅ écrit / 🔴 trainings à lancer | `simulation.py`, `12_simulate_daily_retrain.py`, `01 --extra-csv`, hyperparams overridables. Univers `oncf_full_*.parquet` construit. Reste : lancer les 2 entraînements |
 | **Rapport + 23 figures** | ✅ | `rapport_pfa_v2.tex` à jour, layouts ONCF |
-| **Lint (ruff)** | ✅ | `ruff check scripts/ src/ tests/` → 0 erreur |
+| **Lint (ruff)** | ✅ | `ruff check scripts/ src/ tests/` → 0 erreur (**161 tests**) |
 
 ### Données retrain — contrat « même pipeline que oncf_data »
 
@@ -58,12 +59,24 @@ Toute donnée de retrain (`test1.csv`, futurs fichiers) doit produire des featur
 
 **Vérification 2026-05-22** : `01 --input test1.csv` → `test1_clean.parquet` (805 093 lignes, 1238 liaisons) ; `02` → `test1_features.parquet` (62 423 users). Parité vs `features.parquet` : **mêmes 26 colonnes + ordre + dtypes (0 mismatch)**. Heure test1 réaliste (pics navette 7h 14% / 17h 12% / 8h 12% / 18h 10%) → **plus de reconstruction d'heure, plus de limitation scientifique à mentionner**.
 
+### Simulation retrain quotidien — but, architecture, état (2026-05-22)
+
+**But de test1** (fourni par l'ONCF) : vérifier que le **mécanisme de retrain** fonctionne et **observer le comportement des métriques** jour après jour. Validation du **retrain automatique** (cron Task Scheduler) **reportée**. Pas d'augmentation de données, pas de promotion prod.
+
+**Architecture (nettoyer une fois, fenêtrer ensuite)** :
+- **Univers** : `01 --input oncf_data.csv --extra-csv test1.csv --output oncf_full_clean.parquet` puis `02 → oncf_full_features.parquet`. Nettoyage **global** (cold-start/annulations/chaînage par client corrects, 11 % de clients à cheval). **1 326 559 lignes, 129 459 users, 1 379 liaisons.** Schéma **identique** à `features.parquet`.
+- **Bug corrigé** : oncf=M/D/Y, test1=D/M/Y ⇒ concaténer en brut puis parser détruisait les dates oncf (−320k lignes). Fix = `load_and_concat._prepare` parse les dates **par fichier** (sa propre convention) avant concat.
+- **Phase A baseline** : `12_simulate_daily_retrain.py --baseline` → train 2018→2021 **moins 7 jours** (`baseline_frame`, ~1.32 M lignes). **Pas de fenêtre.**
+- **Phase B quotidien** : `--day N` (N∈[1,7]) → fenêtre glissante **365j** finissant au jour N, éval **honnête sur J+1** (historique tronqué ≤ D, `Recommender.from_data`), guardrail informatif, log `reports/simulation_daily.json`, modèles isolés `models/sim/`.
+- **7 jours sim** = 7 derniers jours **denses** (`last_n_dates(min_count=200)`, car queue 2022 creuse 1 résa/j) → **2021-12-21, 23, 24, 25, 26, 27, 31** (J+1 = 204–292 résa). Hyperparams = challenger (depth 8, 250 arbres).
+
+**⚠️ Coût** : chaque fenêtre 365j ≈ **816k lignes** (tout 2021) → entraînement **lourd** (~1.5–2 h/jour estimé), baseline ~2.5–3 h. À lancer en dernier.
+
 ### Prochaine action
 
-1. Reprendre **Task 3** du plan `docs/superpowers/plans/2026-05-20-test1-daily-retrain.md` — Tasks 4–8 (baseline, hyperparams, simulation) déjà rédigées. (Le plan 12b de reconstruction d'heure est **caduc** : pipeline standard suffit.)
-2. Simulation retrain quotidien sur `test1_features.parquet` (fenêtre glissante 365 j) via `extract_days` + `07_retrain.py`.
-3. Rapport : rédiger section "Intégration 2021 + simulation quotidienne" après chiffres réels.
-4. Recompiler `rapport_pfa_v2.tex` sur Overleaf → vérifier PDF avant soutenance.
+1. **Lancer les 2 entraînements** (dernière étape) : `12_simulate_daily_retrain.py --baseline`, puis `--day 1..7`. Mesurer la durée réelle sur le jour 1.
+2. Rapport : section "Intégration 2021 + simulation quotidienne" + figure stabilité HR@1 après chiffres réels.
+3. Recompiler `rapport_pfa_v2.tex` sur Overleaf.
 
 ---
 

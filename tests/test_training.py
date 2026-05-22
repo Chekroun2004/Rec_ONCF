@@ -52,3 +52,38 @@ def test_artifacts_have_correct_classes():
         df, label_col="LiaisonId", time_col="DateHeureDepartVoyageSegment"
     )
     assert set(arts.label_encoder.classes_) == {"A", "B", "C"}
+
+
+def test_train_xgb_accepts_hyperparam_overrides():
+    """Simulation/baseline must train with challenger hyperparams, passed explicitly."""
+    df = _tiny_df()
+    arts = train_xgb_multiclass(
+        df,
+        label_col="LiaisonId",
+        time_col="DateHeureDepartVoyageSegment",
+        n_estimators=10,
+        max_depth=3,
+        learning_rate=0.06,
+        subsample=0.85,
+        colsample_bytree=0.75,
+        reg_lambda=1.5,
+    )
+    clf = arts.pipeline.named_steps["clf"]
+    assert clf.n_estimators == 10
+    assert clf.max_depth == 3
+    assert clf.learning_rate == 0.06
+    assert clf.subsample == 0.85
+    assert clf.colsample_bytree == 0.75
+    assert clf.reg_lambda == 1.5
+
+
+def test_train_xgb_defaults_unchanged():
+    """Defaults must stay Sprint-2 so script 03 behavior is untouched."""
+    df = _tiny_df()
+    arts = train_xgb_multiclass(
+        df, label_col="LiaisonId", time_col="DateHeureDepartVoyageSegment"
+    )
+    clf = arts.pipeline.named_steps["clf"]
+    assert clf.n_estimators == 200
+    assert clf.max_depth == 6
+    assert clf.learning_rate == 0.08
