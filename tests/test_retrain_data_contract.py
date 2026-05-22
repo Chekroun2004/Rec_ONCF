@@ -142,6 +142,44 @@ def test_is_self_purchase_correct_when_achteurid_is_float64():
     )
 
 
+def test_is_self_purchase_survives_concat_dtype_promotion():
+    """Regression: when oncf_clean (AchteurId=float64) and test1_clean (AchteurId=int64)
+    are pd.concat'd into the combined universe, pandas promotes AchteurId to float64.
+    is_self_purchase must still be 1 for test1 rows whose AchteurId==CodeClient.
+
+    This is the exact production scenario for oncf_full_clean.parquet."""
+    liaison = _liaison_lookup([10, 20, 30])
+
+    # oncf side: AchteurId is a DIFFERENT large float (agency purchase, not self)
+    oncf_rows = [_oncf_row(code_client=100 + i, liaison_id=10 + (i % 3) * 10,
+                           date=f"2020-0{i+1}-15", i=i, achteur=999_000 + i)
+                 for i in range(MIN_TRIPS_FOR_TRAINING + 2)]
+    oncf_raw = pd.DataFrame(oncf_rows)
+    oncf_raw["AchteurId"] = oncf_raw["AchteurId"].astype(float)  # as in real oncf_data
+    oncf_clean, _, _ = make_clean_dataset(oncf_raw, liaison)
+
+    # test1 side: AchteurId == CodeClient (int64 self-purchase)
+    test1_rows = [_oncf_row(code_client=200 + i, liaison_id=10 + (i % 3) * 10,
+                            date=f"2021-0{i+1}-15", i=i)
+                  for i in range(MIN_TRIPS_FOR_TRAINING + 2)]
+    test1_raw = pd.DataFrame(test1_rows).rename(columns={"AchteurId": "Acheteurid"})
+    test1_clean, _, _ = make_clean_dataset(test1_raw, liaison)
+
+    # Simulate the global concat (triggers float64 promotion on AchteurId)
+    combined = pd.concat([oncf_clean, test1_clean], ignore_index=True)
+    assert str(combined["AchteurId"].dtype) == "float64", "dtype promotion must occur for test to be meaningful"
+
+    feats = build_training_rows(combined)
+
+    oncf_feats = feats[feats["CodeClient"].isin(range(100, 100 + MIN_TRIPS_FOR_TRAINING + 3))]
+    test1_feats = feats[feats["CodeClient"].isin(range(200, 200 + MIN_TRIPS_FOR_TRAINING + 3))]
+
+    assert (oncf_feats["is_self_purchase"] == 0).all(), \
+        "oncf agency-purchase rows must have is_self_purchase=0"
+    assert (test1_feats["is_self_purchase"] == 1).all(), \
+        "test1 self-purchase rows must have is_self_purchase=1 even after float64 promotion"
+
+
 def test_dmy_dates_are_parsed_day_first():
     """test1 dates are D/M/Y. Cleaning must parse them day-first so depart_hour
     and depart_month match the real schedule (not month/day swapped)."""
