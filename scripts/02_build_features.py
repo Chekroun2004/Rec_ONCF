@@ -45,7 +45,9 @@ def main(argv: list[str] | None = None) -> None:
 
     print(f"Input:  {args.input}")
     print(f"Wrote: {args.output}")
+    print(f"Input rows:  {len(clean):,}")
     print(f"Rows: {len(feats):,}")
+    print(f"Columns: {len(feats.columns):,}")
     print(f"Users: {feats['CodeClient'].nunique():,}")
     print(f"Classes (liaisons): {feats['LiaisonId'].nunique():,}")
 

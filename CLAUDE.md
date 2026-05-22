@@ -30,7 +30,7 @@
 
 ## État actuel
 
-**Branch:** `main` — **144/144 tests passent** — modifs non commitées (ingestion test1 : `cleaning.py`, `features.py`, scripts 01/02, `tests/test_retrain_data_contract.py`).
+**Branch:** `main` — **162/162 tests passent** — pipeline complet vérifié 2026-05-22.
 
 ### Résumé des livraisons
 
@@ -43,10 +43,12 @@
 | **Challenger + promotion** | ✅ | Challenger promu en prod le 2026-05-16 (ancien prod archivé dans `models/archive/20260516T163128Z/`) |
 | **Horaire enrichi** | ✅ | `parse_horaire_csv` supporte nouveau format header + H:MM:SS — couverture **96.53% (1030/1067)** (revérifié 2026-05-22) |
 | **Module extract_days** | ✅ | `src/rec_oncf/extract_days.py` + 5 tests TDD |
-| **Ingestion retrain (test1)** | ✅ | `test1.csv` corrigé + débloqué : alias colonnes dans `cleaning.py`, scripts 01/02 paramétrés `--input/--output`, dtypes features figés. Features test1 **identiques** à oncf_data (4 tests contrat) |
-| **Code simulation retrain** | ✅ écrit / 🔴 trainings à lancer | `simulation.py`, `12_simulate_daily_retrain.py`, `01 --extra-csv`, hyperparams overridables. Univers `oncf_full_*.parquet` construit. Reste : lancer les 2 entraînements |
+| **Ingestion retrain (test1)** | ✅ | `test1.csv` corrigé + débloqué : alias colonnes dans `cleaning.py`, scripts 01/02 paramétrés `--input/--output`, dtypes features figés. Features test1 **identiques** à oncf_data (5 tests contrat dont `is_self_purchase` float64) |
+| **Bug `is_self_purchase`** | ✅ corrigé | `features.py:77` — `astype(str)` convertissait `104078.0` → `"104078.0"` ≠ `"104078"` → 0 pour les lignes test1 dans combined. Fix : comparaison numérique `pd.to_numeric`. oncf_full_features **reconstruit** (0.617 mean is_self_purchase : 0 pour oncf 2018-2020, 1 pour test1 2021-2022) |
+| **Simulation retrain — Phase A** | ✅ **ENTRAÎNÉ** | Baseline sur `test1_features.parquet` (minus 7j) — 641k train / 160k test / 1121 classes — **HR@1=0.7200, HR@3=0.8602, MRR@3=0.7837** — `models/sim/baseline/` (536 MB) |
+| **Simulation retrain — Phase B** | 🔴 à lancer | `--day 1..7` sur `oncf_full_features.parquet` (fenêtre 365j, ~816k lignes/jour) |
 | **Rapport + 23 figures** | ✅ | `rapport_pfa_v2.tex` à jour, layouts ONCF |
-| **Lint (ruff)** | ✅ | `ruff check scripts/ src/ tests/` → 0 erreur (**161 tests**) |
+| **Lint (ruff)** | ✅ | `ruff check scripts/ src/ tests/` → 0 erreur (**162 tests**) |
 
 ### Données retrain — contrat « même pipeline que oncf_data »
 
@@ -55,6 +57,7 @@ Toute donnée de retrain (`test1.csv`, futurs fichiers) doit produire des featur
 - **Alias de colonnes** (`cleaning.py` : `COLUMN_ALIASES`, `_normalize_column_names`) — ex. `Acheteurid` (test1) → `AchteurId`. Sans ça, colonne acheteur silencieusement NA → `is_self_purchase` faux (tout à 0).
 - **Dates day-first robustes** (`cleaning.py:_to_datetime`) — bascule `dayfirst=True` si >20% échouent. oncf_data = M/D/Y, test1 = D/M/Y ; les deux donnent le bon datetime. (warning du 1er probe silencé)
 - **Dtypes figés** (`features.py:_OUTPUT_DTYPES`) — la présence/absence de NaN faisait flipper int↔float, le parse faisait flipper ns↔us. Map canonique appliquée en fin de `build_training_rows` (no-op pour oncf, normalise test1).
+- **Comparaison numérique `is_self_purchase`** (`features.py:77`) — `pd.to_numeric(AchteurId) == CodeClient` au lieu de `astype(str)`. Quand oncf+test1 sont concat, AchteurId de test1 passe de int64 à float64 (promotion pandas) → `"104078.0" != "104078"` silencieux. Fix : comparaison numérique directe.
 - **Scripts 01/02 paramétrés** `--input/--output` (défaut = oncf_data, donc l'existant ne change pas) ; noms de rapports dérivés du stem pour ne pas écraser les artefacts oncf.
 
 **Vérification 2026-05-22** : `01 --input test1.csv` → `test1_clean.parquet` (805 093 lignes, 1238 liaisons) ; `02` → `test1_features.parquet` (62 423 users). Parité vs `features.parquet` : **mêmes 26 colonnes + ordre + dtypes (0 mismatch)**. Heure test1 réaliste (pics navette 7h 14% / 17h 12% / 8h 12% / 18h 10%) → **plus de reconstruction d'heure, plus de limitation scientifique à mentionner**.
@@ -64,17 +67,30 @@ Toute donnée de retrain (`test1.csv`, futurs fichiers) doit produire des featur
 **But de test1** (fourni par l'ONCF) : vérifier que le **mécanisme de retrain** fonctionne et **observer le comportement des métriques** jour après jour. Validation du **retrain automatique** (cron Task Scheduler) **reportée**. Pas d'augmentation de données, pas de promotion prod.
 
 **Architecture (nettoyer une fois, fenêtrer ensuite)** :
-- **Univers** : `01 --input oncf_data.csv --extra-csv test1.csv --output oncf_full_clean.parquet` puis `02 → oncf_full_features.parquet`. Nettoyage **global** (cold-start/annulations/chaînage par client corrects, 11 % de clients à cheval). **1 326 559 lignes, 129 459 users, 1 379 liaisons.** Schéma **identique** à `features.parquet`.
+- **Univers Phase A (baseline)** : `01 --input test1.csv --output test1_clean.parquet` puis `02 → test1_features.parquet` (baseline rapide sur test1 uniquement).
+- **Univers Phase B (quotidien)** : `01 --input oncf_data.csv --extra-csv test1.csv --output oncf_full_clean.parquet` puis `02 → oncf_full_features.parquet`. Nettoyage **global** (cold-start/annulations/chaînage par client corrects, 11 % de clients à cheval). **1 326 559 lignes, 129 459 users, 1 379 liaisons.** Schéma **identique** à `features.parquet`.
 - **Bug corrigé** : oncf=M/D/Y, test1=D/M/Y ⇒ concaténer en brut puis parser détruisait les dates oncf (−320k lignes). Fix = `load_and_concat._prepare` parse les dates **par fichier** (sa propre convention) avant concat.
-- **Phase A baseline** : `12_simulate_daily_retrain.py --baseline` → train 2018→2021 **moins 7 jours** (`baseline_frame`, ~1.32 M lignes). **Pas de fenêtre.**
+- **Phase A baseline** : `12_simulate_daily_retrain.py --baseline` → train **test1** moins 7 jours (`baseline_frame`). **Pas de fenêtre.**
 - **Phase B quotidien** : `--day N` (N∈[1,7]) → fenêtre glissante **365j** finissant au jour N, éval **honnête sur J+1** (historique tronqué ≤ D, `Recommender.from_data`), guardrail informatif, log `reports/simulation_daily.json`, modèles isolés `models/sim/`.
 - **7 jours sim** = 7 derniers jours **denses** (`last_n_dates(min_count=200)`, car queue 2022 creuse 1 résa/j) → **2021-12-21, 23, 24, 25, 26, 27, 31** (J+1 = 204–292 résa). Hyperparams = challenger (depth 8, 250 arbres).
 
-**⚠️ Coût** : chaque fenêtre 365j ≈ **816k lignes** (tout 2021) → entraînement **lourd** (~1.5–2 h/jour estimé), baseline ~2.5–3 h. À lancer en dernier.
+**⚠️ Coût** : chaque fenêtre 365j ≈ **816k lignes** (tout 2021) → entraînement **lourd** (~1.5–2 h/jour estimé). Baseline test1 uniquement = bien plus rapide. À lancer en dernier.
+
+### Résultats baseline (Phase A — entraîné 2026-05-22)
+
+| Métrique | Valeur | Seuil prod |
+|---|---|---|
+| HR@1 | **0.7200** | > 0.50 ✅ |
+| HR@3 | **0.8602** | > 0.60 ✅ |
+| MRR@3 | **0.7837** | > 0.60 ✅ |
+
+- Train: 641,307 lignes | Test: 159,977 | Classes: 1,121
+- Hyperparams: identiques au challenger prod (depth=8, n_estimators=250, lr=0.06)
+- `models/sim/baseline/` (536 MB, fingerprint=`db00fbc47ef0fb01`)
 
 ### Prochaine action
 
-1. **Lancer les 2 entraînements** (dernière étape) : `12_simulate_daily_retrain.py --baseline`, puis `--day 1..7`. Mesurer la durée réelle sur le jour 1.
+1. **Phase B** : `12_simulate_daily_retrain.py --day 1..7` (à lancer séquentiellement, ~1.5–2 h/jour sur `oncf_full_features.parquet`).
 2. Rapport : section "Intégration 2021 + simulation quotidienne" + figure stabilité HR@1 après chiffres réels.
 3. Recompiler `rapport_pfa_v2.tex` sur Overleaf.
 
@@ -406,4 +422,5 @@ recommender.recommend(code_client, k=1)  # returns dict
 ### Retrain quotidien (ONCF)
 
 Wrapper : `scripts/retrain_job.bat` (logs rotatifs). Tâche planifiée 02h00 : `tasks/oncf_daily_retrain.xml`.
+
 Enregistrer (PowerShell admin) : `schtasks /Create /XML tasks\oncf_daily_retrain.xml /TN "ONCF\DailyRetrain" /F`.

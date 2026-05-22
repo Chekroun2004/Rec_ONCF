@@ -22,6 +22,39 @@ from rec_oncf.io import read_csv, write_csv, write_parquet
 _DATE_COLS = ("DatePaiement", "DateHeureDepartVoyageSegment")
 
 
+def _print_cleaning_summary(report: dict) -> None:
+    rows_before = int(report.get("rows_before", 0))
+    rows_after = int(report.get("rows_after", 0))
+    removed = rows_before - rows_after
+
+    print("=== Cleaning summary ===")
+    print(f"Rows before:  {rows_before:,}")
+    print(f"Rows after:   {rows_after:,}")
+    print(f"Rows removed: {removed:,}")
+
+    join_status = report.get("join_status", "unknown")
+    join_overlap = int(report.get("join_overlap_count", 0))
+    join_rate = float(report.get("join_overlap_rate", 0.0))
+    print(f"Liaison join: {join_status} (overlap {join_overlap:,}, rate {join_rate:.2%})")
+
+    reasons = [
+        ("rows_removed_negative", "Cancellations/negative rows"),
+        ("rows_removed_missing_join", "Missing liaison match"),
+        ("rows_removed_too_many_missing", "Too many missing fields"),
+        ("rows_removed_essential_missing", "Missing essential fields"),
+        ("rows_removed_duplicates", "Duplicate rows"),
+        ("rows_removed_cold_start_clients", "Cold-start rows"),
+    ]
+    for key, label in reasons:
+        count = int(report.get(key, 0))
+        if count:
+            print(f"  - {label}: {count:,}")
+
+    clients_removed = int(report.get("clients_removed_cold_start", 0))
+    if clients_removed:
+        print(f"Cold-start clients removed: {clients_removed:,}")
+
+
 def _prepare(df: pd.DataFrame) -> pd.DataFrame:
     """Normalize column aliases and parse date columns with this file's own
     convention (so each file keeps its M/D/Y or D/M/Y interpretation)."""
@@ -110,6 +143,7 @@ def main(argv: list[str] | None = None) -> None:
     print(f"Loaded {len(oncf):,} input rows ({len(oncf.columns)} columns)")
 
     clean, report, provenance = make_clean_dataset(oncf, liaison)
+    _print_cleaning_summary(report)
 
     out_parquet.parent.mkdir(parents=True, exist_ok=True)
     write_parquet(clean, out_parquet)
