@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 import numpy as np
@@ -36,13 +37,41 @@ REQUIRED_LIAISON_COLS = [
     "DesignationFrGareArrive",
 ]
 
+# Known column-name variants in retrain files (e.g. test1.csv) that must be
+# mapped to the canonical oncf_data schema before anything else runs.
+# Without this, an unrecognized buyer column is silently treated as all-NA,
+# producing a wrong (always-zero) is_self_purchase feature.
+COLUMN_ALIASES = {
+    "Acheteurid": "AchteurId",
+}
+
 # Minimum number of trips required to be included in training data.
 # Clients below this threshold will never receive a recommendation in production.
 MIN_TRIPS_FOR_TRAINING = 3
 
 
+def _normalize_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    """Rename known column-name variants to the canonical oncf_data schema.
+
+    Aliases only when the canonical name is not already present, so an existing
+    column is never clobbered. Returns the original frame untouched if there is
+    nothing to rename.
+    """
+    rename = {
+        src: dst
+        for src, dst in COLUMN_ALIASES.items()
+        if src in df.columns and dst not in df.columns
+    }
+    return df.rename(columns=rename) if rename else df
+
+
 def _to_datetime(series: pd.Series) -> pd.Series:
-    dt = pd.to_datetime(series, errors="coerce", utc=False)
+    # First probe assumes month-first (oncf_data convention). If too many values
+    # fail, the data is day-first (test1 convention) and we re-parse. The probe's
+    # dayfirst warning is expected here, so we silence it.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        dt = pd.to_datetime(series, errors="coerce", utc=False)
     if dt.isna().mean() > 0.2:
         dt = pd.to_datetime(series, errors="coerce", dayfirst=True, utc=False)
     return dt
@@ -76,6 +105,7 @@ def make_clean_dataset(
     oncf_df: pd.DataFrame,
     liaison_df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, dict[str, Any], pd.DataFrame]:
+    oncf_df = _normalize_column_names(oncf_df)
     missing = [c for c in REQUIRED_ONCF_COLS if c not in oncf_df.columns]
     if missing:
         raise ValueError(f"Missing columns in oncf_data.csv: {missing}")

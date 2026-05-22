@@ -7,6 +7,34 @@ import numpy as np
 import pandas as pd
 
 
+# Canonical output dtypes. build_training_rows must produce EXACTLY these,
+# regardless of input-file quirks: the presence/absence of NaN flips a column
+# between int64 and float64, and the datetime parse path flips ns<->us. Pinning
+# the dtypes guarantees retrain data (test1.csv, future files) yields a feature
+# table identical to oncf_data. These values match data/processed/features.parquet,
+# so enforcing them is a no-op for the oncf pipeline.
+_OUTPUT_DTYPES: dict[str, str] = {
+    "DateHeureDepartVoyageSegment": "datetime64[ns]",
+    "CodeClient": "int64",
+    "PrixParLiaison": "float64",
+    "NbrVoySegment": "float64",
+    "DelaiAnticipation": "float64",
+    "user_trip_index": "int64",
+    "days_since_prev": "float64",
+    "user_top_liaison_share": "float64",
+    "depart_hour": "int32",
+    "depart_dow": "int32",
+    "depart_month": "int32",
+    "depart_hour_sin": "float64",
+    "depart_hour_cos": "float64",
+    "depart_dow_sin": "float64",
+    "depart_dow_cos": "float64",
+    "depart_month_sin": "float64",
+    "depart_month_cos": "float64",
+    "is_self_purchase": "int64",
+}
+
+
 def _rolling_top_share(series: pd.Series) -> pd.Series:
     """For each row at position i in the series, return the share of the most
     frequent value in series[0:i] (strictly past observations). NaN for i=0.
@@ -103,7 +131,12 @@ def build_training_rows(clean_df: pd.DataFrame) -> pd.DataFrame:
         *num_cols,
     ]
 
-    return df[out_cols].copy()
+    result = df[out_cols].copy()
+    # Pin canonical dtypes so the schema never depends on input-file quirks.
+    for col, dtype in _OUTPUT_DTYPES.items():
+        if str(result[col].dtype) != dtype:
+            result[col] = result[col].astype(dtype)
+    return result
 
 
 # Trip-context columns whose values come from the booking row itself (price,
