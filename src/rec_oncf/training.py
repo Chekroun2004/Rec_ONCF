@@ -29,7 +29,18 @@ def temporal_split(df: pd.DataFrame, *, time_col: str, train_frac: float = 0.8):
     return df.iloc[:cut].copy(), df.iloc[cut:].copy()
 
 
-def train_xgb_multiclass(df_train: pd.DataFrame, *, label_col: str, time_col: str) -> TrainArtifacts:
+def train_xgb_multiclass(
+    df_train: pd.DataFrame,
+    *,
+    label_col: str,
+    time_col: str,
+    n_estimators: int = 200,
+    learning_rate: float = 0.08,
+    max_depth: int = 6,
+    subsample: float = 0.9,
+    colsample_bytree: float = 0.8,
+    reg_lambda: float = 1.0,
+) -> TrainArtifacts:
     df_train = df_train.sort_values(time_col)
 
     y_raw = df_train[label_col].astype(str).to_numpy()
@@ -61,12 +72,12 @@ def train_xgb_multiclass(df_train: pd.DataFrame, *, label_col: str, time_col: st
         eval_metric="mlogloss",
         tree_method="hist",
         device="cpu",
-        n_estimators=200,
-        learning_rate=0.08,
-        max_depth=6,
-        subsample=0.9,
-        colsample_bytree=0.8,
-        reg_lambda=1.0,
+        n_estimators=n_estimators,
+        learning_rate=learning_rate,
+        max_depth=max_depth,
+        subsample=subsample,
+        colsample_bytree=colsample_bytree,
+        reg_lambda=reg_lambda,
         n_jobs=-1,
         random_state=42,
     )
