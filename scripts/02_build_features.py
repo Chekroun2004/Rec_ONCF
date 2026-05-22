@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -13,19 +14,37 @@ from rec_oncf.features import build_training_rows
 from rec_oncf.io import read_parquet, write_parquet
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     paths = default_paths()
 
-    if not paths.processed_dataset_parquet.exists():
+    parser = argparse.ArgumentParser(
+        description="Build the model-ready feature table from a cleaned parquet. "
+        "Defaults reproduce the oncf_data pipeline; pass --input/--output to run "
+        "the SAME feature engineering on retrain data (e.g. test1_clean.parquet)."
+    )
+    parser.add_argument(
+        "--input", type=Path, default=paths.processed_dataset_parquet,
+        help="Cleaned parquet (default: data/processed/oncf_clean.parquet)",
+    )
+    parser.add_argument(
+        "--output", type=Path, default=paths.features_parquet,
+        help="Features parquet output (default: data/processed/features.parquet)",
+    )
+    args = parser.parse_args(argv)
+
+    if not args.input.exists():
         raise FileNotFoundError(
-            f"Missing processed dataset: {paths.processed_dataset_parquet}. Run scripts/01_make_dataset.py"
+            f"Missing cleaned dataset: {args.input}. Run scripts/01_make_dataset.py first."
         )
 
-    clean = read_parquet(paths.processed_dataset_parquet)
+    clean = read_parquet(args.input)
     feats = build_training_rows(clean)
-    write_parquet(feats, paths.features_parquet)
 
-    print(f"Wrote: {paths.features_parquet}")
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    write_parquet(feats, args.output)
+
+    print(f"Input:  {args.input}")
+    print(f"Wrote: {args.output}")
     print(f"Rows: {len(feats):,}")
     print(f"Users: {feats['CodeClient'].nunique():,}")
     print(f"Classes (liaisons): {feats['LiaisonId'].nunique():,}")
