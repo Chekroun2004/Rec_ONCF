@@ -142,7 +142,15 @@
       "Write(*)",
       "WebSearch(*)",
       "Bash(Get-ChildItem deploy/ -Force)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Read(//c/Users/omarc/Desktop/**)",
+      "Bash(\".venv/Scripts/python.exe\" -m pytest tests/test_local_schedule.py -v)",
+      "Bash(.venv/Scripts/python.exe -m pytest tests/test_local_schedule.py -q)",
+      "Bash(Test-Path *)",
+      "Bash(.venv/Scripts/python.exe scripts/11_build_schedule_index.py)",
+      "Bash(/mnt/c/Users/omarc/Desktop/Rec_ONCF/.venv/Scripts/python.exe -m pytest tests/ -v -q)",
+      "Bash(docker compose *)",
+      "Skill(commit-commands:commit)"
     ]
   }
 }
