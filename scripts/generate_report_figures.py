@@ -40,7 +40,8 @@ from matplotlib.patches import (  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 PIC = ROOT / "pic"
 PIC.mkdir(exist_ok=True)
-DATA = ROOT / "data" / "processed"
+CLEAN_DIR = ROOT / "data" / "clean" / "parquet"
+FEAT_DIR  = ROOT / "data" / "features" / "parquet"
 
 # ── Palette ONCF ───────────────────────────────────────────────────
 ORANGE = "#E65300"
@@ -154,7 +155,7 @@ def fig_gantt():
 def fig_hist_liaison_distribution():
     fig, ax = plt.subplots(figsize=(11, 4.6))
     try:
-        s = pd.read_parquet(DATA / "oncf_clean.parquet", columns=["LiaisonId"])["LiaisonId"]
+        s = pd.read_parquet(CLEAN_DIR / "oncf_clean.parquet", columns=["LiaisonId"])["LiaisonId"]
         counts = s.astype(str).value_counts().head(25)
         src = "Données réelles (oncf_clean.parquet)"
     except Exception as exc:  # noqa: BLE001
@@ -297,7 +298,7 @@ def fig_metrics_segment():
 def fig_dist_user_top_liaison_share():
     fig, ax = plt.subplots(figsize=(9.5, 4.8))
     try:
-        s = pd.read_parquet(DATA / "features.parquet",
+        s = pd.read_parquet(FEAT_DIR / "oncf_features.parquet",
                             columns=["user_top_liaison_share"])["user_top_liaison_share"]
         s = pd.to_numeric(s, errors="coerce").dropna()
         src = "Données réelles (features.parquet)"
@@ -511,38 +512,67 @@ def fig_ab_testing():
 # 3. DIAGRAMMES UML
 # ===================================================================
 def fig_uml_composants():
-    fig, ax = canvas(100, 80, figw=9)
-    title(ax, "Diagramme de composants", ymax=80)
-    groups = [
-        ("« couche API »", "apps/api/main.py", LBLUE, BLUE, 68),
-        ("« couche logique »  rec_oncf", "recommender · candidates · features · training\ncold_start · popularity · local_schedule · retrain", LOR, ORANGE, 50),
-        ("« couche modèle »  models/", "xgb_ranker.onnx · label_encoder.joblib\ncold_start.joblib · popularity.joblib · schedule_index.joblib", LGREEN, GREEN, 30),
-        ("« couche données »  data/processed/", "oncf_clean.parquet · features.parquet", GREY, DGREY, 13),
+    """Graphe de dépendances de modules rec_oncf."""
+    fig, ax = canvas(100, 88, figw=10)
+    title(ax, "Diagramme de composants : dépendances de modules", ymax=88)
+
+    BW, BH = 17, 6
+    pos = {
+        "API\n(main.py)":  (18, 80),
+        "simulation":      (82, 80),
+        "recommender":     (28, 62),
+        "retrain":         (72, 62),
+        "candidates":      ( 8, 42),
+        "cold_start":      (25, 42),
+        "features":        (46, 42),
+        "training":        (64, 42),
+        "metrics":         (83, 42),
+        "config":          (52, 22),
+    }
+    edges = [
+        ("API\n(main.py)", "recommender",   0.0),
+        ("simulation",     "recommender",  -0.2),
+        ("simulation",     "retrain",       0.0),
+        ("recommender",    "candidates",    0.1),
+        ("recommender",    "cold_start",    0.05),
+        ("recommender",    "features",      0.0),
+        ("recommender",    "training",     -0.15),
+        ("retrain",        "features",      0.12),
+        ("retrain",        "training",      0.0),
+        ("retrain",        "metrics",      -0.05),
+        ("features",       "config",        0.05),
+        ("training",       "config",       -0.05),
     ]
-    for stereo, comps, fc, ec, y in groups:
-        box(ax, 50, y, 84, 13, "", fc=fc, ec=ec)
-        # petit symbole composant UML
-        ax.add_patch(FancyBboxPatch((9.5, y + 2.0), 4, 3.2, boxstyle="square,pad=0",
-                                    fc="white", ec=ec, lw=1.2, zorder=4))
-        ax.text(50, y + 3.6, stereo, ha="center", fontsize=10, weight="bold", color=ec, style="italic")
-        ax.text(50, y - 2.4, comps, ha="center", fontsize=8.6, color="#333")
-    for y in (61.5, 43.5, 23.5):
-        arrow(ax, (50, y), (50, y - 5), color="#555", style="-|>")
-        ax.text(53, y - 2.5, "dépend de", fontsize=7.5, color="#555")
+    OR_KEYS = {"simulation", "config"}
+    for src, dst, rad in edges:
+        sx, sy = pos[src]
+        dx, dy = pos[dst]
+        arrow(ax, (sx, sy - BH / 2), (dx, dy + BH / 2),
+              color="#aaa", lw=1.0, style="-|>", rad=rad)
+    for label, (cx, cy) in pos.items():
+        fc = LOR if label in OR_KEYS else LBLUE
+        ec = ORANGE if label in OR_KEYS else BLUE
+        box(ax, cx, cy, BW, BH, label, fc=fc, ec=ec, fs=8.5)
+    ax.text(50, 10, "→   dépend de", ha="center", fontsize=9, color="#666", style="italic")
     save(fig, "uml_composants.png")
 
 
 def fig_uml_usecase():
-    fig, ax = canvas(100, 64, figw=11)
-    title(ax, "Diagramme de cas d'utilisation", ymax=64)
+    fig, ax = canvas(100, 76, figw=11)
+    title(ax, "Diagramme de cas d'utilisation", ymax=76)
     # frontière système
-    ax.add_patch(FancyBboxPatch((32, 6), 36, 50, boxstyle="round,pad=0,rounding_size=1.5",
+    ax.add_patch(FancyBboxPatch((30, 4), 40, 62, boxstyle="round,pad=0,rounding_size=1.5",
                                 fc="#FBFCFE", ec=BLUE, lw=1.6, zorder=1))
-    ax.text(50, 53, "Système de recommandation ONCF", ha="center", fontsize=10,
+    ax.text(50, 63.5, "Système de recommandation ONCF", ha="center", fontsize=10,
             weight="bold", color=BLUE, zorder=2)
-    ucs = [("Consulter\nrecommandations", 50, 46), ("Envoyer feedback\n(clic)", 50, 37),
-           ("Obtenir horaires\nde la liaison", 50, 28),
-           ("Réentraîner\nle modèle", 50, 19), ("Évaluer &\npromouvoir", 50, 11)]
+    ucs = [
+        ("Consulter\nrecommandations",     50, 56),
+        ("Envoyer feedback\n(clic)",        50, 47),
+        ("Obtenir horaires\nde la liaison", 50, 38),
+        ("Réentraîner\nle modèle",          50, 28),
+        ("Évaluer &\npromouvoir",           50, 19),
+        ("Configurer le\nguardrail",        50,  9),
+    ]
     pos = {}
     for name, x, y in ucs:
         ax.add_patch(Ellipse((x, y), 24, 6.6, fc=LBLUE, ec=BLUE, lw=1.3, zorder=2))
@@ -557,19 +587,24 @@ def fig_uml_usecase():
         ax.plot([x, x + 2], [y - 1, y - 4], color="#222", lw=1.5, zorder=3)
         ax.text(x, y - 6.5, label, ha="center", fontsize=8.5, weight="bold")
 
-    actor(ax, 10, 44, "Utilisateur\nmobile")
-    actor(ax, 10, 24, "Application\nmobile")
-    actor(ax, 90, 40, "Système de\nréentraînement")
-    actor(ax, 90, 18, "Data Scientist\n/ Ops")
+    actor(ax, 10, 50, "Utilisateur\nmobile")
+    actor(ax, 10, 29, "Application\nmobile")
+    actor(ax, 90, 39, "Système de\nréentraînement")
+    actor(ax, 90, 13, "Data Scientist\n/ Ops")
+    # (actor_x, actor_y, uc_name) — edge connects to nearest ellipse border
     links = [
-        ((13, 44), "Consulter\nrecommandations"), ((13, 44), "Envoyer feedback\n(clic)"),
-        ((13, 24), "Consulter\nrecommandations"), ((13, 24), "Obtenir horaires\nde la liaison"),
-        ((87, 40), "Réentraîner\nle modèle"), ((87, 40), "Évaluer &\npromouvoir"),
-        ((87, 18), "Évaluer &\npromouvoir"),
+        (13, 50, "Consulter\nrecommandations"),
+        (13, 50, "Envoyer feedback\n(clic)"),
+        (13, 29, "Envoyer feedback\n(clic)"),
+        (13, 29, "Obtenir horaires\nde la liaison"),
+        (87, 39, "Réentraîner\nle modèle"),
+        (87, 39, "Évaluer &\npromouvoir"),
+        (87, 13, "Configurer le\nguardrail"),
     ]
-    for (ax_, ay), name in links:
+    for actor_x, actor_y, name in links:
         bx, by = pos[name]
-        ax.plot([ax_, bx + (12 if ax_ < 50 else -12)], [ay, by], color="#888", lw=1.1, zorder=1)
+        ex = bx - 12 if actor_x < 50 else bx + 12
+        ax.plot([actor_x, ex], [actor_y, by], color="#888", lw=1.1, zorder=1)
     save(fig, "uml_usecase.png")
 
 
