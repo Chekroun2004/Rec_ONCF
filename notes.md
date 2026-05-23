@@ -48,7 +48,8 @@
 | **Simulation retrain — Phase A** | ✅ **ENTRAÎNÉ** | Baseline sur `test1_features.parquet` (minus 7j) — 641k train / 160k test / 1121 classes — **HR@1=0.7200, HR@3=0.8602, MRR@3=0.7837** — `models/sim/baseline/` (536 MB) |
 | **Simulation retrain — Phase B** | ✅ **JOUR 1 SEUL** | `--day 1` exécuté (2026-05-22) — fenêtre 365j = 815 997 lignes (652 797 train, 1121 classes). **Split HR@1=0.7119 / HR@3=0.8557 / MRR@3=0.7770**, éval J+1 (2021-12-23)=0.2990/0.5539/0.4118 (n=204), guardrail OK (drop 0.0081), durée 7954s (2h12), `models/sim/day_1/` (570 MB). **Jours 2-7 ANNULÉS** sur décision d'Omar (seul J1 voulu pour démontrer le mécanisme — la série 7 jours a été lancée puis arrêtée). |
 | **Rapport + 24 figures** | ✅ | `rapport_pfa_v2.tex` à jour, layouts ONCF. Section **« Validation du Mécanisme de Réentraînement »** ajoutée (baseline + jour 1, tableaux, pas de figure). ⚠️ `rapport_pfa_v2.tex` est **gitignoré** (« not published to repo ») → sync manuel vers Overleaf |
-| **Rapport — corrections 2026-05-23** | ✅ | Versions bibliothèques corrigées dans les 3 tableaux technologies (plus de `1.x`/`3.x`). Table `tab:features` : `[H]`→`[htbp]` + `\footnotesize` + `arraystretch` 1.05 (overflow page 29). **2 figures UML en attente** : voir section Rapport. |
+| **Rapport — corrections 2026-05-23** | ✅ | Versions bibliothèques corrigées dans les 3 tableaux technologies (plus de `1.x`/`3.x`). Table `tab:features` : `[H]`→`[htbp]` + `\footnotesize` + `arraystretch` 1.05 (overflow page 29). |
+| **2 figures UML régénérées** | ✅ | `uml_usecase.png` : UC "Configurer le guardrail" ajouté, Application mobile liée à "Envoyer feedback" + "Obtenir horaires", Data Scientist connecté au guardrail uniquement. `uml_composants.png` : remplacé la vue 4-couches (doublon) par un graphe de dépendances de modules. `generate_report_figures.py` : path `data/processed/` → `data/clean/parquet/` + `data/features/parquet/` (plus de [warn]). |
 | **Lint (ruff)** | ✅ | `ruff check scripts/ src/ tests/` → 0 erreur (**164 tests**) |
 | **Interface web — 4 modèles** | ✅ | Sélecteur 2×2 (A/B/C/D), métriques affichées, modèle D par défaut ; cold-start = random dans top-15 |
 | **Restructuration workspace** | ✅ | `data/raw/`, `data/clean/`, `data/features/` ; CSVs Desktop → projet ; tests 17→6 ; scripts alignés |
@@ -109,16 +110,14 @@ Toute donnée de retrain (`test1.csv`, futurs fichiers) doit produire des featur
 
 ### Prochaine action
 
-> **Restructuration workspace terminée (2026-05-23)** — 164/164 tests passent. Interface web complète (4 modèles, cold-start aléatoire). Il reste uniquement le rapport.
+> **Workspace + figures terminés (2026-05-23)** — 164/164 tests passent. 20/20 figures scriptées à jour (UML corrigés). Il reste uniquement la finalisation du rapport sur Overleaf.
 
 #### 1. Rapport — finaliser sur Overleaf
 - Section **« Validation du Mécanisme de Réentraînement »** = **déjà écrite** dans `rapport_pfa_v2.tex` (baseline + jour 1, 3 tableaux, pas de figure). Perspective « Fenêtre glissante » réconciliée (renvoi vers la section + mention « sur CPU » retirée).
 - Corrections déjà appliquées au rapport : compteur tests **115 → 164** → **mettre à jour à 6 fichiers de tests** (restructuration 2026-05-23), phrase interdite « pivot post-réunion » supprimée, annexe métriques alignée sur le prod actuel (**0.7691/0.9100/0.8333**), décompte figures **23 → 24**, versions bibliothèques corrigées, table `tab:features` overflow fixé.
 - ⚠️ `rapport_pfa_v2.tex` est **gitignoré** → **copier le fichier local vers Overleaf** puis **recompiler** (seul moyen de valider la compilation + le rendu des 24 figures).
-- **⚠️ 2 figures UML à régénérer** dans `scripts/generate_report_figures.py` avant sync Overleaf :
-  1. `uml_usecase.png` — App mobile manque les liens vers "Envoyer feedback" et "Obtenir horaires de liaison" ; UC "Configurer le guardrail" à ajouter ; Data Scientist connecté à "Configurer le guardrail" uniquement.
-  2. `uml_composants.png` — doublon de `archi_globale.png` (même vue 4 couches). À transformer en graphe de dépendances de modules (`recommender` → `candidates`, `features`, `cold_start`, `training` ; `retrain` → `training`, `metrics`, etc.).
 - **Figures** : `scripts/generate_report_figures.py` régénère 20 des 24 figures dans `pic/` (noms identiques au .tex → swap direct). Specs complètes dans `rapport_figures_specs.txt`. À fournir à la main : `oncf.png`, `LogoFsr.png`, `github_actions_ci.png`, `pytest_output.png`, `task_scheduler.png`.
+- **Toutes les 20 figures scriptées sont à jour** (2026-05-23) — les 2 UML ont été corrigés et régénérés.
 
 #### 2. Rapport — Section A/B Testing (à rédiger)
 - Recentrer la section **« Framework A/B Testing »** : l'objectif n'est pas de comparer A vs B comme deux modèles rivaux, mais de **démontrer que l'entraînement est stable et reproductible** — prod (A) et challenger (B) ont des métriques proches, ce qui prouve que le pipeline produit des modèles cohérents.
