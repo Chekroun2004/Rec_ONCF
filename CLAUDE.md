@@ -30,7 +30,7 @@
 
 ## État actuel
 
-**Branch:** `main` — **163/163 tests passent** — pipeline complet vérifié 2026-05-22.
+**Branch:** `main` — **164/164 tests passent** — pipeline complet vérifié 2026-05-22.
 
 ### Résumé des livraisons
 
@@ -48,7 +48,10 @@
 | **Simulation retrain — Phase A** | ✅ **ENTRAÎNÉ** | Baseline sur `test1_features.parquet` (minus 7j) — 641k train / 160k test / 1121 classes — **HR@1=0.7200, HR@3=0.8602, MRR@3=0.7837** — `models/sim/baseline/` (536 MB) |
 | **Simulation retrain — Phase B** | ✅ **JOUR 1 SEUL** | `--day 1` exécuté (2026-05-22) — fenêtre 365j = 815 997 lignes (652 797 train, 1121 classes). **Split HR@1=0.7119 / HR@3=0.8557 / MRR@3=0.7770**, éval J+1 (2021-12-23)=0.2990/0.5539/0.4118 (n=204), guardrail OK (drop 0.0081), durée 7954s (2h12), `models/sim/day_1/` (570 MB). **Jours 2-7 ANNULÉS** sur décision d'Omar (seul J1 voulu pour démontrer le mécanisme — la série 7 jours a été lancée puis arrêtée). |
 | **Rapport + 24 figures** | ✅ | `rapport_pfa_v2.tex` à jour, layouts ONCF. Section **« Validation du Mécanisme de Réentraînement »** ajoutée (baseline + jour 1, tableaux, pas de figure). ⚠️ `rapport_pfa_v2.tex` est **gitignoré** (« not published to repo ») → sync manuel vers Overleaf |
-| **Lint (ruff)** | ✅ | `ruff check scripts/ src/ tests/` → 0 erreur (**163 tests**) |
+| **Rapport — corrections 2026-05-23** | ✅ | Versions bibliothèques corrigées dans les 3 tableaux technologies (plus de `1.x`/`3.x`). Table `tab:features` : `[H]`→`[htbp]` + `\footnotesize` + `arraystretch` 1.05 (overflow page 29). **2 figures UML en attente** : voir section Rapport. |
+| **Lint (ruff)** | ✅ | `ruff check scripts/ src/ tests/` → 0 erreur (**164 tests**) |
+| **Interface web — 4 modèles** | ✅ | Sélecteur 2×2 (A/B/C/D), métriques affichées, modèle D par défaut ; cold-start = random dans top-15 |
+| **Restructuration workspace** | ✅ | `data/raw/`, `data/clean/`, `data/features/` ; CSVs Desktop → projet ; tests 17→6 ; scripts alignés |
 
 ### Données retrain — contrat « même pipeline que oncf_data »
 
@@ -106,14 +109,24 @@ Toute donnée de retrain (`test1.csv`, futurs fichiers) doit produire des featur
 
 ### Prochaine action
 
-> **Phase B close à la demande d'Omar (jour 1 seul).** La série 7 jours n'est plus à l'ordre du jour.
+> **Restructuration workspace terminée (2026-05-23)** — 164/164 tests passent. Interface web complète (4 modèles, cold-start aléatoire). Il reste uniquement le rapport.
 
 #### 1. Rapport — finaliser sur Overleaf
 - Section **« Validation du Mécanisme de Réentraînement »** = **déjà écrite** dans `rapport_pfa_v2.tex` (baseline + jour 1, 3 tableaux, pas de figure). Perspective « Fenêtre glissante » réconciliée (renvoi vers la section + mention « sur CPU » retirée).
-- Corrections déjà appliquées au rapport : compteur tests **115 → 163** (+ tableau de couverture reconstruit sur les 17 fichiers réels), phrase interdite « pivot post-réunion » supprimée, annexe métriques alignée sur le prod actuel (**0.7691/0.9100/0.8333**), décompte figures **23 → 24**.
+- Corrections déjà appliquées au rapport : compteur tests **115 → 164** → **mettre à jour à 6 fichiers de tests** (restructuration 2026-05-23), phrase interdite « pivot post-réunion » supprimée, annexe métriques alignée sur le prod actuel (**0.7691/0.9100/0.8333**), décompte figures **23 → 24**, versions bibliothèques corrigées, table `tab:features` overflow fixé.
 - ⚠️ `rapport_pfa_v2.tex` est **gitignoré** → **copier le fichier local vers Overleaf** puis **recompiler** (seul moyen de valider la compilation + le rendu des 24 figures).
+- **⚠️ 2 figures UML à régénérer** dans `scripts/generate_report_figures.py` avant sync Overleaf :
+  1. `uml_usecase.png` — App mobile manque les liens vers "Envoyer feedback" et "Obtenir horaires de liaison" ; UC "Configurer le guardrail" à ajouter ; Data Scientist connecté à "Configurer le guardrail" uniquement.
+  2. `uml_composants.png` — doublon de `archi_globale.png` (même vue 4 couches). À transformer en graphe de dépendances de modules (`recommender` → `candidates`, `features`, `cold_start`, `training` ; `retrain` → `training`, `metrics`, etc.).
+- **Figures** : `scripts/generate_report_figures.py` régénère 20 des 24 figures dans `pic/` (noms identiques au .tex → swap direct). Specs complètes dans `rapport_figures_specs.txt`. À fournir à la main : `oncf.png`, `LogoFsr.png`, `github_actions_ci.png`, `pytest_output.png`, `task_scheduler.png`.
 
-#### 2. (Optionnel) Si la stabilité dans la durée est demandée plus tard
+#### 2. Rapport — Section A/B Testing (à rédiger)
+- Recentrer la section **« Framework A/B Testing »** : l'objectif n'est pas de comparer A vs B comme deux modèles rivaux, mais de **démontrer que l'entraînement est stable et reproductible** — prod (A) et challenger (B) ont des métriques proches, ce qui prouve que le pipeline produit des modèles cohérents.
+- Message clé à faire passer : les écarts A/B sont faibles → le modèle **converge de façon stable**, le guardrail valide la promotion challenger → **le mécanisme de réentraînement est fiable**.
+- Metrics à citer : prod A = HR@1 0.7691 / HR@3 0.9100 / MRR@3 0.8333 ; challenger B (avant promotion) = légèrement supérieur → d'où la promotion le 2026-05-16.
+- Ne pas présenter l'A/B comme un test en cours (le challenger a déjà été promu) — cadrer comme validation rétrospective de la stabilité du pipeline.
+
+#### 3. (Optionnel) Si la stabilité dans la durée est demandée plus tard
 - Relancer `scripts/12_simulate_daily_retrain.py --day 2..7` (~2h12/jour, ~13h) → `reports/simulation_daily.json` s'accumule, puis ajouter une courbe HR@1 (→ 25 figures) au rapport.
 
 ---
@@ -178,21 +191,34 @@ Rec_ONCF/
 │   ├── 10_promote_challenger.py # archive prod, promeut challenger
 │   ├── 11_build_schedule_index.py # horaire.csv → models/schedule_index.joblib
 │   ├── 12_simulate_daily_retrain.py # simulation retrain : --baseline (Phase A, test1) ou --day N (Phase B, oncf_full, fenêtre 365j)
+│   ├── generate_report_figures.py # génère 20 figures du rapport dans pic/ (graphes matplotlib lus depuis parquet + schémas/UML dessinés) ; noms = ceux du .tex
 │   └── _doc_gen.py              # utility — prints dataset stats
 │
-├── tests/                   # 163 tests — pytest
-│   └── test_*.py            # cleaning, features, metrics, training, candidates, recommender,
-│                            #   api, schedule, local_schedule, cold_start, onnx, retrain, popularity, extract_days,
-│                            #   simulation (10 tests), dataset_extra_csv (5 tests),
-│                            #   retrain_data_contract (6 tests dont float64 dtype promotion)
+├── tests/                   # 164 tests — pytest (6 fichiers groupés)
+│   ├── test_pipeline.py     # cleaning, features, extra-CSV concat, retrain data contract
+│   ├── test_ml.py           # training, metrics, ONNX, retrain pipeline, popularity
+│   ├── test_recommender.py  # Recommender + candidates + cold_start
+│   ├── test_api.py          # FastAPI endpoints — 4 variants (a/b/c/d)
+│   ├── test_schedule.py     # schedule scraper + local schedule index
+│   └── test_simulation.py   # simulation retrain + extract_days
 │
-├── data/processed/
-│   ├── oncf_clean.parquet        # 491,680 rows — prod (oncf_data seul)
-│   ├── features.parquet          # 491,680 × 26 cols — prod
-│   ├── test1_clean.parquet       # 805,093 rows — test1 seul (2021-01-01 → 2022-03-13)
-│   ├── test1_features.parquet    # 805,093 × 26 cols — 62,423 users, 1,238 liaisons
-│   ├── oncf_full_clean.parquet   # 1,326,559 rows — oncf+test1 combinés (2018-2022)
-│   └── oncf_full_features.parquet # 1,326,559 × 26 cols — 129,459 users, 1,379 liaisons
+├── data/
+│   ├── raw/                      # sources brutes (copiées depuis Desktop 2026-05-23)
+│   │   ├── oncf_data.csv, test1.csv, Liaison.csv, horaire.csv
+│   ├── clean/
+│   │   ├── parquet/              # parquets nettoyés
+│   │   │   ├── oncf_clean.parquet    # 491,680 rows — prod
+│   │   │   ├── test1_clean.parquet   # 805,093 rows — test1 seul
+│   │   │   └── oncf_full_clean.parquet # 1,326,559 rows — oncf+test1 combinés
+│   │   └── csv/                  # versions CSV (délimiteur ; UTF-8 BOM)
+│   │       ├── oncf_clean.csv, test1_clean.csv, oncf_full_clean.csv
+│   └── features/
+│       ├── parquet/              # parquets de features
+│       │   ├── oncf_features.parquet # 491,680 × 26 cols — prod
+│       │   ├── test1_features.parquet # 805,093 × 26 cols
+│       │   └── oncf_full_features.parquet # 1,326,559 × 26 cols
+│       └── csv/                  # versions CSV (délimiteur ; UTF-8 BOM)
+│           ├── oncf_features.csv, test1_features.csv, oncf_full_features.csv
 │
 ├── models/
 │   ├── xgb_ranker.json      # ~428 MB — challenger promu (saved with joblib despite .json ext)
@@ -221,17 +247,16 @@ Rec_ONCF/
 
 | File | Rows | Description |
 |---|---|---|
-| `Desktop/oncf_data.csv` | raw | Raw ONCF bookings CSV (M/D/Y dates) |
-| `Desktop/Liaison.csv` | raw | Route lookup table |
-| `Desktop/horaire.csv` | raw | Train timetable — 2759 stops, 309 trains, 122 stations (UTF-8 BOM, header + H:MM:SS) |
-| `Desktop/test1.csv` | raw | Données retrain ONCF — 2021-01-01 → 2022-03-13, D/M/Y, colonne `Acheteurid` (alias) |
-| `data/processed/oncf_clean.parquet` | 491,680 | Cleaned bookings oncf_data seul |
-| `data/processed/features.parquet` | 491,680 | Features prod oncf_data seul (26 cols) |
-| `data/processed/test1_clean.parquet` | 805,093 | Cleaned test1 seul — 62,423 users, 1,238 liaisons |
-| `data/processed/test1_features.parquet` | 805,093 | Features test1 seul — 26 cols, dtypes identiques à features.parquet |
-| `data/processed/test1_features.csv` | 805,093 | Export CSV de `test1_features.parquet` (175.7 MB, 26 cols, `index=False`) — créé 2026-05-22 (gitignoré ; contient `CodeClient` → pseudonymiser avant tout partage externe, Loi 09-08) |
-| `data/processed/oncf_full_clean.parquet` | 1,326,559 | Combiné oncf+test1 (2018-2022) — 129,459 users, 1,379 liaisons |
-| `data/processed/oncf_full_features.parquet` | 1,326,559 | Features combinées — 26 cols, is_self_purchase=0 (oncf) / 1 (test1) |
+| `data/raw/oncf_data.csv` | raw | Raw ONCF bookings CSV (M/D/Y dates) |
+| `data/raw/Liaison.csv` | raw | Route lookup table |
+| `data/raw/horaire.csv` | raw | Train timetable — 2759 stops, 309 trains, 122 stations (UTF-8 BOM, header + H:MM:SS) |
+| `data/raw/test1.csv` | raw | Données retrain ONCF — 2021-01-01 → 2022-03-13, D/M/Y, colonne `Acheteurid` (alias) |
+| `data/clean/parquet/oncf_clean.parquet` | 491,680 | Cleaned bookings oncf_data seul |
+| `data/clean/parquet/test1_clean.parquet` | 805,093 | Cleaned test1 seul — 62,423 users, 1,238 liaisons |
+| `data/clean/parquet/oncf_full_clean.parquet` | 1,326,559 | Combiné oncf+test1 (2018-2022) — 129,459 users, 1,379 liaisons |
+| `data/features/parquet/oncf_features.parquet` | 491,680 | Features prod oncf_data seul (26 cols) |
+| `data/features/parquet/test1_features.parquet` | 805,093 | Features test1 seul — 26 cols, dtypes identiques à oncf_features.parquet |
+| `data/features/parquet/oncf_full_features.parquet` | 1,326,559 | Features combinées — 26 cols, is_self_purchase=0 (oncf) / 1 (test1) |
 
 **Key stats oncf prod :** 69,449 active users, 1,011 unique `LiaisonId` classes (après temporal split filtering).
 **Key stats test1 :** heure réaliste — pics 7h (14%), 17h (12%), 8h (12%), 18h (10%) — distribution navette ONCF.
@@ -333,13 +358,20 @@ XGBoost is **2.80× better** than the best baseline (`most_frequent`) on HR@1.
 ## Artifact Paths (from `config.py`)
 
 ```python
+raw_dir                = <project_root>/data/raw/
+clean_dir              = <project_root>/data/clean/
+features_dir           = <project_root>/data/features/
+raw_oncf_data          = raw_dir / "oncf_data.csv"
+raw_liaison            = raw_dir / "Liaison.csv"
+horaire_csv_path       = raw_dir / "horaire.csv"
+processed_dataset_parquet = clean_dir / "parquet" / "oncf_clean.parquet"
+features_parquet       = features_dir / "parquet" / "oncf_features.parquet"
 models_dir             = <project_root>/models/
 xgb_model_path         = models_dir / "xgb_ranker.json"                  # ~448 MB
 label_encoder_path     = models_dir / "label_encoder.joblib"
 cold_start_path        = models_dir / "cold_start.joblib"
 onnx_model_path        = models_dir / "xgb_ranker.onnx"                  # ~286 MB
 popularity_path        = models_dir / "popularity.joblib"                # ~120 KB
-horaire_csv_path       = desktop / "horaire.csv"
 schedule_index_path    = models_dir / "schedule_index.joblib"             # ~200 KB
 # Challenger (A/B testing)
 challenger_model       = models_dir / "xgb_ranker_challenger.json"
@@ -347,8 +379,6 @@ challenger_le          = models_dir / "label_encoder_challenger.joblib"
 challenger_onnx        = models_dir / "xgb_ranker_challenger.onnx"
 # Archive (rollback)
 archive_dir            = models_dir / "archive" / "20260516T163128Z"
-features_parquet       = data/processed/features.parquet
-processed_dataset_parquet = data/processed/oncf_clean.parquet
 ```
 
 > **Note:** `xgb_ranker.json` is saved using `joblib.dump` (not XGBoost native JSON), despite the `.json` extension. Do not change the filename or save/load method independently.
@@ -360,7 +390,8 @@ processed_dataset_parquet = data/processed/oncf_clean.parquet
 **Endpoints:**
 - `GET /` → ONCF-styled demo web page (self-contained HTML/CSS/JS; POSTs to `/recommend`). Static assets at `GET /static/*`. `code_client` is only ever sent in the POST body — never in the URL or browser storage (Loi 09-08).
 - `GET /health` → `{"status": "ok"}`
-- `POST /recommend?variant=a|b` → `{"mode": "model"|"cold_start_cf"|"popularity"|"cold_start", "recommendations": [...], "labels": {"LiaisonId": "GARE DEPART → GARE ARRIVEE", ...}, "variant": "a"|"b", "request_id": "<uuid>"}`
+- `POST /recommend?variant=a|b|c|d` → `{"mode": "model"|"cold_start_cf"|"popularity"|"cold_start", "recommendations": [...], "labels": {"LiaisonId": "GARE DEPART → GARE ARRIVEE", ...}, "variant": "a"|"b"|"c"|"d", "request_id": "<uuid>"}`
+- `GET /models` → liste des 4 variantes avec métriques (label, description, metrics, is_default, available)
 - `GET /schedule/{liaison_id}` → `{"liaison_id": "...", "schedule": [{"depart": "HH:MM", "arrive": "HH:MM", "train": "..."}]}` — serves from `schedule_index.joblib`; returns `[]` for LiaisonIds not covered (LGV / correspondance).
 - `POST /feedback` → `{"status": "ok"}` — log click event for CTR measurement
 
@@ -448,7 +479,7 @@ recommender.recommend(code_client, k=1)  # returns dict
 # 8. Build local schedule index from horaire.csv (~5 s)
 .venv\Scripts\python.exe scripts/11_build_schedule_index.py
 
-# 9. Run tests (~10 s, 163 tests)
+# 9. Run tests (~10 s, 164 tests)
 .venv\Scripts\python.exe -m pytest tests/ -v
 
 # 10. Retrain with guardrail (optional — ~43 min on CPU)

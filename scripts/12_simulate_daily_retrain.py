@@ -64,10 +64,10 @@ CHALLENGER = dict(
     reg_lambda=1.5,
 )
 
-TEST1_CLEAN = PROJECT_ROOT / "data" / "processed" / "test1_clean.parquet"
-TEST1_FEATURES = PROJECT_ROOT / "data" / "processed" / "test1_features.parquet"
-FULL_CLEAN = PROJECT_ROOT / "data" / "processed" / "oncf_full_clean.parquet"
-FULL_FEATURES = PROJECT_ROOT / "data" / "processed" / "oncf_full_features.parquet"
+TEST1_CLEAN = PROJECT_ROOT / "data" / "clean" / "parquet" / "test1_clean.parquet"
+TEST1_FEATURES = PROJECT_ROOT / "data" / "features" / "parquet" / "test1_features.parquet"
+FULL_CLEAN = PROJECT_ROOT / "data" / "clean" / "parquet" / "oncf_full_clean.parquet"
+FULL_FEATURES = PROJECT_ROOT / "data" / "features" / "parquet" / "oncf_full_features.parquet"
 LOG_PATH = PROJECT_ROOT / "reports" / "simulation_daily.json"
 SIM_ROOT = PROJECT_ROOT / "models" / "sim"
 BASELINE_META = SIM_ROOT / "baseline" / "xgb_ranker.meta.json"

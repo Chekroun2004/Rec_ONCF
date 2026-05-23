@@ -13,7 +13,7 @@ from rec_oncf.io import read_csv, write_csv
 
 def main() -> None:
     paths = default_paths()
-    test1_path = paths.desktop / "test1.csv"
+    test1_path = paths.raw_dir / "test1.csv"
     if not test1_path.exists():
         raise FileNotFoundError(f"Missing: {test1_path}")
 

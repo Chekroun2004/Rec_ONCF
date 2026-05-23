@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import json
 import sys
 import time
 import uuid as _uuid
@@ -29,6 +30,22 @@ from rec_oncf.local_schedule import get_local_schedule, load_schedule_index
 from rec_oncf.schedule import build_liaison_station_map
 
 
+def _read_meta(meta_path: Path) -> dict:
+    if meta_path.exists():
+        return json.loads(meta_path.read_text(encoding="utf-8"))
+    return {}
+
+
+def _load_sim_recommender(base_paths, sim_dir: Path) -> Recommender:
+    sim_paths = dataclasses.replace(
+        base_paths,
+        xgb_model_path=sim_dir / "xgb_ranker.json",
+        label_encoder_path=sim_dir / "label_encoder.joblib",
+        onnx_model_path=sim_dir / "xgb_ranker.onnx",
+    )
+    return Recommender.from_paths(sim_paths, require_onnx=False)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     paths = default_paths()
@@ -45,35 +62,106 @@ async def lifespan(app: FastAPI):
         retention="7 days",
         level="INFO",
     )
-    app.state.recommender_a = Recommender.from_paths(paths)
 
-    challenger_onnx = paths.models_dir / "xgb_ranker_challenger.onnx"
-    challenger_model = paths.models_dir / "xgb_ranker_challenger.json"
-    challenger_le = paths.models_dir / "label_encoder_challenger.joblib"
-    if challenger_onnx.exists() and challenger_model.exists() and challenger_le.exists():
-        c_paths = dataclasses.replace(
+    # ── Variant B — current prod (challenger promoted 2026-05-16) ──
+    rec_b = Recommender.from_paths(paths)
+    app.state.recommender_a = rec_b  # kept for /health backward compat
+    logger.info("Variant B (current prod) loaded")
+
+    # ── Variant A — archived original prod (depth=6, 200 arbres) ──
+    archive_dir = paths.models_dir / "archive" / "20260516T163128Z"
+    if (archive_dir / "xgb_ranker.json").exists():
+        a_paths = dataclasses.replace(
             paths,
-            xgb_model_path=challenger_model,
-            label_encoder_path=challenger_le,
-            onnx_model_path=challenger_onnx,
+            xgb_model_path=archive_dir / "xgb_ranker.json",
+            label_encoder_path=archive_dir / "label_encoder.joblib",
+            onnx_model_path=archive_dir / "xgb_ranker.onnx",
         )
-        app.state.recommender_b = Recommender.from_paths(c_paths)
-        logger.info("Challenger model loaded — variant B active")
+        rec_a = Recommender.from_paths(a_paths)
+        logger.info("Variant A (archive) loaded")
     else:
-        app.state.recommender_b = app.state.recommender_a
-        logger.warning("Challenger model not found — variant B falls back to A")
+        rec_a = rec_b
+        logger.warning("Archive model not found — variant A falls back to B")
+
+    # ── Variant C — corpus étendu (test1 2021-2022, no ONNX) ──
+    sim_baseline_dir = paths.models_dir / "sim" / "baseline"
+    if (sim_baseline_dir / "xgb_ranker.json").exists():
+        rec_c = _load_sim_recommender(paths, sim_baseline_dir)
+        logger.info("Variant C (corpus étendu) loaded")
+    else:
+        rec_c = rec_b
+        logger.warning("Sim baseline model not found — variant C falls back to B")
+
+    # ── Variant D — fenêtre glissante 365j (no ONNX) — défaut ──
+    sim_day1_dir = paths.models_dir / "sim" / "day_1"
+    if (sim_day1_dir / "xgb_ranker.json").exists():
+        rec_d = _load_sim_recommender(paths, sim_day1_dir)
+        logger.info("Variant D (fenêtre 365j) loaded — DEFAULT")
+    else:
+        rec_d = rec_b
+        logger.warning("Sim day_1 model not found — variant D falls back to B")
+
+    app.state.variants = {"a": rec_a, "b": rec_b, "c": rec_c, "d": rec_d}
+
+    # ── Model metadata for /models endpoint ──
+    def _metrics(meta: dict) -> dict:
+        m = meta.get("metrics", {})
+        return {
+            "hit_rate@1": round(m.get("hit_rate@1", 0), 4),
+            "hit_rate@3": round(m.get("hit_rate@3", 0), 4),
+            "mrr@3": round(m.get("mrr@3", 0), 4),
+        }
+
+    app.state.model_meta = [
+        {
+            "variant": "a",
+            "label": "Prod initial",
+            "description": "oncf 2018–2020 · depth=6 · 200 arbres",
+            "dataset": "oncf",
+            "metrics": _metrics(_read_meta(archive_dir / "xgb_ranker.meta.json")),
+            "trained_at": "2026-05-04",
+            "is_default": False,
+            "available": (archive_dir / "xgb_ranker.json").exists(),
+        },
+        {
+            "variant": "b",
+            "label": "Challenger (promu)",
+            "description": "oncf 2018–2020 · depth=8 · 250 arbres",
+            "dataset": "oncf",
+            "metrics": _metrics(_read_meta(paths.models_dir / "xgb_ranker_challenger.meta.json")),
+            "trained_at": "2026-05-16",
+            "is_default": False,
+            "available": True,
+        },
+        {
+            "variant": "c",
+            "label": "Corpus étendu",
+            "description": "test1 2021–2022 · depth=8 · 250 arbres",
+            "dataset": "test1",
+            "metrics": _metrics(_read_meta(sim_baseline_dir / "xgb_ranker.meta.json")),
+            "trained_at": "2026-05-22",
+            "is_default": False,
+            "available": (sim_baseline_dir / "xgb_ranker.json").exists(),
+        },
+        {
+            "variant": "d",
+            "label": "Fenêtre glissante 365j",
+            "description": "oncf+test1 · 365 derniers jours",
+            "dataset": "oncf+test1",
+            "metrics": _metrics(_read_meta(sim_day1_dir / "xgb_ranker.meta.json")),
+            "trained_at": "2026-05-22",
+            "is_default": True,
+            "available": (sim_day1_dir / "xgb_ranker.json").exists(),
+        },
+    ]
 
     clean = read_parquet(paths.processed_dataset_parquet)
     app.state.liaison_map = build_liaison_station_map(clean)
     app.state.schedule_index = load_schedule_index(paths.schedule_index_path)
     if app.state.schedule_index:
-        logger.info(
-            f"Schedule index loaded: {len(app.state.schedule_index)} O/D pairs"
-        )
+        logger.info(f"Schedule index loaded: {len(app.state.schedule_index)} O/D pairs")
     else:
-        logger.warning(
-            "schedule_index.joblib not found — run scripts/11_build_schedule_index.py"
-        )
+        logger.warning("schedule_index.joblib not found — run scripts/11_build_schedule_index.py")
     try:
         import redis as redis_lib
         r = redis_lib.Redis(host="localhost", port=6379, decode_responses=True)
@@ -142,11 +230,16 @@ def health():
     }
 
 
+@app.get("/models")
+def list_models():
+    return app.state.model_meta
+
+
 @app.post("/recommend", response_model=RecommendResponse, response_model_exclude_none=True)
 def recommend(req: RecommendRequest, variant: str = "a"):
     t0 = time.perf_counter()
-    served_variant = "b" if variant.lower() == "b" else "a"
-    rec = app.state.recommender_b if served_variant == "b" else app.state.recommender_a
+    served_variant = variant.lower() if variant.lower() in app.state.variants else "a"
+    rec = app.state.variants[served_variant]
     result: dict = dict(rec.recommend(req.code_client, req.k))
     result["variant"] = served_variant
     result["request_id"] = str(_uuid.uuid4())

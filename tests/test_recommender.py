@@ -8,6 +8,12 @@ from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 
+from rec_oncf.candidates import generate_candidates
+from rec_oncf.cold_start import (
+    build_cold_start_recommender,
+    load_cold_start,
+    save_cold_start,
+)
 from rec_oncf.recommender import Recommender
 from rec_oncf.training import TrainArtifacts
 
@@ -144,8 +150,10 @@ def test_unknown_user_falls_back_to_popularity():
     rec = Recommender.from_data(arts, clean, popularity=["C", "A", "B"])
     result = rec.recommend("9999", k=2)
     assert result["mode"] == "popularity"
-    assert result["recommendations"] == ["C", "A"]
-    assert result["recommendations"]  # never empty
+    recs = result["recommendations"]
+    assert len(recs) == 2
+    assert set(recs) <= {"C", "A", "B"}  # sampled from popularity pool
+    assert len(set(recs)) == 2            # no duplicates
 
 
 def test_unknown_user_without_popularity_is_cold_start():
@@ -195,3 +203,169 @@ def test_model_pads_to_k_with_popularity():
     # A and B should be in positions 0 and 1 (model-ranked), C at position 2 (padded)
     assert set(recs[:2]) == model_routes
     assert recs[2] == "C"
+
+
+# ── candidates tests ──────────────────────────────────────────────────────────
+
+def _make_history(records: list[dict]) -> pd.DataFrame:
+    df = pd.DataFrame(records)
+    df["DateHeureDepartVoyageSegment"] = pd.to_datetime(df["DateHeureDepartVoyageSegment"])
+    return df
+
+
+def test_returns_list_of_strings():
+    history = _make_history([
+        {"CodeClient": "U1", "LiaisonId": "100", "DateHeureDepartVoyageSegment": "2020-01-01"},
+        {"CodeClient": "U1", "LiaisonId": "200", "DateHeureDepartVoyageSegment": "2020-01-02"},
+        {"CodeClient": "U1", "LiaisonId": "100", "DateHeureDepartVoyageSegment": "2020-01-03"},
+    ])
+    result = generate_candidates(history, user_id="U1")
+    assert isinstance(result, list)
+    assert all(isinstance(x, str) for x in result)
+
+
+def test_most_frequent_first():
+    history = _make_history([
+        {"CodeClient": "U1", "LiaisonId": "A", "DateHeureDepartVoyageSegment": "2020-01-01"},
+        {"CodeClient": "U1", "LiaisonId": "B", "DateHeureDepartVoyageSegment": "2020-01-02"},
+        {"CodeClient": "U1", "LiaisonId": "B", "DateHeureDepartVoyageSegment": "2020-01-03"},
+        {"CodeClient": "U1", "LiaisonId": "B", "DateHeureDepartVoyageSegment": "2020-01-04"},
+    ])
+    result = generate_candidates(history, user_id="U1")
+    assert result[0] == "B"
+
+
+def test_recency_tiebreaker():
+    history = _make_history([
+        {"CodeClient": "U1", "LiaisonId": "A", "DateHeureDepartVoyageSegment": "2020-01-01"},
+        {"CodeClient": "U1", "LiaisonId": "B", "DateHeureDepartVoyageSegment": "2020-06-01"},
+    ])
+    result = generate_candidates(history, user_id="U1")
+    assert result[0] == "B"
+
+
+def test_max_candidates_respected():
+    history = _make_history([
+        {"CodeClient": "U1", "LiaisonId": str(i), "DateHeureDepartVoyageSegment": f"2020-01-{i:02d}"}
+        for i in range(1, 21)
+    ])
+    result = generate_candidates(history, user_id="U1", max_candidates=5)
+    assert len(result) <= 5
+
+
+def test_unknown_user_returns_empty():
+    history = _make_history([{"CodeClient": "U1", "LiaisonId": "A", "DateHeureDepartVoyageSegment": "2020-01-01"}])
+    result = generate_candidates(history, user_id="UNKNOWN")
+    assert result == []
+
+
+def test_empty_history_returns_empty():
+    history = pd.DataFrame(columns=["CodeClient", "LiaisonId", "DateHeureDepartVoyageSegment"])
+    result = generate_candidates(history, user_id="U1")
+    assert result == []
+
+
+def test_no_duplicates():
+    history = _make_history([
+        {"CodeClient": "U1", "LiaisonId": "A", "DateHeureDepartVoyageSegment": "2020-01-01"},
+        {"CodeClient": "U1", "LiaisonId": "A", "DateHeureDepartVoyageSegment": "2020-01-02"},
+        {"CodeClient": "U1", "LiaisonId": "B", "DateHeureDepartVoyageSegment": "2020-01-03"},
+    ])
+    result = generate_candidates(history, user_id="U1")
+    assert len(result) == len(set(result))
+
+
+def test_per_user_isolation():
+    history = _make_history([
+        {"CodeClient": "U1", "LiaisonId": "A", "DateHeureDepartVoyageSegment": "2020-01-01"},
+        {"CodeClient": "U2", "LiaisonId": "B", "DateHeureDepartVoyageSegment": "2020-01-01"},
+    ])
+    result = generate_candidates(history, user_id="U1")
+    assert "B" not in result
+    assert "A" in result
+
+
+def test_integer_user_id_coerced():
+    history = _make_history([{"CodeClient": "42", "LiaisonId": "X", "DateHeureDepartVoyageSegment": "2020-01-01"}])
+    result = generate_candidates(history, user_id=42)
+    assert result == ["X"]
+
+
+def test_empty_result_is_falsy():
+    history = _make_history([{"CodeClient": "U1", "LiaisonId": "A", "DateHeureDepartVoyageSegment": "2020-01-01"}])
+    result = generate_candidates(history, user_id="UNKNOWN")
+    assert not result
+
+
+def test_non_empty_result_is_truthy():
+    history = _make_history([{"CodeClient": "U1", "LiaisonId": "A", "DateHeureDepartVoyageSegment": "2020-01-01"}])
+    result = generate_candidates(history, user_id="U1")
+    assert result
+
+
+# ── cold_start tests ──────────────────────────────────────────────────────────
+
+def _make_cold_start_clean() -> pd.DataFrame:
+    rows = [("A", "X"), ("A", "Y"), ("A", "Z"), ("B", "X"), ("B", "Y"), ("C", "Z"), ("C", "W")]
+    df = pd.DataFrame(rows, columns=["CodeClient", "LiaisonId"])
+    df["DateHeureDepartVoyageSegment"] = pd.date_range("2020-01-01", periods=len(df))
+    return df
+
+
+def test_global_top_order():
+    rec = build_cold_start_recommender(_make_cold_start_clean())
+    assert len(rec.global_top) >= 1
+    assert rec.global_top[0] in {"X", "Y", "Z"}
+
+
+def test_global_top_excludes_nothing():
+    rec = build_cold_start_recommender(_make_cold_start_clean())
+    assert "W" in rec.global_top
+
+
+def test_cooccurrence_x_contains_y():
+    rec = build_cold_start_recommender(_make_cold_start_clean())
+    assert "Y" in rec.cooccurrence.get("X", [])
+
+
+def test_cooccurrence_z_contains_w():
+    rec = build_cold_start_recommender(_make_cold_start_clean())
+    assert "W" in rec.cooccurrence.get("Z", [])
+
+
+def test_cold_start_recommend_no_history_returns_global_top():
+    rec = build_cold_start_recommender(_make_cold_start_clean())
+    result = rec.recommend(history_df=None, k=2)
+    assert len(result) <= 2
+    assert all(r in rec.global_top for r in result)
+
+
+def test_cold_start_recommend_with_history_uses_cooccurrence():
+    rec = build_cold_start_recommender(_make_cold_start_clean())
+    history = pd.DataFrame({"LiaisonId": ["X"]})
+    result = rec.recommend(history_df=history, k=3)
+    assert "Y" in result or "Z" in result
+
+
+def test_cold_start_recommend_k_respected():
+    rec = build_cold_start_recommender(_make_cold_start_clean())
+    history = pd.DataFrame({"LiaisonId": ["X"]})
+    result = rec.recommend(history_df=history, k=1)
+    assert len(result) == 1
+
+
+def test_cold_start_recommend_unknown_route_falls_back_to_global():
+    rec = build_cold_start_recommender(_make_cold_start_clean())
+    history = pd.DataFrame({"LiaisonId": ["UNKNOWN"]})
+    result = rec.recommend(history_df=history, k=2)
+    assert len(result) <= 2
+    assert all(r in rec.global_top for r in result)
+
+
+def test_cold_start_save_load_roundtrip(tmp_path):
+    rec = build_cold_start_recommender(_make_cold_start_clean())
+    path = tmp_path / "cold_start.joblib"
+    save_cold_start(rec, path)
+    loaded = load_cold_start(path)
+    assert loaded.global_top == rec.global_top
+    assert loaded.cooccurrence == rec.cooccurrence

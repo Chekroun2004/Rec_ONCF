@@ -7,6 +7,76 @@
  *          and never appears in any URL or query string.
  */
 
+// ── Model selector state ───────────────────────────────────────
+let selectedVariant = "d"; // default: most recent
+
+async function fetchModels() {
+  try {
+    const res = await fetch("/models");
+    if (!res.ok) return;
+    const models = await res.json();
+    buildModelSelector(models);
+  } catch (_) {
+    // server not up yet — leave loading text
+  }
+}
+
+function buildModelSelector(models) {
+  const grid = document.getElementById("model-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  for (const model of models) {
+    const hr1 = model.metrics?.["hit_rate@1"];
+    const hr1Pct = hr1 !== undefined ? (hr1 * 100).toFixed(1) + "%" : "—";
+    const isSelected = model.variant === selectedVariant;
+
+    const lbl = document.createElement("label");
+    lbl.className = "model-card-label";
+    lbl.innerHTML = `
+      <input type="radio" name="model_variant" value="${escapeHtml(model.variant)}"
+        ${isSelected ? "checked" : ""} ${!model.available ? "disabled" : ""}
+        aria-label="${escapeHtml(model.label)}" />
+      <div class="model-card">
+        <div class="model-card-top-row">
+          <span class="model-variant-badge">${escapeHtml(model.variant.toUpperCase())}</span>
+          ${model.is_default ? '<span class="model-default-chip">Défaut</span>' : ""}
+        </div>
+        <div class="model-name">${escapeHtml(model.label)}</div>
+        <div class="model-metrics-row">
+          <span class="model-metric-val">${escapeHtml(hr1Pct)}</span>
+          <span class="model-metric-key">HR@1</span>
+        </div>
+        <div class="model-desc">${escapeHtml(model.description)}</div>
+      </div>
+    `;
+
+    const radio = lbl.querySelector("input[type='radio']");
+    radio.addEventListener("change", () => {
+      selectedVariant = model.variant;
+      updateMetricsBar(model);
+    });
+
+    grid.appendChild(lbl);
+    if (isSelected) updateMetricsBar(model);
+  }
+}
+
+function updateMetricsBar(model) {
+  const bar = document.getElementById("selected-model-metrics");
+  const hr1El = document.getElementById("hr1-val");
+  const hr3El = document.getElementById("hr3-val");
+  const mrr3El = document.getElementById("mrr3-val");
+  if (!bar) return;
+
+  const m = model.metrics || {};
+  const fmt = (v) => v ? (v * 100).toFixed(2) + "%" : "—";
+  if (hr1El) hr1El.textContent = fmt(m["hit_rate@1"]);
+  if (hr3El) hr3El.textContent = fmt(m["hit_rate@3"]);
+  if (mrr3El) mrr3El.textContent = fmt(m["mrr@3"]);
+  bar.removeAttribute("hidden");
+}
+
 // ── DOM refs ───────────────────────────────────────────────────
 const form          = /** @type {HTMLFormElement}     */ (document.getElementById("recommend-form"));
 const codeInput     = /** @type {HTMLInputElement}    */ (document.getElementById("code-client"));
@@ -328,7 +398,7 @@ async function submitRecommendation() {
   try {
     // code_client goes ONLY in the POST body — never in URL or query string.
     // Schedules are NOT requested here — they lazy-load per card via GET /schedule/{id}.
-    const response = await fetch("/recommend", {
+    const response = await fetch(`/recommend?variant=${encodeURIComponent(selectedVariant)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code_client: codeClient, k: k }),
@@ -399,6 +469,9 @@ form.addEventListener("submit", (e) => {
   e.preventDefault();
   submitRecommendation();
 });
+
+// Load model selector on page load
+fetchModels();
 
 // Clear validation error on input
 codeInput.addEventListener("input", () => {

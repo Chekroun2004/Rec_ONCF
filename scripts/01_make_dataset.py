@@ -127,14 +127,14 @@ def main(argv: list[str] | None = None) -> None:
     is_default = out_parquet == paths.processed_dataset_parquet
     reports_dir = paths.project_root / "reports"
 
-    # Preserve exact default filenames; derive sibling names from the output
-    # stem for any non-default (retrain) run so nothing clobbers oncf artifacts.
+    # CSV goes in the sibling csv/ folder (e.g. data/clean/parquet/ → data/clean/csv/).
+    csv_dir = out_parquet.parent.parent / "csv"
     if is_default:
-        out_csv = paths.processed_dataset_csv
+        out_csv = csv_dir / out_parquet.with_suffix(".csv").name
         report_path = reports_dir / "cleaning_report.json"
         prov_path = reports_dir / "cleaning_provenance.parquet"
     else:
-        out_csv = out_parquet.with_suffix(".csv")
+        out_csv = csv_dir / out_parquet.with_suffix(".csv").name
         report_path = reports_dir / f"{out_parquet.stem}_cleaning_report.json"
         prov_path = reports_dir / f"{out_parquet.stem}_cleaning_provenance.parquet"
 

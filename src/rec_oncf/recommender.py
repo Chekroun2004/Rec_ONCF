@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -54,7 +55,7 @@ class Recommender:
     liaison_label_lookup: dict[str, str] = field(default_factory=dict)
 
     @classmethod
-    def from_paths(cls, paths: Paths) -> Recommender:
+    def from_paths(cls, paths: Paths, *, require_onnx: bool = True) -> Recommender:
         from onnxruntime import InferenceSession
         artifacts = load_artifacts(
             model_path=paths.xgb_model_path,
@@ -62,13 +63,16 @@ class Recommender:
         )
         clean = read_parquet(paths.processed_dataset_parquet)
         cold_start_rec = load_cold_start(paths.cold_start_path)
-        if not paths.onnx_model_path.exists():
+        onnx_session = None
+        fast_preprocessor = None
+        if paths.onnx_model_path.exists():
+            onnx_session = InferenceSession(str(paths.onnx_model_path))
+            fast_preprocessor = FastPreprocessor(artifacts.pipeline["pre"])
+        elif require_onnx:
             raise RuntimeError(
                 f"ONNX model not found: {paths.onnx_model_path}. "
                 "Run scripts/06_export_onnx.py first."
             )
-        onnx_session = InferenceSession(str(paths.onnx_model_path))
-        fast_preprocessor = FastPreprocessor(artifacts.pipeline["pre"])
         popularity = (
             load_popularity(paths.popularity_path) if paths.popularity_path.exists() else []
         )
@@ -114,9 +118,13 @@ class Recommender:
 
     # --- internals -------------------------------------------------------
 
+    _POPULARITY_POOL = 15  # draw randomly from top-N most popular routes
+
     def _fallback(self, k: int) -> dict:
         if self.popularity:
-            return {"mode": "popularity", "recommendations": list(self.popularity[:k])}
+            pool = self.popularity[:self._POPULARITY_POOL]
+            recs = random.sample(pool, min(k, len(pool)))
+            return {"mode": "popularity", "recommendations": recs}
         return {"mode": "cold_start", "recommendations": []}
 
     def _labels_for(self, recs: list[str]) -> dict[str, str]:
