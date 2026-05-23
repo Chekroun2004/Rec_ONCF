@@ -698,141 +698,6 @@ def fig_uml_classes():
 
 
 # ===================================================================
-# 5. INTERFACE DE DÉMONSTRATION
-# ===================================================================
-def fig_interface_demo():
-    """Mockup de l'interface web de démonstration (apps/api/static/)."""
-    fig, ax = canvas(170, 108, figw=13)
-    ax.set_xlim(0, 170)
-    ax.set_ylim(0, 108)
-
-    # ── Header ONCF ──────────────────────────────────────────────────
-    ax.add_patch(FancyBboxPatch((0, 100), 170, 8, boxstyle="square,pad=0",
-                                fc=BLUE, ec=BLUE, zorder=2))
-    ax.text(6, 104, "ONCF", ha="left", va="center", fontsize=14,
-            weight="bold", color="white", zorder=3)
-    ax.text(26, 104.4, "Office National des Chemins de Fer",
-            ha="left", va="center", fontsize=8.5, color="#a0bcd8", zorder=3)
-    ax.text(163, 104, "Recommandation de trajet — démo",
-            ha="right", va="center", fontsize=8.5, color=LOR, zorder=3)
-    ax.add_patch(FancyBboxPatch((0, 99.2), 170, 0.8, boxstyle="square,pad=0",
-                                fc=ORANGE, ec=ORANGE, zorder=2))
-
-    # ── Panel gauche : formulaire ─────────────────────────────────────
-    ax.add_patch(FancyBboxPatch((3, 2), 76, 95,
-                                boxstyle="round,pad=0,rounding_size=1.5",
-                                fc="white", ec="#dde3ec", lw=1.2, zorder=1))
-    ax.text(10, 93, "Recherche de recommandations",
-            ha="left", va="center", fontsize=11, weight="bold", color=BLUE, zorder=3)
-    ax.text(10, 89.5, "Saisissez un identifiant client pour obtenir ses trajets suggérés.",
-            ha="left", va="center", fontsize=8, color=DGREY, zorder=3)
-
-    # Champ code client
-    ax.text(10, 85, "Code client *", ha="left", va="center",
-            fontsize=9, weight="bold", color="#333", zorder=3)
-    ax.add_patch(FancyBboxPatch((10, 77), 61, 6.5,
-                                boxstyle="round,pad=0,rounding_size=0.8",
-                                fc=GREY, ec="#c8d0dc", lw=1.0, zorder=2))
-    ax.text(14, 80.2, "ex. 123456", ha="left", va="center",
-            fontsize=9, color="#aaa", zorder=3)
-
-    # Sélecteur k
-    ax.text(10, 74, "Nombre de recommandations",
-            ha="left", va="center", fontsize=9, weight="bold", color="#333", zorder=3)
-    for i, k in enumerate(["1", "2", "3"]):
-        xk = 10 + i * 22
-        fc_k = BLUE if k == "3" else GREY
-        tc_k = "white" if k == "3" else "#555"
-        ec_k = BLUE if k == "3" else "#c8d0dc"
-        ax.add_patch(FancyBboxPatch((xk, 66), 19, 6.5,
-                                    boxstyle="round,pad=0,rounding_size=0.8",
-                                    fc=fc_k, ec=ec_k, lw=1.0, zorder=2))
-        ax.text(xk + 9.5, 69.2, k, ha="center", va="center",
-                fontsize=9, weight="bold", color=tc_k, zorder=3)
-
-    # Grille de modèles 2×2
-    ax.text(10, 63, "Modèle", ha="left", va="center",
-            fontsize=9, weight="bold", color="#333", zorder=3)
-    models = [
-        ("A", "Prod — ONNX",      "HR@1 76,9 %  HR@3 91,0 %", False),
-        ("B", "Challenger — ONNX","HR@1 76,9 %  HR@3 91,0 %", False),
-        ("C", "Prod — sklearn",   "HR@1 76,9 %  HR@3 91,0 %", False),
-        ("D", "Challenger — sk.", "HR@1 76,9 %  HR@3 91,0 %", True),
-    ]
-    for idx, (letter, name, metric, selected) in enumerate(models):
-        col, row = idx % 2, idx // 2
-        xm = 10 + col * 33
-        ym = 49 - row * 14
-        fc_m = LBLUE if selected else "white"
-        ec_m = BLUE if selected else "#c8d0dc"
-        lw_m = 1.8 if selected else 1.0
-        ax.add_patch(FancyBboxPatch((xm, ym), 30, 12,
-                                    boxstyle="round,pad=0,rounding_size=0.8",
-                                    fc=fc_m, ec=ec_m, lw=lw_m, zorder=2))
-        ax.text(xm + 15, ym + 8.5, f"Variant {letter}",
-                ha="center", va="center", fontsize=8.5, weight="bold", color=BLUE, zorder=3)
-        ax.text(xm + 15, ym + 5.5, name,
-                ha="center", va="center", fontsize=7.5, color="#555", zorder=3)
-        ax.text(xm + 15, ym + 2.5, metric,
-                ha="center", va="center", fontsize=7, color=DGREY, zorder=3)
-
-    # Barre de métriques
-    ax.add_patch(FancyBboxPatch((10, 20), 61, 7.5,
-                                boxstyle="round,pad=0,rounding_size=0.8",
-                                fc=LBLUE, ec=BLUE, lw=1.0, zorder=2))
-    for i, (lbl, val) in enumerate([("HR@1", "76,9 %"), ("HR@3", "91,0 %"), ("MRR@3", "83,3 %")]):
-        xb = 20 + i * 21
-        ax.text(xb, 25.5, lbl, ha="center", va="center",
-                fontsize=7.5, weight="bold", color=BLUE, zorder=3)
-        ax.text(xb, 22.5, val, ha="center", va="center",
-                fontsize=8, weight="bold", color=BLUE, zorder=3)
-
-    # Bouton soumettre
-    ax.add_patch(FancyBboxPatch((10, 10), 61, 8,
-                                boxstyle="round,pad=0,rounding_size=0.8",
-                                fc=ORANGE, ec=ORANGE, zorder=2))
-    ax.text(40.5, 14, "Obtenir les recommandations",
-            ha="center", va="center", fontsize=9.5, weight="bold", color="white", zorder=3)
-
-    # ── Panel droit : résultats ───────────────────────────────────────
-    ax.add_patch(FancyBboxPatch((83, 2), 84, 95,
-                                boxstyle="round,pad=0,rounding_size=1.5",
-                                fc="white", ec="#dde3ec", lw=1.2, zorder=1))
-    ax.text(91, 93, "Trajets suggérés",
-            ha="left", va="center", fontsize=11, weight="bold", color=BLUE, zorder=3)
-    ax.text(91, 89.5, "Variant D  ·  3 recommandations  ·  mode : model",
-            ha="left", va="center", fontsize=8, color=DGREY, zorder=3)
-
-    recs = [
-        ("1", "CASA VOYAGEURS → RABAT AGDAL",   "07:00 → 09:30  ·  Train 1234"),
-        ("2", "KENITRA → CASA PORT",             "08:15 → 10:45  ·  Train 2056"),
-        ("3", "RABAT AGDAL → MARRAKECH",         "09:00 → 12:30  ·  Train 3012"),
-    ]
-    for i, (rank, liaison, sched) in enumerate(recs):
-        yr = 77 - i * 20
-        ax.add_patch(FancyBboxPatch((88, yr), 73, 16,
-                                    boxstyle="round,pad=0,rounding_size=1.0",
-                                    fc="white", ec="#dde3ec", lw=1.0, zorder=2))
-        ax.add_patch(FancyBboxPatch((88, yr), 1.8, 16,
-                                    boxstyle="square,pad=0", fc=ORANGE, ec=ORANGE, zorder=3))
-        ax.add_patch(Circle((97, yr + 8), 4.0, fc=BLUE, ec=BLUE, zorder=3))
-        ax.text(97, yr + 8, rank, ha="center", va="center",
-                fontsize=9, weight="bold", color="white", zorder=4)
-        ax.text(104, yr + 11, liaison, ha="left", va="center",
-                fontsize=9, weight="bold", color="#222", zorder=3)
-        ax.text(104, yr + 7, sched, ha="left", va="center",
-                fontsize=8, color=DGREY, zorder=3)
-        ax.text(104, yr + 3.5,
-                "Prochain départ disponible dans l'index horaire offline.",
-                ha="left", va="center", fontsize=7.5, color=DGREY, style="italic", zorder=3)
-
-    ax.text(83, 0.5,
-            "Interface de démonstration — servie par GET / (apps/api/static/index.html)",
-            ha="left", fontsize=7.5, color=DGREY, style="italic")
-    save(fig, "interface_demo.png")
-
-
-# ===================================================================
 def main():
     print("Génération des figures dans pic/ …")
     funcs = [
@@ -843,13 +708,13 @@ def main():
         fig_zero_click_concept, fig_archi_globale, fig_archi_deux_etapes,
         fig_archi_api, fig_cold_start_cf, fig_retrain_pipeline, fig_ab_testing,
         fig_uml_composants, fig_uml_usecase, fig_uml_sequence, fig_uml_classes,
-        fig_interface_demo,
     ]
     for f in funcs:
         f()
     print(f"\nTerminé — {len(funcs)} figures dans {PIC}")
     print("À fournir à la main : oncf.png, LogoFsr.png (logos), "
-          "github_actions_ci.png, pytest_output.png, task_scheduler.png (captures).")
+          "github_actions_ci.png, pytest_output.png, task_scheduler.png, "
+          "capp.png (captures).")
 
 
 if __name__ == "__main__":
