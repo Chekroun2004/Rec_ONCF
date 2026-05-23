@@ -62,5 +62,16 @@ rapport_pfa_v2.tex
 *.pdf
 docs/guide_deploiement.tex
 
+# LaTeX build artifacts
+*.aux
+*.lof
+*.lot
+*.out
+*.toc
+*.bbl
+*.blg
+*.synctex.gz
+_compile_log.txt
+
 # Runtime logs
 logs/
