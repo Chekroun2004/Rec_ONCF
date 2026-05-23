@@ -12,8 +12,8 @@ if str(SRC_DIR) not in sys.path:
 
 import pandas as pd
 
-clean   = pd.read_parquet(PROJECT_ROOT / "data/processed/oncf_clean.parquet")
-feats   = pd.read_parquet(PROJECT_ROOT / "data/processed/features.parquet")
+clean   = pd.read_parquet(PROJECT_ROOT / "data/clean/oncf_clean.parquet")
+feats   = pd.read_parquet(PROJECT_ROOT / "data/features/oncf_features.parquet")
 with open(PROJECT_ROOT / "reports/cleaning_report.json", encoding="utf-8") as f:
     report = json.load(f)
 

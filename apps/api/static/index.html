@@ -91,6 +91,28 @@
             </div>
           </div>
 
+          <!-- Model selector -->
+          <div class="field-group" id="model-selector-group">
+            <label class="field-label" id="model-label">Modèle d'entraînement</label>
+            <div class="model-grid" id="model-grid" role="group" aria-labelledby="model-label">
+              <span class="model-grid-loading">Chargement des modèles…</span>
+            </div>
+            <div id="selected-model-metrics" class="selected-metrics" hidden>
+              <span class="sel-metric">
+                <span class="sel-metric-label">HR@1</span>
+                <span class="sel-metric-val" id="hr1-val">—</span>
+              </span>
+              <span class="sel-metric">
+                <span class="sel-metric-label">HR@3</span>
+                <span class="sel-metric-val" id="hr3-val">—</span>
+              </span>
+              <span class="sel-metric">
+                <span class="sel-metric-label">MRR@3</span>
+                <span class="sel-metric-val" id="mrr3-val">—</span>
+              </span>
+            </div>
+          </div>
+
           <!-- Schedule toggle -->
           <div class="field-group field-group--inline">
             <label class="toggle-label" for="include-schedule">
@@ -102,7 +124,7 @@
               </span>
               <span class="toggle-text">
                 Afficher les horaires
-                <span class="toggle-hint">Prochains départs depuis oncf.ma</span>
+                <span class="toggle-hint">Depuis l'index horaire local</span>
               </span>
             </label>
           </div>

@@ -103,8 +103,10 @@ def client():
     rec = Recommender.from_data(arts, clean)
     app.state.recommender_a = rec
     app.state.recommender_b = rec   # same rec — no challenger in tests
+    app.state.variants = {"a": rec, "b": rec, "c": rec, "d": rec}
+    app.state.model_meta = []
     app.state.liaison_map = {}
-    app.state.schedule_index = {}   # ← add this line
+    app.state.schedule_index = {}
     app.state.redis = None
     return TestClient(app)
 

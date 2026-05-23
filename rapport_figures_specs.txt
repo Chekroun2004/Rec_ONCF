@@ -1,0 +1,426 @@
+================================================================================
+ SPÉCIFICATIONS DES 24 FIGURES — RAPPORT PFA ONCF (Zero-Click Search)
+================================================================================
+But de ce fichier :
+  Filet de sécurité. Si le rendu de scripts/generate_report_figures.py ne te
+  convient pas pour une figure, copie la section correspondante ci-dessous et
+  envoie-la à une autre IA. Chaque figure est décrite de façon AUTONOME :
+  type, dimensions, données exactes, mise en page, et pour les UML le code
+  PlantUML prêt à coller (https://www.plantuml.com/plantuml ou planttext.com).
+
+Conventions communes :
+  - Dossier de sortie : pic/  (le rapport utilise \graphicspath{{pic/}})
+  - Les NOMS DE FICHIERS doivent être respectés à l'identique (swap direct).
+  - Palette ONCF : Bleu  #004B8D | Orange #E65300 | Vert #2E7D32
+                   Rouge #C62828 | Gris  #6B7280
+                   Fonds clairs : bleu #E8F1F8, orange #FBE3D5, vert #E4F1E4,
+                                  rouge #FBE3E3, gris #ECEEF1
+  - Police sans-serif, fond blanc, DPI ≥ 170, marges généreuses.
+  - Période des données = 2018–2020 (ne jamais mentionner test1/2021 dans une figure).
+  - Loi 09-08 : ne jamais faire apparaître de CodeClient réel.
+
+Récapitulatif (24 figures) :
+  GÉNÉRÉES PAR LE SCRIPT (20) :
+    Graphes  : gantt, hist_liaison_distribution, rapport_nettoyage,
+               encodage_cyclique, metrics_comparison, metrics_segment,
+               dist_user_top_liaison_share, latence_profiling,
+               fastpreprocessor_vs_sklearn
+    Schémas  : zero_click_concept, archi_globale, archi_deux_etapes, archi_api,
+               cold_start_cf, retrain_pipeline, ab_testing
+    UML      : uml_composants, uml_usecase, uml_sequence, uml_classes
+  À FOURNIR À LA MAIN (4 + logos) :
+    Captures : github_actions_ci, pytest_output, task_scheduler
+    Logos    : oncf.png, LogoFsr.png
+
+
+================================================================================
+ PARTIE 1 — GRAPHES DE DONNÉES (matplotlib)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────
+[gantt.png]  — Diagramme de Gantt du planning
+TYPE : barres horizontales (1 barre par phase), axe X = dates.
+TITRE : « Planning du stage — 13 semaines (16 mars → 16 juin 2026) »
+DONNÉES (phase ; début ; fin ; durée ; couleur) :
+  1. Cadrage & étude de l'existant ; 16/03/2026 ; 29/03/2026 ; 14 j ; gris
+  2. Sprint 1 : Données & Modèle v1 ; 30/03/2026 ; 26/04/2026 ; 28 j ; bleu
+  3. Sprint 2 : Architecture & API ; 27/04/2026 ; 24/05/2026 ; 28 j ; bleu
+  4. Phase 3 : Production & A/B Test ; 25/05/2026 ; 08/06/2026 ; 15 j ; orange
+  5. Consolidation & rapport ; 09/06/2026 ; 16/06/2026 ; 8 j ; vert
+MISE EN PAGE : nom de phase à gauche, durée « N j » au centre de la barre,
+  graduations mensuelles sur l'axe X, grille verticale pointillée.
+
+────────────────────────────────────────────────────────────────────────────
+[hist_liaison_distribution.png]  — Distribution des liaisons
+TYPE : barres verticales, top 25 des LiaisonId les plus fréquents.
+SOURCE DONNÉES RÉELLES : data/processed/oncf_clean.parquet, colonne LiaisonId,
+  value_counts().head(25). Allure « longue traîne » (quelques navettes dominent).
+TITRE : « Distribution des liaisons par fréquence de réservation
+          (longue traîne : quelques navettes dominent) »
+AXES : X = LiaisonId (étiquettes pivotées 60°), Y = Nombre de réservations.
+
+────────────────────────────────────────────────────────────────────────────
+[rapport_nettoyage.png]  — Bilan du nettoyage (waterfall)
+TYPE : graphique en cascade (waterfall) de 6 barres.
+TITRE : « Bilan du nettoyage : 946 155 → 491 680 lignes (taux 51,9 %) »
+DONNÉES :
+  Départ  : Lignes brutes      = 946 155            (bleu, pleine)
+  -        Annulations (-38 %)  = -172 701           (rouge, flottante)
+  -        Cold start  (-31 %)  = -140 887           (orange, flottante)
+  -        Doublons    (-19 %)  =  -86 350           (violet, flottante)
+  -        Incomplètes (-12 %)  =  -54 537           (gris, flottante)
+  Arrivée : Dataset propre      = 491 680            (vert, pleine)
+  (Total écarté = 454 475 ; 38+31+19+12 = 100 %.)
+
+────────────────────────────────────────────────────────────────────────────
+[encodage_cyclique.png]  — Encodage cyclique de l'heure
+TYPE : cercle unité avec les 24 heures placées dessus.
+FORMULE : hour_sin = sin(2π·h/24) ; hour_cos = cos(2π·h/24).
+MESSAGE CLÉ : montrer que 23h et 0h sont ADJACENTS sur le cercle (pas de
+  discontinuité artificielle). Mettre en évidence les points 0,6,12,18,23h.
+TITRE : « Encodage cyclique de l'heure (sin, cos) ».
+
+────────────────────────────────────────────────────────────────────────────
+[metrics_comparison.png]  — XGBoost vs baselines (Sprint 1)
+TYPE : barres groupées (3 barres HR@1 / HR@3 / MRR@3 par modèle).
+TITRE : « XGBoost vs baselines — supériorité sur les trois métriques
+          (×2,69 vs la meilleure baseline sur HR@1) »
+DONNÉES (modèle ; HR@1 ; HR@3 ; MRR@3, en %) :
+  global_top        ;  3,99 ; 11,25 ;  7,07
+  prev_liaison      ; 26,20 ; 32,04 ; 28,81
+  most_frequent     ; 27,51 ; 51,28 ; 38,65
+  XGBoost (Sprint 1); 73,95 ; 88,77 ; 80,64
+AXE Y : 0–100 %.
+
+────────────────────────────────────────────────────────────────────────────
+[metrics_segment.png]  — Métriques par profondeur d'historique
+TYPE : barres groupées (3 métriques par segment).
+TITRE : « Métriques par profondeur d'historique — amélioration monotone »
+DONNÉES (segment ; lignes test ; HR@1 ; HR@3 ; MRR@3, en %) :
+  0–2 voyages   ; 44 397 ; 73,9 ; 89,3 ; 80,9
+  3–5 voyages   ; 16 780 ; 75,2 ; 90,4 ; 82,1
+  6–20 voyages  ; 23 737 ; 77,9 ; 91,6 ; 84,1
+  21+ (fidèles) ; 13 347 ; 82,7 ; 93,1 ; 87,4
+AXE Y : 60–100 % (pour bien voir la progression).
+
+────────────────────────────────────────────────────────────────────────────
+[dist_user_top_liaison_share.png]  — Distribution de user_top_liaison_share
+TYPE : histogramme (24 classes) de la variable, valeurs dans [0, 1].
+SOURCE DONNÉES RÉELLES : data/processed/features.parquet,
+  colonne user_top_liaison_share (dropna).
+MESSAGE : pic à droite = voyageurs fidèles à un seul trajet (share ≈ 1).
+AXES : X = user_top_liaison_share, Y = Nombre de lignes.
+
+────────────────────────────────────────────────────────────────────────────
+[latence_profiling.png]  — Décomposition de la latence
+TYPE : barres horizontales (ms), triées croissantes.
+TITRE : « Décomposition du chemin d'inférence (ONNX actif) — ColumnTransformer
+          = 49 % du temps : le goulot à éliminer »
+DONNÉES (étape ; ms) :
+  Scoring & tri des candidats      ; 0,002 (gris)
+  compute_inference_row            ; 1,4   (bleu)
+  Candidate generation             ; 2,7   (bleu)
+  ONNX inference (session.run)     ; 3,2   (vert)
+  ColumnTransformer.transform      ; 11,3  (rouge — le goulot)
+  (Total chemin ≈ 23 ms, ColumnTransformer ≈ 49 %.)
+
+────────────────────────────────────────────────────────────────────────────
+[fastpreprocessor_vs_sklearn.png]  — FastPreprocessor vs ColumnTransformer
+TYPE : 2 barres, axe Y en échelle LOG (sinon la 2e est invisible).
+DONNÉES :
+  ColumnTransformer.transform = 11,3 ms (rouge)
+  FastPreprocessor (dict lookup) = 0,01 ms (vert)
+  Annotation centrale : « × ~1 130 plus rapide ».
+TITRE : « FastPreprocessor vs ColumnTransformer.transform ».
+
+
+================================================================================
+ PARTIE 2 — SCHÉMAS D'ARCHITECTURE (boîtes + flèches)
+================================================================================
+Outil conseillé si re-création manuelle : draw.io / Excalidraw / Mermaid.
+Règles : boîtes arrondies, flèches orthogonales sans croisement, beaucoup d'air.
+
+────────────────────────────────────────────────────────────────────────────
+[zero_click_concept.png]  — Concept Zero-Click
+DEUX maquettes de téléphone côte à côte, flèche orange « modèle prédictif »
+au milieu.
+  GAUCHE « AVANT » (rouge) : liste de 5 étapes empilées —
+     1. Saisir gare de départ
+     2. Saisir gare d'arrivée
+     3. Sélectionner une date
+     4. Lancer la recherche
+     5. Choisir un train
+  DROITE « APRÈS » (vert) : 3 cartes empilées —
+     - « Bonjour, Votre trajet habituel ? »
+     - « Casa Voyageurs → Rabat Agdal · 07:00 · Confirmer » (en gras, vert)
+     - « Suggestion proactive à l'ouverture »
+TITRE : « Concept Zero-Click Search : 5 étapes → 0 saisie ».
+
+────────────────────────────────────────────────────────────────────────────
+[archi_globale.png]  — Architecture 4 couches
+4 boîtes empilées verticalement, flèches bidirectionnelles entre couches :
+  1. Couche API — FastAPI       : /recommend  /feedback  /schedule  /health
+  2. Couche Logique — rec_oncf  : recommender · candidates · features ·
+                                  cold_start · training
+  3. Couche Modèle — models/    : xgb_ranker.onnx · label_encoder ·
+                                  cold_start · popularity
+  4. Couche Données — data/processed/ : oncf_clean.parquet ·
+                                        features.parquet (lecture seule)
+TITRE : « Architecture globale — 4 couches ».
+
+Variante Mermaid :
+```mermaid
+flowchart TB
+  A["Couche API — FastAPI<br/>/recommend /feedback /schedule /health"]
+  B["Couche Logique — rec_oncf<br/>recommender · candidates · features · cold_start · training"]
+  C["Couche Modèle — models/<br/>xgb_ranker.onnx · label_encoder · cold_start · popularity"]
+  D["Couche Données — data/processed/<br/>oncf_clean.parquet · features.parquet"]
+  A <--> B <--> C <--> D
+```
+
+────────────────────────────────────────────────────────────────────────────
+[archi_deux_etapes.png]  — Architecture deux étapes
+Flux horizontal gauche→droite :
+  [Historique utilisateur] → [Étape 1 : Candidate Generation (heuristique,
+  < 3 ms) → ≤ 10 candidats] → [Étape 2 : Ranking XGBoost (1 011 classes),
+  restreint aux candidats] → [Top-k (k ≤ 3)]
+TITRE : « Architecture deux étapes : Candidate Generation → Ranking ».
+
+Variante Mermaid :
+```mermaid
+flowchart LR
+  H[Historique utilisateur] --> E1["Étape 1 : Candidate Generation<br/>(heuristique, &lt;3 ms) → ≤10 candidats"]
+  E1 --> E2["Étape 2 : Ranking XGBoost<br/>(1011 classes) restreint aux candidats"]
+  E2 --> TK[Top-k k≤3]
+```
+
+────────────────────────────────────────────────────────────────────────────
+[archi_api.png]  — Architecture de l'API FastAPI
+Flux vertical :
+  [Application mobile ONCF Voyages]
+      ↓ (HTTP)
+  [FastAPI (main.py) : POST /recommend · /feedback · GET /schedule · /health]
+      ↓
+  [Recommender (lifespan, chargé 1× au démarrage) :
+   history_lookup · onnx_session · fast_preprocessor]
+      ↙                         ↘
+  [models/ : onnx · label_encoder]   [schedule_index.joblib (horaires offline)]
+TITRE : « Architecture de l'API FastAPI ».
+
+────────────────────────────────────────────────────────────────────────────
+[cold_start_cf.png]  — Cold start par co-occurrence
+Petit graphe de nœuds (liaisons) reliés par des arêtes (co-réservation) :
+  - Nœuds BLEUS = liaisons connues de l'utilisateur (ex. A, B).
+  - Nœuds ORANGE = liaisons recommandées (les plus co-réservées, ex. C, D, E).
+  - Arêtes : A–C, A–D, B–C, B–E, C–E, D–E.
+Légende bas : « Deux liaisons sont co-associées si un même client les a
+  réservées toutes les deux ».
+TITRE : « Cold start : filtrage collaboratif par co-occurrence ».
+
+────────────────────────────────────────────────────────────────────────────
+[retrain_pipeline.png]  — Pipeline de réentraînement (flowchart)
+Flux vertical avec un LOSANGE de décision :
+  1. Chargement des données (oncf_clean + features.parquet)
+       ↓
+  2. Entraînement XGBoost (mêmes hyperparamètres)
+       ↓
+  3. Évaluation HR@1 · HR@3 · MRR@3 (split 20 %)
+       ↓ ── (flèche grise vers) → [Challenger toujours sauvegardé] (vert)
+  <Losange> Guardrail : HR@1 chute > 5 pp ?
+       ── OK (bas, vert)  → [Promotion (remplace prod)] (vert)
+       ── BLOQUÉ (droite, rouge) → [Promotion bloquée] (rouge)
+TITRE : « Pipeline de réentraînement avec guardrail ».
+
+Variante Mermaid :
+```mermaid
+flowchart TB
+  S1[1. Chargement données] --> S2[2. Entraînement XGBoost]
+  S2 --> S3[3. Évaluation HR@1/HR@3/MRR@3]
+  S3 --> CH[Challenger toujours sauvegardé]
+  S3 --> G{Guardrail : HR@1 chute > 5 pp ?}
+  G -- Non/OK --> P[Promotion remplace prod]
+  G -- Oui --> B[Promotion bloquée]
+```
+
+────────────────────────────────────────────────────────────────────────────
+[ab_testing.png]  — Framework A/B testing
+Flux :
+  [Application mobile] → [/recommend ?variant=a|b]
+      ↗ variant a → [Variant A (prod) : xgb_ranker.onnx] (vert)
+      ↘ variant b → [Variant B (challenger) : xgb_ranker_challenger.onnx] (orange)
+  Bandeau bas : « Réponse : request_id (UUID4) → /feedback → analyse CTR par
+  jointure (sans CodeClient) ».
+TITRE : « Framework A/B testing (routing piloté par le client) ».
+
+
+================================================================================
+ PARTIE 3 — DIAGRAMMES UML (code PlantUML prêt à coller)
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────
+[uml_composants.png]  — Diagramme de composants
+@startuml
+title Diagramme de composants
+skinparam componentStyle uml2
+skinparam backgroundColor White
+skinparam component { BackgroundColor White }
+
+package "« couche API »" #E8F1F8 {
+  [apps/api/main.py] as API
+}
+package "« couche logique » rec_oncf" #FBE3D5 {
+  [recommender]
+  [candidates]
+  [features]
+  [training]
+  [cold_start]
+  [popularity]
+  [local_schedule]
+  [retrain]
+}
+package "« couche modèle » models/" #E4F1E4 {
+  [xgb_ranker.onnx]
+  [label_encoder.joblib]
+  [cold_start.joblib]
+  [popularity.joblib]
+  [schedule_index.joblib]
+}
+package "« couche données » data/processed/" #ECEEF1 {
+  [oncf_clean.parquet]
+  [features.parquet]
+}
+API ..> recommender : dépend de
+recommender ..> [xgb_ranker.onnx] : charge
+recommender ..> [oncf_clean.parquet] : lit
+recommender ..> [features.parquet] : lit
+@enduml
+
+────────────────────────────────────────────────────────────────────────────
+[uml_usecase.png]  — Diagramme de cas d'utilisation
+@startuml
+title Diagramme de cas d'utilisation
+left to right direction
+skinparam backgroundColor White
+skinparam packageStyle rectangle
+
+actor "Utilisateur mobile" as U
+actor "Application mobile" as A
+actor "Système de réentraînement" as S
+actor "Data Scientist / Ops" as D
+
+rectangle "Système de recommandation ONCF" {
+  usecase "Consulter recommandations" as UC1
+  usecase "Envoyer feedback (clic)" as UC2
+  usecase "Obtenir horaires de la liaison" as UC3
+  usecase "Réentraîner le modèle" as UC4
+  usecase "Évaluer & promouvoir" as UC5
+  usecase "Configurer le guardrail" as UC6
+}
+
+U --> UC1
+U --> UC2
+A --> UC1
+A --> UC2
+A --> UC3
+S --> UC4
+S --> UC5
+D --> UC5
+D --> UC6
+@enduml
+
+────────────────────────────────────────────────────────────────────────────
+[uml_sequence.png]  — Diagramme de séquence POST /recommend
+@startuml
+title Diagramme de séquence : POST /recommend
+skinparam backgroundColor White
+skinparam sequenceMessageAlign center
+
+participant "Application mobile" as App
+participant "API FastAPI" as API
+participant "Recommender" as Rec
+participant "ONNX Runtime" as ONNX
+
+App -> API  : POST /recommend {code_client, k, variant}
+API -> Rec  : recommend(code_client, k)
+Rec -> Rec  : history_lookup.get()\n(si < 3 voyages → cold start CF)
+Rec -> Rec  : generate_candidates()\n+ compute_inference_row()
+Rec -> ONNX : session.run(features encodées)
+ONNX --> Rec : probabilités (1 011 classes)
+Rec -> Rec  : filtre top-k aux candidats valides
+Rec --> API : {mode, recommendations, labels, request_id}
+API --> App : 200 OK  (~14 ms)
+@enduml
+
+────────────────────────────────────────────────────────────────────────────
+[uml_classes.png]  — Diagramme de classes simplifié
+@startuml
+title Diagramme de classes simplifié
+skinparam backgroundColor White
+skinparam classAttributeIconSize 0
+
+class Recommender {
+  + artifacts
+  + history_lookup
+  + cold_start_rec
+  + onnx_session
+  + fast_preprocessor
+  + popularity
+  --
+  + from_paths()
+  + from_data()
+  + recommend()
+}
+class TrainArtifacts {
+  + pipeline
+  + label_encoder
+  --
+  + predict_proba()
+}
+class FastPreprocessor {
+  + cat_maps
+  + num_cols
+  --
+  + encode()
+}
+class ColdStartRecommender {
+  + cooccurrence
+  --
+  + recommend()
+}
+
+Recommender o--> TrainArtifacts : utilise
+Recommender o--> FastPreprocessor : utilise
+Recommender o--> ColdStartRecommender : utilise
+@enduml
+
+
+================================================================================
+ PARTIE 4 — À FOURNIR À LA MAIN (captures d'écran + logos)
+================================================================================
+Ces 5 images NE PEUVENT PAS être générées par script. À placer dans pic/.
+
+[oncf.png]   — Logo officiel ONCF (déjà présent dans pic/). Fond transparent.
+[LogoFsr.png]— Logo Faculté des Sciences de Rabat (déjà présent). Page de garde.
+
+[github_actions_ci.png] — Capture de l'onglet « Actions » du dépôt GitHub
+   montrant un run vert du workflow de tests. Doit afficher « 164 tests » /
+   « 164 passed ». (Régénérer la capture après le passage 163→164.)
+
+[pytest_output.png] — Capture du terminal après :
+       .venv\Scripts\python.exe -m pytest tests/ -v
+   La dernière ligne doit montrer « 164 passed ». Cadrer sur le résumé final.
+   (Régénérer après le passage 163→164.)
+
+[task_scheduler.png] — Capture du Planificateur de tâches Windows montrant la
+   tâche « ONCF\DailyRetrain » (déclencheur 02h00). Créée via :
+       schtasks /Create /XML tasks\oncf_daily_retrain.xml /TN "ONCF\DailyRetrain" /F
+
+
+================================================================================
+ RAPPEL D'EXÉCUTION
+================================================================================
+  .venv\Scripts\python.exe scripts/generate_report_figures.py
+  → écrit les 20 PNG dans pic/. Les graphes de données lisent les vrais
+    parquet (oncf_clean.parquet, features.parquet) ; si absents, un repli
+    synthétique est utilisé (un avertissement est affiché).
+================================================================================
