@@ -9,7 +9,7 @@
 ![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?logo=githubactions&logoColor=white)
 ![Latency](https://img.shields.io/badge/p50_latency-%3C14ms-blue)
 ![HR@1](https://img.shields.io/badge/HR%401-76.28%25-success)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-academic-lightgrey)
 
 Proactive railway trip recommender for **ONCF** (Office National des Chemins de Fer du Maroc). Predicts the most likely next O/D pair (`LiaisonId`) for each client based on booking history and contextual signals, then exposes the top-1 / top-3 recommendations via a REST API.
 
@@ -221,4 +221,4 @@ deploy/                Docker + docker-compose
 
 ## License
 
-[MIT](LICENSE) — Omar Chekroun, 2026.
+Internal academic project — UM5 Rabat / ONCF.
