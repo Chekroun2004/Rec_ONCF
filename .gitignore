@@ -26,9 +26,10 @@ pip-wheel-metadata/
 .tox/
 .nox/
 
-# Editors / OS
+# Editors / OS / AI
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 .DS_Store
@@ -56,6 +57,9 @@ coverage.xml
 *.log
 *.tmp
 
+# Legacy code folder
+Code/
+
 # Documentation source (not published to repo)
 rapport_pfa.tex
 rapport_pfa_v2.tex
@@ -75,3 +79,10 @@ _compile_log.txt
 
 # Runtime logs
 logs/
+
+# Deploy secrets
+deploy/.env
+
+# Misc temp files
+api_out.txt
+tasks/

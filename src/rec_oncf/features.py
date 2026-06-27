@@ -178,6 +178,7 @@ def compute_inference_row(
             trip-context columns. Order does not matter (sorted internally).
         asof: Reference datetime for the prediction (defaults to "now" in UTC
             naive). The cyclic temporal features and ``days_since_prev`` are
+        
             computed from this value.
 
     Returns:
