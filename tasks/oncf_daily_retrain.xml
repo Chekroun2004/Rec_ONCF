@@ -41,8 +41,8 @@
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>C:\Users\omarc\Desktop\Rec_ONCF\scripts\retrain_job.bat</Command>
-      <WorkingDirectory>C:\Users\omarc\Desktop\Rec_ONCF</WorkingDirectory>
+      <Command>C:\Projects\Rec_ONCF\scripts\retrain_job.bat</Command>
+      <WorkingDirectory>C:\Projects\Rec_ONCF</WorkingDirectory>
     </Exec>
   </Actions>
 </Task>
